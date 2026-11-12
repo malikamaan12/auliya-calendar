@@ -46,7 +46,7 @@ export const DICT: Record<LangCode, Record<string, string>> = {
     hilalOffset: "Hilal Offset",
     continueJourney: "Continue Your Journey",
     guestMode: "Guest Mode (Offline-First)",
-    saveProgress: "Save Streak & Sync",
+    saveProgress: "My Profile",
     hanafiLocked: "Hanafi Madhhab (Mithlayn Asr)",
     makruhWarning: "Makruh Tahrimi Window Active",
     safeWindow: "Permissible Salah Window",

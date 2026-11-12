@@ -43,3 +43,18 @@ npm run start
 - `SHA-256` sacred text verification & `AES-256-GCM` client-side Zakat encryption (`src/lib/crypto-integrity.ts`).
 - Strict HTTP security headers configured in `next.config.ts`.
 - Server-side Zod validation on API routes (`/api/health`, `/api/auliya`, `/api/quiz/verify`).
+
+## User-facing behaviour notes
+
+- **No account required.** All progress (Salah log, streak, Tasbih, Qaza-e-Umri, Zakat Hawl, Barsi dates) is stored privately in the browser (`localStorage`, key `auliya_companion_state_v2`). "My Profile" only stores a display name on the device. Cloud sync (Apple / Google / Email OTP) needs a backend (e.g. Supabase) and is not enabled yet.
+- **Timezones.** Prayer times are calculated and displayed in the *selected city's* timezone. On first launch the city matching the device timezone is chosen automatically; "GPS" uses the device location.
+- **Daily rollover.** At city-local midnight the daily counters reset. The streak increases when all 5 Fard were logged; a Qaza Shield (earned every 7 days) protects one missed day.
+- **Azan / Jamaat alerts** fire a chime + browser notification at Azan time and before Jamaat (per-prayer settings) **while the app is open**. Background push requires a service worker + push server.
+- **Zakat** metal prices are approximate defaults — users should enter today's local rate.
+- **Admin Studio** stores new profiles locally; the scholar-approval step is a local confirmation, not real FIDO2.
+
+## Deploy
+
+```bash
+npm install && npm run build && npm run start   # or deploy to Vercel (zero config)
+```

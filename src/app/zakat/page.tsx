@@ -142,6 +142,13 @@ export default function ZakatPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Inputs */}
         <section className="lg:col-span-7 bento-card p-6 space-y-5">
+          <p
+            className="p-3 rounded-xl border text-[11px]"
+            style={{ borderColor: "var(--accent-gold)", backgroundColor: "var(--gold-soft)" }}
+          >
+            The gold and silver prices below are approximate starting values. Please enter today&apos;s price from
+            your local market or jeweller before calculating your Zakat.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
               <label className="block font-semibold mb-1">24K Gold Spot ({sym} / gram)</label>

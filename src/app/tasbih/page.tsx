@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, RotateCcw, CheckCircle2, MinusCircle } from "lucide-react";
 import { useApp } from "@/lib/store";
@@ -18,8 +18,10 @@ export default function TasbihPage() {
     sunnahChecks,
     toggleSunnah,
     qazaUmriRemaining,
+    setQazaUmri,
     decrementQazaUmri,
   } = useApp();
+  const [qazaYears, setQazaYears] = useState("");
 
   const activeLitany = TASBIH_LITANIES.find((l) => l.id === activeLitanyId) || TASBIH_LITANIES[0];
 
@@ -170,6 +172,41 @@ export default function TasbihPage() {
                 Chip away at lifetime missed Fard + Witr prayers with 1-tap logging.
               </p>
             </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const years = Math.max(0, Math.min(80, parseFloat(qazaYears) || 0));
+                const n = Math.round(years * 365);
+                setQazaUmri({ fajr: n, dhuhr: n, asr: n, maghrib: n, isha: n, witr: n });
+                setQazaYears("");
+              }}
+              className="flex items-center gap-2"
+            >
+              <input
+                type="number"
+                min={0}
+                max={80}
+                step={0.5}
+                inputMode="decimal"
+                placeholder="Missed years (estimate)"
+                aria-label="Estimated years of missed prayers"
+                value={qazaYears}
+                onChange={(e) => setQazaYears(e.target.value)}
+                className="flex-1 min-w-0 px-3 py-2 rounded-xl border text-xs bg-transparent outline-none"
+                style={{ borderColor: "var(--border-hairline)" }}
+              />
+              <button
+                type="submit"
+                className="px-3 py-2 rounded-xl text-xs font-semibold text-white cursor-pointer shrink-0"
+                style={{ backgroundColor: "var(--accent-primary)" }}
+              >
+                Set
+              </button>
+            </form>
+            <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+              Estimate the years of missed Salah since Bulugh (puberty); we count 365 of each Fard + Witr per year.
+              Tap a prayer below each time you offer one Qaza.
+            </p>
             <div className="grid grid-cols-2 gap-2.5">
               {(["fajr", "dhuhr", "asr", "maghrib", "isha", "witr"] as (PrayerName | "witr")[]).map(
                 (p) => (

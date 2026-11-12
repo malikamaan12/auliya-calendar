@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Amiri, Noto_Sans_Devanagari, Gulzar } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/lib/store";
@@ -36,6 +36,15 @@ export const metadata: Metadata = {
   description:
     "Cross-platform Sunni (Ahl-e-Sunnat wal Jama'at) & Hanafi digital sanctuary featuring Auliya Allah encyclopedia, Shajrah lineage graphs, 360° Ziyarat, Hanafi Azan & custom Jamaat timings, Kanzul Iman Quran, Bahar-e-Shariat Fiqh, Smart Tasbih, Zakat Calculator, and Sahib-e-Ilm Trivia.",
   manifest: "/manifest.json",
+  applicationName: "Auliya Calendar",
+  appleWebApp: { capable: true, title: "Auliya Calendar", statusBarStyle: "black-translucent" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#047857",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

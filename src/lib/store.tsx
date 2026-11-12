@@ -8,9 +8,12 @@ import {
   CityPreset,
   computeHanafiSchedule,
   DEFAULT_PRAYER_SETTINGS,
+  detectCityFromDevice,
   HanafiPrayerSchedule,
   PrayerName,
   PrayerSettingsMap,
+  setDisplayTimeZone,
+  zonedParts,
 } from "./prayer-engine";
 import { getHijriDate, HijriDateInfo } from "./hijri";
 import { AULIYA_DATA, AuliyaProfile } from "@/data/auliya";
@@ -36,7 +39,7 @@ export interface AuditEntry {
 export interface AppUser {
   name: string;
   email: string;
-  provider: "Apple" | "Google" | "Email OTP";
+  provider: "Local";
 }
 
 interface PersistedState {
@@ -67,7 +70,24 @@ interface PersistedState {
   auditLogs: AuditEntry[];
   user: AppUser | null;
   hasInteracted: boolean;
+  /** YYYY-MM-DD (city-local) of the last day the app was used — drives daily rollover. */
+  lastActiveDate: string;
 }
+
+const EMPTY_SALAH: Record<PrayerName, PrayerLogStatus> = {
+  fajr: "none",
+  dhuhr: "none",
+  asr: "none",
+  maghrib: "none",
+  isha: "none",
+};
+
+const EMPTY_SUNNAH: Record<string, boolean> = {
+  miswak: false,
+  ishraq: false,
+  surah_mulk: false,
+  tahajjud: false,
+};
 
 const DEFAULT_STATE: PersistedState = {
   theme: "dark",
@@ -76,43 +96,82 @@ const DEFAULT_STATE: PersistedState = {
   city: CITY_PRESETS[0],
   calcMethod: "Karachi",
   prayerSettings: DEFAULT_PRAYER_SETTINGS,
-  salahToday: { fajr: "jamaat", dhuhr: "ontime", asr: "none", maghrib: "none", isha: "none" },
-  sunnahChecks: { miswak: true, ishraq: false, surah_mulk: false, tahajjud: false },
-  tasbihTotalToday: 33,
+  salahToday: EMPTY_SALAH,
+  sunnahChecks: EMPTY_SUNNAH,
+  tasbihTotalToday: 0,
   tasbihTarget: 100,
   activeLitanyId: "durood-razawiyya",
-  ilmPoints: 1200,
-  quranVersesToday: 4,
-  lastQuranRef: "18:28",
+  ilmPoints: 0,
+  quranVersesToday: 0,
+  lastQuranRef: "1:1",
   sajdaQueue: [],
-  sajdaCompleted: ["84:21"],
-  streakDays: 14,
-  qazaShieldAvailable: true,
-  qazaUmriRemaining: { fajr: 120, dhuhr: 95, asr: 110, maghrib: 45, isha: 130, witr: 130 },
-  bestQuizTier: 5,
+  sajdaCompleted: [],
+  streakDays: 0,
+  qazaShieldAvailable: false,
+  qazaUmriRemaining: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0, witr: 0 },
+  bestQuizTier: 0,
   hawlHijriMonth: 9,
   hawlHijriDay: 1,
-  familyBarsis: [
-    { id: "b-1", personName: "Marhum Dada Jan", hijriMonth: 4, hijriDay: 14, relation: "Grandfather" },
-  ],
+  familyBarsis: [],
   customAuliya: [],
-  auditLogs: [
-    {
-      id: "aud-1",
-      timestamp: "2026-11-12T08:00:00Z",
-      actor: "Mufti Scholar Reviewer (FIDO2)",
-      action: "Published",
-      target: "7 Flagship Auliya Profiles & Kanzul Iman SHA-256 Bundle",
-    },
-  ],
+  auditLogs: [],
   user: null,
   hasInteracted: false,
+  lastActiveDate: "",
 };
 
-const STORAGE_KEY = "auliya_companion_state_v1";
+const STORAGE_KEY = "auliya_companion_state_v2";
+
+function dayKey(d: Date, tz?: string): string {
+  const p = zonedParts(d, tz);
+  return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+}
+
+function daysBetween(a: string, b: string): number {
+  const pa = Date.parse(`${a}T00:00:00Z`);
+  const pb = Date.parse(`${b}T00:00:00Z`);
+  if (Number.isNaN(pa) || Number.isNaN(pb)) return 0;
+  return Math.round((pb - pa) / 86400000);
+}
+
+/** Reset daily counters when the (city-local) date changes and update the streak. */
+function applyDailyRollover(s: PersistedState, today: string): PersistedState {
+  if (!s.lastActiveDate) return { ...s, lastActiveDate: today };
+  if (s.lastActiveDate === today) return s;
+  const gap = daysBetween(s.lastActiveDate, today);
+  if (gap <= 0) return { ...s, lastActiveDate: today };
+
+  const allFardLogged = Object.values(s.salahToday).every((v) => v !== "none");
+  let streakDays = s.streakDays;
+  let qazaShieldAvailable = s.qazaShieldAvailable;
+  if (allFardLogged && gap === 1) {
+    streakDays += 1;
+    if (streakDays > 0 && streakDays % 7 === 0) qazaShieldAvailable = true;
+  } else if (qazaShieldAvailable && gap <= 2) {
+    // Qaza Shield protects the streak once
+    qazaShieldAvailable = false;
+  } else {
+    streakDays = 0;
+  }
+
+  return {
+    ...s,
+    lastActiveDate: today,
+    streakDays,
+    qazaShieldAvailable,
+    salahToday: EMPTY_SALAH,
+    sunnahChecks: EMPTY_SUNNAH,
+    tasbihTotalToday: 0,
+    quranVersesToday: 0,
+  };
+}
 
 interface AppContextValue extends PersistedState {
+  /** True once localStorage has been read on the client (avoids SSR hydration mismatch). */
+  hydrated: boolean;
   now: Date;
+  /** Current hour (0-23) in the selected city's timezone. */
+  cityHour: number;
   hijri: HijriDateInfo;
   schedule: HanafiPrayerSchedule;
   allAuliya: AuliyaProfile[];
@@ -132,6 +191,7 @@ interface AppContextValue extends PersistedState {
   logQuranAyah: (ref: string) => void;
   logSajda: (ref: string, action: "now" | "defer") => void;
   decrementQazaUmri: (p: PrayerName | "witr") => void;
+  setQazaUmri: (counts: Record<PrayerName | "witr", number>) => void;
   setHawlDate: (m: number, d: number) => void;
   addFamilyBarsi: (b: Omit<FamilyBarsi, "id">) => void;
   upsertCustomAuliya: (a: AuliyaProfile, actorNote: string) => void;
@@ -149,15 +209,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Hydrate offline-first from localStorage in < 5ms
   useEffect(() => {
     Promise.resolve().then(() => {
+      let next: PersistedState = DEFAULT_STATE;
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw) as Partial<PersistedState>;
-          setState((prev) => ({ ...prev, ...parsed }));
+          next = { ...DEFAULT_STATE, ...parsed };
+        } else {
+          // First launch: pick the preset city matching this device's timezone
+          const detected = detectCityFromDevice();
+          if (detected) next = { ...DEFAULT_STATE, city: detected };
         }
       } catch {
         // ignore corrupted storage
       }
+      next = applyDailyRollover(next, dayKey(new Date(), next.city.tz));
+      setState(next);
+      setNow(new Date());
       setHydrated(true);
     });
   }, []);
@@ -185,11 +253,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     html.setAttribute("lang", state.lang === "ro_ur" ? "en" : state.lang);
   }, [state.theme, state.lang]);
 
-  // Live 1-second clock tick for Azan/Jamaat countdown
+  // Live 1-second clock tick for Azan/Jamaat countdown + midnight rollover
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    if (!hydrated) return;
+    const timer = setInterval(() => {
+      const t = new Date();
+      setNow(t);
+      setState((s) => applyDailyRollover(s, dayKey(t, s.city.tz)));
+    }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [hydrated]);
+
+  // All displayed times use the selected city's timezone
+  setDisplayTimeZone(state.city.tz);
 
   const hijri = useMemo(() => getHijriDate(now, state.hilalOffset), [now, state.hilalOffset]);
 
@@ -200,9 +276,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         state.city.lng,
         now,
         state.calcMethod,
-        state.prayerSettings
+        state.prayerSettings,
+        state.city.tz
       ),
-    [state.city.lat, state.city.lng, now, state.calcMethod, state.prayerSettings]
+    [state.city.lat, state.city.lng, state.city.tz, now, state.calcMethod, state.prayerSettings]
   );
 
   const allAuliya = useMemo(() => {
@@ -230,7 +307,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value: AppContextValue = {
     ...state,
+    hydrated,
     now,
+    cityHour: zonedParts(now, state.city.tz).hour,
     hijri,
     schedule,
     allAuliya,
@@ -310,6 +389,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           [p]: Math.max(0, s.qazaUmriRemaining[p] - 1),
         },
       })),
+    setQazaUmri: (counts) =>
+      setState((s) => ({ ...s, hasInteracted: true, qazaUmriRemaining: { ...counts } })),
     setHawlDate: (hawlHijriMonth, hawlHijriDay) =>
       setState((s) => ({ ...s, hawlHijriMonth, hawlHijriDay })),
     addFamilyBarsi: (b) =>

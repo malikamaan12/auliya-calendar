@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Clock,
   Compass,
@@ -16,6 +16,24 @@ import { CalcMethodId, formatTime, PrayerName } from "@/lib/prayer-engine";
 export default function PrayerPage() {
   const { city, calcMethod, setCalcMethod, schedule, prayerSettings, updatePrayerSetting } = useApp();
   const [chimePlayed, setChimePlayed] = useState<string | null>(null);
+  const [notifPerm, setNotifPerm] = useState<NotificationPermission | "unsupported">("default");
+
+  useEffect(() => {
+    Promise.resolve().then(() =>
+      setNotifPerm(typeof Notification === "undefined" ? "unsupported" : Notification.permission)
+    );
+  }, []);
+
+  const enableNotifications = async () => {
+    if (typeof Notification === "undefined") return;
+    try {
+      const res = await Notification.requestPermission();
+      setNotifPerm(res);
+      if (res === "granted") playGentleChime("Alerts enabled");
+    } catch {
+      // ignore
+    }
+  };
 
   const playGentleChime = (label: string) => {
     setChimePlayed(label);
@@ -68,6 +86,39 @@ export default function PrayerPage() {
             <option value="NorthAmerica" className="text-black">ISNA (North America)</option>
           </select>
         </div>
+      </div>
+
+      {/* Azan / Jamaat alert permission */}
+      <div
+        className="p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+        style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
+      >
+        <div className="flex items-start gap-3">
+          <Bell className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "var(--accent-primary)" }} />
+          <div className="text-sm">
+            <div className="font-semibold">Azan &amp; Jamaat Alerts</div>
+            <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+              {notifPerm === "granted"
+                ? "Alerts are on. A chime and notification play at Azan and before Jamaat while this app is open."
+                : notifPerm === "denied"
+                ? "Notifications are blocked in your browser settings. A chime will still play while this app is open."
+                : notifPerm === "unsupported"
+                ? "This browser does not support notifications. A chime will play while this app is open."
+                : "Allow notifications to be reminded at Azan time and before Jamaat (works while the app is open)."}{" "}
+              Times shown are local to {city.name}.
+            </div>
+          </div>
+        </div>
+        {notifPerm === "default" && (
+          <button
+            type="button"
+            onClick={enableNotifications}
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-white cursor-pointer shrink-0"
+            style={{ backgroundColor: "var(--accent-primary)" }}
+          >
+            Enable Alerts
+          </button>
+        )}
       </div>
 
       {/* Live Makruh Warning Banner if active */}

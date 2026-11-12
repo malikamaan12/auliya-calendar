@@ -18,15 +18,18 @@ import {
   MapPin,
   Globe,
   UserCheck,
+  UserRound,
+  LocateFixed,
   X,
 } from "lucide-react";
+import { PrayerAlerts } from "./PrayerAlerts";
 import { useApp } from "@/lib/store";
 import { LANGUAGES, LangCode, t } from "@/lib/i18n";
 import { CITY_PRESETS } from "@/lib/prayer-engine";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { theme, setTheme, lang, setLang, city, setCity, user, signInUser, signOutUser, streakDays } =
+  const { theme, setTheme, lang, setLang, city, setCity, user, signInUser, signOutUser, streakDays, hydrated } =
     useApp();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [emailInput, setEmailInput] = useState("");
@@ -45,17 +48,70 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   ];
 
   const handleGeolocate = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setCity({
-        id: "gps",
-        name: "My Location",
-        country: "GPS",
-        lat: Number(pos.coords.latitude.toFixed(4)),
-        lng: Number(pos.coords.longitude.toFixed(4)),
-      });
-    });
+    if (!navigator.geolocation) {
+      alert("Location is not available in this browser. Please choose a city from the list.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        let tz: string | undefined;
+        try {
+          tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        } catch {
+          tz = undefined;
+        }
+        setCity({
+          id: "gps",
+          name: "My Location",
+          country: "GPS",
+          lat: Number(pos.coords.latitude.toFixed(4)),
+          lng: Number(pos.coords.longitude.toFixed(4)),
+          tz,
+        });
+      },
+      () => alert("Location permission was denied. Please choose a city from the list.")
+    );
   };
+
+  const cityPicker = (
+    <div
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs min-w-0"
+      style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
+    >
+      <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--accent-primary)" }} />
+      <select
+        aria-label="Select City"
+        value={city.id}
+        onChange={(e) => {
+          const found = CITY_PRESETS.find((c) => c.id === e.target.value);
+          if (found) setCity(found);
+        }}
+        className="bg-transparent outline-none cursor-pointer font-medium min-w-0 flex-1 truncate"
+      >
+        {city.id === "gps" && (
+          <option value="gps" className="text-black">
+            My Location (GPS)
+          </option>
+        )}
+        {CITY_PRESETS.map((c) => (
+          <option key={c.id} value={c.id} className="text-black">
+            {c.name}, {c.country}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={handleGeolocate}
+        title="Use my GPS location"
+        aria-label="Use my GPS location"
+        className="inline-flex items-center gap-1 text-[11px] font-semibold opacity-80 hover:opacity-100 cursor-pointer shrink-0"
+        style={{ color: "var(--accent-primary)" }}
+      >
+        <LocateFixed className="w-3.5 h-3.5" />
+        GPS
+      </button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -69,7 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           {/* Brand */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+          <Link href="/" className="flex items-center gap-2.5 min-w-0">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center border"
               style={{
@@ -85,61 +141,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <circle cx="12" cy="12" r="2.2" fill="currentColor" />
               </svg>
             </div>
-            <div>
-              <div className="text-sm sm:text-base font-bold tracking-tight leading-none">
+            <div className="min-w-0">
+              <div className="text-sm sm:text-base font-bold tracking-tight leading-none truncate">
                 {t(lang, "appName")}
               </div>
-              <div className="text-[11px] leading-tight mt-0.5" style={{ color: "var(--text-muted)" }}>
+              <div className="hidden sm:block text-[11px] leading-tight mt-0.5" style={{ color: "var(--text-muted)" }}>
                 {t(lang, "tagline")}
               </div>
             </div>
           </Link>
 
           {/* Controls */}
-          <div className="flex items-center gap-2">
-            {/* City Selector */}
-            <div
-              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs"
-              style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
-            >
-              <MapPin className="w-3.5 h-3.5" style={{ color: "var(--accent-primary)" }} />
-              <select
-                aria-label="Select City"
-                value={city.id}
-                onChange={(e) => {
-                  const found = CITY_PRESETS.find((c) => c.id === e.target.value);
-                  if (found) setCity(found);
-                }}
-                className="bg-transparent outline-none cursor-pointer font-medium"
-              >
-                {city.id === "gps" && <option value="gps">My Location (GPS)</option>}
-                {CITY_PRESETS.map((c) => (
-                  <option key={c.id} value={c.id} className="text-black">
-                    {c.name}, {c.country}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={handleGeolocate}
-                title="Detect GPS Location"
-                className="text-[11px] underline opacity-75 hover:opacity-100 cursor-pointer"
-              >
-                GPS
-              </button>
-            </div>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* City Selector (desktop) */}
+            <div className="hidden md:block">{cityPicker}</div>
 
             {/* 5-Language Switcher */}
             <div
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs"
               style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
             >
-              <Globe className="w-3.5 h-3.5" style={{ color: "var(--accent-secondary)" }} />
+              <Globe className="hidden sm:block w-3.5 h-3.5" style={{ color: "var(--accent-secondary)" }} />
               <select
                 aria-label="Select Language"
                 value={lang}
                 onChange={(e) => setLang(e.target.value as LangCode)}
-                className="bg-transparent outline-none cursor-pointer font-medium"
+                className="bg-transparent outline-none cursor-pointer font-medium max-w-[72px] sm:max-w-none"
               >
                 {LANGUAGES.map((l) => (
                   <option key={l.code} value={l.code} className="text-black">
@@ -169,7 +196,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => setAuthModalOpen(true)}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border cursor-pointer"
                 style={{
                   borderColor: "var(--border-hairline)",
                   backgroundColor: "var(--accent-soft)",
@@ -177,20 +204,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 }}
               >
                 <UserCheck className="w-3.5 h-3.5" />
-                <span>{user.name}</span>
+                <span className="hidden sm:inline max-w-[120px] truncate">{user.name}</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => setAuthModalOpen(true)}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border cursor-pointer"
                 style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
               >
-                <span>{t(lang, "saveProgress")}</span>
+                <UserRound className="w-3.5 h-3.5 sm:hidden" />
+                <span className="hidden sm:inline">{t(lang, "saveProgress")}</span>
               </button>
             )}
           </div>
         </div>
+
+        {/* Mobile city row */}
+        <div className="md:hidden px-4 pb-2">{cityPicker}</div>
 
         {/* Desktop Sub-Nav Strip */}
         <nav
@@ -224,8 +255,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-10">
-        {children}
+        {hydrated ? children : <PageSkeleton />}
       </main>
+
+      <PrayerAlerts />
 
       {/* Mobile Bottom Navigation Bar */}
       <nav
@@ -269,10 +302,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             {user ? (
               <div className="space-y-4">
-                <h2 className="text-lg font-bold">Cloud Sync Active</h2>
+                <h2 className="text-lg font-bold">Your Profile</h2>
                 <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                  Signed in as <strong>{user.name}</strong> ({user.email}) via {user.provider}. Your{" "}
-                  {streakDays}-day streak, custom Jamaat offsets, and encrypted Zakat ledger are synced.
+                  Assalamu Alaikum, <strong>{user.name}</strong>
+                  {user.email ? ` (${user.email})` : ""}. Your {streakDays}-day streak, Jamaat settings, Qaza
+                  counts and Zakat details are saved privately on this device.
+                </p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  Tip: clearing your browser data will erase this progress. Cloud backup will be available in a
+                  future update.
                 </p>
                 <button
                   type="button"
@@ -283,95 +321,72 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className="w-full py-2.5 rounded-xl text-sm font-semibold border cursor-pointer"
                   style={{ borderColor: "var(--border-hairline)" }}
                 >
-                  Switch to Offline Guest Mode
+                  Remove Profile Name (keep progress)
                 </button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!nameInput.trim()) return;
+                  signInUser({ name: nameInput.trim(), email: emailInput.trim(), provider: "Local" });
+                  setAuthModalOpen(false);
+                }}
+                className="space-y-3"
+              >
                 <div>
                   <span
                     className="text-[11px] font-semibold uppercase tracking-wider"
                     style={{ color: "var(--accent-primary)" }}
                   >
-                    Zero-Bounce Progressive Sync
+                    No sign-up required
                   </span>
-                  <h2 className="text-lg font-bold mt-1">
-                    Save Your {streakDays}-Day Streak &amp; Custom Jamaat Offsets
-                  </h2>
+                  <h2 className="text-lg font-bold mt-1">Create Your Profile</h2>
                   <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-                    Your offline-first local state merges seamlessly with zero data loss.
+                    Everything works without an account. Add your name to personalise greetings. Your data stays
+                    private on this device — nothing is uploaded.
                   </p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      signInUser({ name: "Ahmad Raza", email: "apple-user@icloud.com", provider: "Apple" });
-                      setAuthModalOpen(false);
-                    }}
-                    className="py-2.5 px-3 rounded-xl border text-xs font-semibold cursor-pointer hover:opacity-90"
-                    style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
-                  >
-                    Sign in with Apple
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      signInUser({ name: "Bilal Qadri", email: "bilal@gmail.com", provider: "Google" });
-                      setAuthModalOpen(false);
-                    }}
-                    className="py-2.5 px-3 rounded-xl border text-xs font-semibold cursor-pointer hover:opacity-90"
-                    style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
-                  >
-                    Google OAuth 2.0
-                  </button>
-                </div>
-
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!emailInput.trim()) return;
-                    signInUser({
-                      name: nameInput.trim() || emailInput.split("@")[0],
-                      email: emailInput.trim(),
-                      provider: "Email OTP",
-                    });
-                    setAuthModalOpen(false);
-                  }}
-                  className="space-y-2.5 pt-2 border-t"
+                <input
+                  type="text"
+                  required
+                  maxLength={40}
+                  placeholder="Your name"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border text-sm bg-transparent outline-none"
                   style={{ borderColor: "var(--border-hairline)" }}
+                />
+                <input
+                  type="email"
+                  placeholder="Email (optional, stored on this device only)"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border text-sm bg-transparent outline-none"
+                  style={{ borderColor: "var(--border-hairline)" }}
+                />
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer"
+                  style={{ backgroundColor: "var(--accent-primary)" }}
                 >
-                  <input
-                    type="text"
-                    placeholder="Display Name (optional)"
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border text-sm bg-transparent outline-none"
-                    style={{ borderColor: "var(--border-hairline)" }}
-                  />
-                  <input
-                    type="email"
-                    required
-                    placeholder="Email for Passwordless OTP"
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border text-sm bg-transparent outline-none"
-                    style={{ borderColor: "var(--border-hairline)" }}
-                  />
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer"
-                    style={{ backgroundColor: "var(--accent-primary)" }}
-                  >
-                    Merge Local State &amp; Sync
-                  </button>
-                </form>
-              </div>
+                  Save Profile
+                </button>
+              </form>
             )}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PageSkeleton() {
+  return (
+    <div className="grid gap-4 md:grid-cols-3 animate-pulse" aria-busy="true" aria-label="Loading">
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="bento-card h-40" style={{ opacity: 0.5 }} />
+      ))}
     </div>
   );
 }

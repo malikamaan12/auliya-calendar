@@ -48,6 +48,7 @@ export default function DashboardPage() {
     hawlHijriMonth,
     hawlHijriDay,
     allAuliya,
+    user,
   } = useApp();
 
   const todayEvents = getEventsForHijri(hijri.month, hijri.day);
@@ -71,7 +72,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Assalamu Alaikum — {city.name}
+            Assalamu Alaikum{user ? `, ${user.name}` : ""} — {city.name}
           </h1>
           <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
             {hijri.weekday} • {hijri.formatted} • {t(lang, "hanafiLocked")}
@@ -82,7 +83,7 @@ export default function DashboardPage() {
             className="px-2.5 py-1 rounded-full border font-medium"
             style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
           >
-            {t(lang, "guestMode")}
+            {user ? "Saved on this device" : t(lang, "guestMode")}
           </span>
           <span
             className="px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1"

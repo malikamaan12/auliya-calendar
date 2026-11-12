@@ -44,19 +44,81 @@ export interface CityPreset {
   country: string;
   lat: number;
   lng: number;
+  /** IANA timezone, e.g. "Asia/Kolkata". Undefined = viewer's device timezone (GPS). */
+  tz?: string;
 }
 
 export const CITY_PRESETS: CityPreset[] = [
-  { id: "ajmer", name: "Ajmer Sharif", country: "India", lat: 26.4499, lng: 74.6399 },
-  { id: "bareilly", name: "Bareilly Sharif", country: "India", lat: 28.367, lng: 79.4304 },
-  { id: "baghdad", name: "Baghdad Sharif", country: "Iraq", lat: 33.3152, lng: 44.3661 },
-  { id: "karachi", name: "Karachi", country: "Pakistan", lat: 24.8607, lng: 67.0011 },
-  { id: "lahore", name: "Lahore (Data Darbar)", country: "Pakistan", lat: 31.5763, lng: 74.3046 },
-  { id: "makkah", name: "Makkah al-Mukarramah", country: "Saudi Arabia", lat: 21.4225, lng: 39.8262 },
-  { id: "madinah", name: "Madinah al-Munawwarah", country: "Saudi Arabia", lat: 24.4672, lng: 39.6112 },
-  { id: "london", name: "London", country: "UK", lat: 51.5074, lng: -0.1278 },
-  { id: "newyork", name: "New York", country: "USA", lat: 40.7128, lng: -74.006 },
+  { id: "ajmer", name: "Ajmer Sharif", country: "India", lat: 26.4499, lng: 74.6399, tz: "Asia/Kolkata" },
+  { id: "bareilly", name: "Bareilly Sharif", country: "India", lat: 28.367, lng: 79.4304, tz: "Asia/Kolkata" },
+  { id: "delhi", name: "Delhi", country: "India", lat: 28.6139, lng: 77.209, tz: "Asia/Kolkata" },
+  { id: "mumbai", name: "Mumbai", country: "India", lat: 19.076, lng: 72.8777, tz: "Asia/Kolkata" },
+  { id: "hyderabad", name: "Hyderabad", country: "India", lat: 17.385, lng: 78.4867, tz: "Asia/Kolkata" },
+  { id: "karachi", name: "Karachi", country: "Pakistan", lat: 24.8607, lng: 67.0011, tz: "Asia/Karachi" },
+  { id: "lahore", name: "Lahore (Data Darbar)", country: "Pakistan", lat: 31.5763, lng: 74.3046, tz: "Asia/Karachi" },
+  { id: "dhaka", name: "Dhaka", country: "Bangladesh", lat: 23.8103, lng: 90.4125, tz: "Asia/Dhaka" },
+  { id: "baghdad", name: "Baghdad Sharif", country: "Iraq", lat: 33.3152, lng: 44.3661, tz: "Asia/Baghdad" },
+  { id: "makkah", name: "Makkah al-Mukarramah", country: "Saudi Arabia", lat: 21.4225, lng: 39.8262, tz: "Asia/Riyadh" },
+  { id: "madinah", name: "Madinah al-Munawwarah", country: "Saudi Arabia", lat: 24.4672, lng: 39.6112, tz: "Asia/Riyadh" },
+  { id: "doha", name: "Doha", country: "Qatar", lat: 25.2854, lng: 51.531, tz: "Asia/Qatar" },
+  { id: "dubai", name: "Dubai", country: "UAE", lat: 25.2048, lng: 55.2708, tz: "Asia/Dubai" },
+  { id: "istanbul", name: "Istanbul", country: "Türkiye", lat: 41.0082, lng: 28.9784, tz: "Europe/Istanbul" },
+  { id: "cairo", name: "Cairo", country: "Egypt", lat: 30.0444, lng: 31.2357, tz: "Africa/Cairo" },
+  { id: "london", name: "London", country: "UK", lat: 51.5074, lng: -0.1278, tz: "Europe/London" },
+  { id: "birmingham", name: "Birmingham", country: "UK", lat: 52.4862, lng: -1.8904, tz: "Europe/London" },
+  { id: "toronto", name: "Toronto", country: "Canada", lat: 43.6532, lng: -79.3832, tz: "America/Toronto" },
+  { id: "newyork", name: "New York", country: "USA", lat: 40.7128, lng: -74.006, tz: "America/New_York" },
+  { id: "chicago", name: "Chicago", country: "USA", lat: 41.8781, lng: -87.6298, tz: "America/Chicago" },
+  { id: "houston", name: "Houston", country: "USA", lat: 29.7604, lng: -95.3698, tz: "America/Chicago" },
+  { id: "losangeles", name: "Los Angeles", country: "USA", lat: 34.0522, lng: -118.2437, tz: "America/Los_Angeles" },
 ];
+
+/** Pick the preset whose timezone matches the viewer's device, used on first launch. */
+export function detectCityFromDevice(): CityPreset | null {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return CITY_PRESETS.find((c) => c.tz === tz) || null;
+  } catch {
+    return null;
+  }
+}
+
+// ---- Timezone helpers -------------------------------------------------------
+
+let displayTimeZone: string | undefined;
+
+/** Set the timezone used by formatTime (the selected city's timezone). */
+export function setDisplayTimeZone(tz: string | undefined) {
+  displayTimeZone = tz;
+}
+
+/** Calendar parts (Y/M/D/h/m) of an instant as seen in a timezone. */
+export function zonedParts(d: Date, tz?: string) {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hourCycle: "h23",
+  });
+  const p: Record<string, number> = {};
+  for (const part of fmt.formatToParts(d)) {
+    if (part.type !== "literal") p[part.type] = parseInt(part.value, 10);
+  }
+  return { year: p.year, month: p.month, day: p.day, hour: p.hour % 24, minute: p.minute, second: p.second };
+}
+
+/** The real instant for wall-clock y-m-d h:m in a timezone. */
+function zonedWallTimeToDate(year: number, month: number, day: number, hour: number, minute: number, tz?: string): Date {
+  if (!tz) return new Date(year, month - 1, day, hour, minute, 0, 0);
+  const guess = Date.UTC(year, month - 1, day, hour, minute);
+  const p = zonedParts(new Date(guess), tz);
+  const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
+  return new Date(guess - (asUtc - guess));
+}
 
 export interface ComputedPrayerRow {
   name: PrayerName;
@@ -122,13 +184,11 @@ function addMinutes(d: Date, mins: number): Date {
   return new Date(d.getTime() + mins * 60000);
 }
 
-function parseFixedTime(baseDate: Date, hhmm: string): Date {
+function parseFixedTime(y: number, mo: number, d: number, hhmm: string, tz?: string): Date {
   const [hStr, mStr] = hhmm.split(":");
   const h = Math.min(23, Math.max(0, parseInt(hStr || "12", 10) || 0));
   const m = Math.min(59, Math.max(0, parseInt(mStr || "0", 10) || 0));
-  const out = new Date(baseDate);
-  out.setHours(h, m, 0, 0);
-  return out;
+  return zonedWallTimeToDate(y, mo, d, h, m, tz);
 }
 
 export function computeHanafiSchedule(
@@ -136,11 +196,14 @@ export function computeHanafiSchedule(
   lng: number,
   date: Date,
   methodId: CalcMethodId,
-  settings: PrayerSettingsMap
+  settings: PrayerSettingsMap,
+  tz?: string
 ): HanafiPrayerSchedule {
   const coords = new Coordinates(lat, lng);
   const params = getMethodParams(methodId);
-  const pt = new PrayerTimes(coords, date, params);
+  // Use the calendar day as seen in the city's timezone (adhan reads local Y/M/D only)
+  const cityDay = zonedParts(date, tz);
+  const pt = new PrayerTimes(coords, new Date(cityDay.year, cityDay.month - 1, cityDay.day), params);
   const sunnah = new SunnahTimes(pt);
 
   const labels: Record<PrayerName, string> = {
@@ -166,7 +229,7 @@ export function computeHanafiSchedule(
       let jamaatTime: Date;
       let isConflict = false;
       if (cfg.mode === "fixed") {
-        jamaatTime = parseFixedTime(date, cfg.fixedTime);
+        jamaatTime = parseFixedTime(cityDay.year, cityDay.month, cityDay.day, cfg.fixedTime, tz);
         if (jamaatTime.getTime() < azanTime.getTime()) {
           isConflict = true;
         }
@@ -263,7 +326,11 @@ export function computeHanafiSchedule(
 }
 
 export function formatTime(d: Date): string {
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  try {
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZone: displayTimeZone });
+  } catch {
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
 }
 
 export function formatCountdown(target: Date, now: Date): string {

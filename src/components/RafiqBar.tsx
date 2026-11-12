@@ -8,7 +8,7 @@ import { getEventsForHijri } from "@/lib/hijri";
 import { t } from "@/lib/i18n";
 
 export function RafiqBar() {
-  const { now, hijri, schedule, rings, lastQuranRef, lang } = useApp();
+  const { now, cityHour, hijri, schedule, rings, lastQuranRef, lang } = useApp();
 
   const prompt = useMemo(() => {
     const minsToNext = Math.round(
@@ -52,7 +52,7 @@ export function RafiqBar() {
       };
     }
 
-    if (now.getHours() >= 20 && rings.ilm < 100) {
+    if (cityHour >= 20 && rings.ilm < 100) {
       return {
         badge: "Nightly Sunnah • Ring Reminder",
         message: `Close your Ilm & Quran Ring tonight: listen to Surah Al-Mulk in Obsidian Dark sleep mode or complete a 60s Ilm Quiz?`,
@@ -70,7 +70,7 @@ export function RafiqBar() {
       ctaLabel: schedule.activeMakruh ? "Recite Durood-e-Pak" : "Explore Tasbih Studio",
       href: "/tasbih",
     };
-  }, [now, hijri, schedule, rings, lastQuranRef]);
+  }, [now, cityHour, hijri, schedule, rings, lastQuranRef]);
 
   return (
     <div className="bento-card p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">

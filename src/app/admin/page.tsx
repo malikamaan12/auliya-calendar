@@ -40,7 +40,7 @@ export default function AdminPage() {
     setSuccessMsg(null);
 
     if (status === "Published" && !fidoVerified) {
-      setErrorMsg("Hardware 2FA (FIDO2) Scholar Verification is required before publishing.");
+      setErrorMsg("Scholar review approval is required before publishing. Tap \"Confirm Scholar Review\" first.");
       return;
     }
 
@@ -92,7 +92,7 @@ export default function AdminPage() {
 
     upsertCustomAuliya(
       newProfile,
-      fidoVerified ? "Scholar Reviewer (FIDO2 Passkey)" : "Content Editor"
+      fidoVerified ? "Scholar Reviewer (local approval)" : "Content Editor"
     );
     setSuccessMsg(`Saved "${newProfile.name}" with status: ${status}`);
     setName("");
@@ -125,8 +125,16 @@ export default function AdminPage() {
           }}
         >
           <KeyRound className="w-4 h-4" />
-          <span>{fidoVerified ? "FIDO2 Scholar Passkey Verified" : "Authenticate Scholar Passkey (2FA)"}</span>
+          <span>{fidoVerified ? "Scholar Review Confirmed" : "Confirm Scholar Review"}</span>
         </button>
+      </div>
+
+      <div
+        className="p-3 rounded-xl border text-xs"
+        style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)", color: "var(--text-muted)" }}
+      >
+        Profiles you add here are saved on this device and appear in your Auliya directory. A shared, multi-user
+        CMS with hardware-key (FIDO2) sign-in requires connecting a backend server.
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -244,7 +252,7 @@ export default function AdminPage() {
               >
                 <option value="Draft" className="text-black">1. Draft</option>
                 <option value="Scholarly Verification" className="text-black">2. Scholarly Verification</option>
-                <option value="Published" className="text-black">3. Published (Requires FIDO2 Passkey)</option>
+                <option value="Published" className="text-black">3. Published (Requires Scholar Review)</option>
               </select>
             </div>
 
