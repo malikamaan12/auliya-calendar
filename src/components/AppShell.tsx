@@ -20,6 +20,7 @@ import {
   UserCheck,
   UserRound,
   LocateFixed,
+  LayoutGrid,
   X,
 } from "lucide-react";
 import { PrayerAlerts } from "./PrayerAlerts";
@@ -32,6 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme, lang, setLang, city, setCity, user, signInUser, signOutUser, streakDays, hydrated } =
     useApp();
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [nameInput, setNameInput] = useState("");
 
@@ -260,7 +262,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <PrayerAlerts />
 
-      {/* Mobile Bottom Navigation Bar */}
+      {/* Desktop Footer */}
+      <footer
+        className="hidden md:block border-t py-4 text-xs"
+        style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)" }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
+          <span>
+            Auliya Calendar &amp; Sunni Companion • Hanafi Madhhab (Mithlayn Asr) • Kanzul Iman • Bahar-e-Shariat
+          </span>
+          <span>Offline-First • Saved privately on your device</span>
+        </div>
+      </footer>
+
+      {/* Mobile Bottom Navigation Bar (4 primary + More sheet) */}
       <nav
         aria-label="Mobile Bottom Navigation"
         className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t backdrop-blur-xl px-2 py-1.5 flex items-center justify-around"
@@ -269,13 +284,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           borderColor: "var(--border-hairline)",
         }}
       >
-        {navItems.slice(0, 5).map((item) => {
+        {navItems.slice(0, 4).map((item) => {
           const active = pathname === item.href;
           const Icon = item.icon;
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setMobileMoreOpen(false)}
               className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl text-[10px] font-medium"
               style={{
                 color: active ? "var(--accent-primary)" : "var(--text-muted)",
@@ -286,7 +302,68 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
+        <button
+          type="button"
+          onClick={() => setMobileMoreOpen((v) => !v)}
+          aria-expanded={mobileMoreOpen}
+          className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl text-[10px] font-medium cursor-pointer"
+          style={{
+            color: mobileMoreOpen ? "var(--accent-primary)" : "var(--text-muted)",
+          }}
+        >
+          <LayoutGrid className="w-4 h-4" />
+          <span>More</span>
+        </button>
       </nav>
+
+      {/* Mobile All-Modules Drawer */}
+      {mobileMoreOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-30 bg-black/50 backdrop-blur-xs flex items-end pb-16 p-3"
+          onClick={() => setMobileMoreOpen(false)}
+        >
+          <div
+            className="bento-card w-full p-4 space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
+                All Modules
+              </span>
+              <button
+                type="button"
+                onClick={() => setMobileMoreOpen(false)}
+                className="p-1 rounded-lg opacity-70 hover:opacity-100 cursor-pointer"
+                aria-label="Close menu"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {navItems.map((item) => {
+                const active = pathname === item.href;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileMoreOpen(false)}
+                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border text-center text-[11px] font-medium"
+                    style={{
+                      borderColor: active ? "var(--accent-primary)" : "var(--border-hairline)",
+                      backgroundColor: active ? "var(--accent-soft)" : "var(--bg-muted)",
+                      color: active ? "var(--accent-primary)" : "var(--text-primary)",
+                    }}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="leading-tight">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Progressive Account Merge Modal */}
       {authModalOpen && (

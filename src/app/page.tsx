@@ -107,12 +107,12 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 380, damping: 32 }}
-          className="lg:col-span-7 bento-card p-6 relative overflow-hidden"
+          className="lg:col-span-7 bento-card hero-surface p-5 sm:p-6 relative overflow-hidden"
         >
           {/* Subtle 4% opacity geometric octagram watermark strictly on hero header */}
           <svg
             aria-hidden="true"
-            className="pointer-events-none absolute -end-12 -top-12 w-64 h-64 opacity-[0.04]"
+            className="pointer-events-none absolute -end-10 -top-10 w-56 h-56 opacity-[0.04]"
             viewBox="0 0 100 100"
             fill="none"
             stroke="currentColor"
@@ -123,9 +123,9 @@ export default function DashboardPage() {
             <circle cx="50" cy="50" r="24" />
           </svg>
 
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <span
                   className="text-xs font-semibold uppercase tracking-wider"
                   style={{ color: "var(--accent-primary)" }}
@@ -148,26 +148,18 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="mt-2 flex items-baseline gap-3">
-                <span className="text-3xl sm:text-4xl font-bold tracking-tight">
-                  {schedule.nextPrayer.label}
-                </span>
-                <span
-                  className="text-2xl sm:text-3xl font-mono font-semibold tabular-nums"
-                  style={{ color: "var(--accent-secondary)" }}
-                >
-                  {formatCountdown(schedule.nextPrayer.jamaatTime, now)}
-                </span>
-              </div>
+              <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight leading-tight">
+                {schedule.nextPrayer.label}
+              </h2>
 
-              <div className="mt-1.5 text-xs flex flex-wrap items-center gap-3" style={{ color: "var(--text-muted)" }}>
+              <div className="mt-2 text-xs flex flex-wrap items-center gap-x-3 gap-y-1" style={{ color: "var(--text-muted)" }}>
                 <span>
                   {t(lang, "azanTime")}:{" "}
                   <strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>
                     {formatTime(schedule.nextPrayer.azanTime)}
                   </strong>
                 </span>
-                <span>•</span>
+                <span aria-hidden="true">•</span>
                 <span>
                   {t(lang, "jamaatTime")}:{" "}
                   <strong className="tabular-nums" style={{ color: "var(--accent-primary)" }}>
@@ -177,53 +169,100 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="flex sm:flex-col items-end gap-2">
+            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2.5 shrink-0">
               <div
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold"
-                style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
+                className="px-3.5 py-2 rounded-2xl border text-center sm:text-end"
+                style={{
+                  borderColor: "var(--border-hairline)",
+                  backgroundColor: "var(--bg-muted)",
+                }}
               >
-                <Compass className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
-                <span className="tabular-nums">
-                  {t(lang, "qiblaBearing")}: {schedule.qiblaBearing}°
-                </span>
+                <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--text-muted)" }}>
+                  Countdown
+                </div>
+                <div
+                  className="text-2xl sm:text-3xl font-mono font-bold tabular-nums leading-tight"
+                  style={{ color: "var(--accent-secondary)" }}
+                >
+                  {formatCountdown(schedule.nextPrayer.jamaatTime, now)}
+                </div>
               </div>
-              <Link
-                href="/prayer"
-                className="text-xs font-semibold inline-flex items-center gap-1 hover:underline"
-                style={{ color: "var(--accent-secondary)" }}
-              >
-                <span>Customize Jamaat</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+
+              <div className="flex flex-col items-end gap-1.5">
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-semibold"
+                  style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
+                >
+                  <Compass className="w-3.5 h-3.5" style={{ color: "var(--accent-gold)" }} />
+                  <span className="tabular-nums">
+                    {t(lang, "qiblaBearing")}: {schedule.qiblaBearing}°
+                  </span>
+                </div>
+                <Link
+                  href="/prayer"
+                  className="text-xs font-semibold inline-flex items-center gap-1 hover:underline"
+                  style={{ color: "var(--accent-secondary)" }}
+                >
+                  <span>Customize Jamaat</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
           </div>
 
           {/* 5 Daily Prayers Quick-Log Row */}
-          <div className="relative z-10 grid grid-cols-5 gap-2 mt-6 pt-5 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+          <div className="relative z-10 grid grid-cols-2 sm:grid-cols-5 gap-2 mt-5 pt-4 border-t" style={{ borderColor: "var(--border-hairline)" }}>
             {schedule.rows.map((row) => {
               const status = salahToday[row.name];
               const isDone = status !== "none";
+              const isNext = schedule.nextPrayer.name === row.name;
               const cycle: Record<string, "none" | "jamaat" | "ontime" | "qaza"> = {
                 none: "jamaat",
                 jamaat: "ontime",
                 ontime: "qaza",
                 qaza: "none",
               };
+              const statusLabel =
+                status === "none"
+                  ? "Tap to log"
+                  : status === "jamaat"
+                  ? "Jamaat"
+                  : status === "ontime"
+                  ? "On Time"
+                  : "Qaza";
               return (
                 <button
                   key={row.name}
                   type="button"
                   onClick={() => logSalah(row.name as PrayerName, cycle[status])}
-                  className="p-2.5 rounded-xl border text-start transition-all cursor-pointer active:scale-95"
+                  className="p-2.5 rounded-xl border text-start transition-all cursor-pointer active:scale-95 hover:brightness-105"
                   style={{
-                    borderColor: isDone ? "var(--accent-primary)" : "var(--border-hairline)",
+                    borderColor: isDone
+                      ? "var(--accent-primary)"
+                      : isNext
+                      ? "var(--accent-secondary)"
+                      : "var(--border-hairline)",
                     backgroundColor: isDone ? "var(--accent-soft)" : "var(--bg-muted)",
                   }}
                 >
-                  <div className="text-[11px] font-semibold truncate">{row.name.toUpperCase()}</div>
-                  <div className="text-xs font-bold tabular-nums mt-0.5">{formatTime(row.jamaatTime)}</div>
-                  <div className="text-[10px] mt-1 capitalize" style={{ color: "var(--text-muted)" }}>
-                    {status === "none" ? "Tap to log" : status}
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[11px] font-semibold tracking-wide truncate">
+                      {row.name.toUpperCase()}
+                    </span>
+                    {isNext && !isDone && (
+                      <span
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: "var(--accent-secondary)" }}
+                        title="Next Prayer"
+                      />
+                    )}
+                  </div>
+                  <div className="text-sm font-bold tabular-nums mt-0.5">{formatTime(row.jamaatTime)}</div>
+                  <div
+                    className="text-[10px] mt-1 font-medium"
+                    style={{ color: isDone ? "var(--accent-primary)" : "var(--text-muted)" }}
+                  >
+                    {statusLabel}
                   </div>
                 </button>
               );

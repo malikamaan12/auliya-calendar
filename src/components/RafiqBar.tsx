@@ -73,16 +73,23 @@ export function RafiqBar() {
   }, [now, cityHour, hijri, schedule, rings, lastQuranRef]);
 
   return (
-    <div className="bento-card p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
-      <div className="flex items-start gap-3.5">
+    <div
+      className="bento-card p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden"
+      style={{ borderInlineStartWidth: "3px", borderInlineStartColor: "var(--accent-primary)" }}
+    >
+      <div className="flex items-start gap-3.5 min-w-0">
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ backgroundColor: "var(--accent-soft)", color: "var(--accent-primary)" }}
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+          style={{
+            backgroundColor: "var(--accent-soft)",
+            borderColor: "color-mix(in srgb, var(--accent-primary) 25%, transparent)",
+            color: "var(--accent-primary)",
+          }}
         >
           <Sparkles className="w-5 h-5" />
         </div>
-        <div>
-          <div className="flex items-center gap-2 mb-1">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
             <span
               className="text-xs font-semibold uppercase tracking-wider"
               style={{ color: "var(--accent-primary)" }}
@@ -104,11 +111,7 @@ export function RafiqBar() {
 
       <Link
         href={prompt.href}
-        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shrink-0 transition-transform active:scale-95"
-        style={{
-          backgroundColor: "var(--accent-primary)",
-          color: "#FFFFFF",
-        }}
+        className="btn-primary inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shrink-0"
       >
         <Compass className="w-4 h-4" />
         <span>{prompt.ctaLabel}</span>
