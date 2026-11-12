@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
+const isPages = process.env.GITHUB_PAGES === "true";
+
 const nextConfig: NextConfig = {
+  ...(isPages ? { output: "export", basePath: "/auliya-calendar" } : {}),
   // Tailwind CSS v4 loader for Turbopack — REQUIRED, without it no styles are generated.
   turbopack: {
     rules: {
@@ -11,6 +14,7 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
+    unoptimized: isPages,
     formats: ["image/avif", "image/webp"],
   },
   async headers() {

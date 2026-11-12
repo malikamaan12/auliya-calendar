@@ -1,5 +1,7 @@
 "use client";
 
+import { assetUrl } from "@/lib/assets";
+
 import React, { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {

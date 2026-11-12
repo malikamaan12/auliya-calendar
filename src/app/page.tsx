@@ -1,5 +1,7 @@
 "use client";
 
+import { assetUrl } from "@/lib/assets";
+
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -365,7 +367,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 mt-4 items-center">
             <div className="sm:col-span-5 rounded-xl overflow-hidden border h-36 relative" style={{ borderColor: "var(--border-hairline)" }}>
               <img
-                src={featuredWali.shrineImage}
+                src={assetUrl(featuredWali.shrineImage)}
                 alt={`${featuredWali.city} Shrine Architecture`}
                 className="w-full h-full object-cover"
               />

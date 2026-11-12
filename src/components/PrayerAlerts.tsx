@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useApp } from "@/lib/store";
+import { assetUrl } from "@/lib/assets";
 import { formatTime } from "@/lib/prayer-engine";
 
 /** Soft chime generated with WebAudio (no external audio file needed). */
@@ -36,7 +37,7 @@ function notify(title: string, body: string) {
   playChime();
   try {
     if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-      new Notification(title, { body, icon: "/icon.svg", tag: title });
+      new Notification(title, { body, icon: assetUrl("/icon.svg"), tag: title });
     }
   } catch {
     // some mobile browsers only allow notifications via a service worker
