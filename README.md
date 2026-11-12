@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Auliya Calendar & Sunni Companion Platform
+
+A cross-platform **Sunni (Ahl-e-Sunnat wal Jama'at / Barelvi)** and **Hanafi Madhhab** digital sanctuary built with **Next.js (App Router), TypeScript, Tailwind CSS, and Framer Motion**.
+
+## Key Features (All 9 PRD Modules)
+
+1. **Zero-Bounce Apple-Bento Dashboard & *Rafiq* Companion (`/`)**
+   - Live Hanafi Azan & Custom Jamaat countdown, 3 Daily Completion Rings (*Salah*, *Ilm & Quran*, *Sunnah & Dhikr*), Merciful *Qaza* Streak Shield, inline Smart *Tasbih*, and Hijri *Urs* spotlight with `±2` *Hilal* adjustment.
+   - Progressive Guest-to-Account sync modal (Apple, Google, Email OTP) with zero upfront login wall.
+2. **Auliya Allah Encyclopedia, *Shajrah* & 360° *Ziyarat* (`/auliya`)**
+   - Multi-script search, *Tazkirah*, *Karamat*, authored *Malfuzat* & books, interactive `@xyflow/react` *Shajrah-e-Tayyibah* lineage graph, face-free 360° architectural *Ziyarat* with hotspots & *Adab-e-Ziyarat*, global *Mazar* coordinates, and Family *Barsi* / *Fatiha* log.
+3. **Hanafi Azan & Custom Jamaat Timing Engine (`/prayer`)**
+   - Offline-first `adhan` (`Madhab.Hanafi` / *Mithlayn* Asr), Relative Offset vs. Fixed Masjid Clock modes with seasonal conflict alerts, Qibla compass, *Ishraq/Chasht/Dahwa-e-Kubra*, and the 3 Hanafi *Makruh Tahrimi* windows.
+4. **Holy Quran Suite — *Kanzul Iman* (`/quran`)**
+   - Indo-Pak & Uthmani scripts, 4-language *Kanzul Iman* translations (Urdu, English, Roman Urdu, Hindi), *Khazain-ul-Irfan* Tafsir drawer, 14 Hanafi *Sajda-e-Tilawat* logger, and verse-synced audio with Hifz loop & sleep timer.
+5. **Hadith, Sunnah & *Bahar-e-Shariat* Fiqh (`/fiqh`)**
+   - Searchable *Bahar-e-Shariat* decision cards, graded Hadith with Sunni commentary, and Masnoon Sunnah playbooks.
+6. **Smart *Tasbih*, Sunnah Matrix & *Qaza-e-Umri* (`/tasbih`)**
+   - Tactile haptic *Tasbih* studio (*Durood-e-Razawiyya*, *Tasbih-e-Fatima*, *Durood-e-Taj*, *Durood-e-Ghausia*), Daily Sunnah Habit Matrix, and *Qaza-e-Umri* ledger.
+7. **Hanafi Silver-First Zakat Calculator (`/zakat`)**
+   - `612.36g` (`52.5 tola`) Silver & `87.48g` (`7.5 tola`) Gold Nisab with Hanafi *Dhamm*, karat purity (`24K`–`18K`), liabilities deduction, Hijri *Hawl* tracker, and `AES-256-GCM` client-side encryption.
+8. **15-Tier *Sahib-e-Ilm* Sunni Trivia (`/quiz`)**
+   - *Millionaire*-style 15-tier ladder with Safe Checkpoints (5, 10, 15), 4 lifelines (`50:50`, `Ishara`, `Ijma' Poll`, `Tabdeeli`), and verified Proof Cards.
+9. **Headless Admin CMS Studio (`/admin`)**
+   - Zod-validated Auliya builder, FIDO2 two-step scholarly approval gate (`Draft -> Scholarly Verification -> Published`), and immutable audit log.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+For production:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+npm run start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Security & Integrity
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `SHA-256` sacred text verification & `AES-256-GCM` client-side Zakat encryption (`src/lib/crypto-integrity.ts`).
+- Strict HTTP security headers configured in `next.config.ts`.
+- Server-side Zod validation on API routes (`/api/health`, `/api/auliya`, `/api/quiz/verify`).

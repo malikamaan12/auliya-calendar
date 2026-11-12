@@ -1,26 +1,94 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Alabaster Light Theme Tokens (PRD Section 6.1) */
+  --bg-canvas: #FAF9F6;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: rgba(255, 255, 255, 0.92);
+  --bg-muted: #F2EFE9;
+  --border-hairline: #EAE7E0;
+  --text-primary: #111315;
+  --text-muted: #525866;
+  --accent-primary: #047857;
+  --accent-secondary: #0284C7;
+  --accent-gold: #B45309;
+  --accent-danger: #DC2626;
+  --accent-soft: rgba(4, 120, 87, 0.09);
+  --gold-soft: rgba(180, 83, 9, 0.1);
+  --shadow-card: 0 1px 3px rgba(17, 19, 21, 0.04), 0 8px 24px rgba(17, 19, 21, 0.04);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html.dark {
+  /* Obsidian Dark Theme Tokens (PRD Section 6.1) */
+  --bg-canvas: #0D0F12;
+  --bg-surface: #161920;
+  --bg-surface-elevated: rgba(22, 25, 32, 0.85);
+  --bg-muted: #1D212B;
+  --border-hairline: rgba(255, 255, 255, 0.09);
+  --text-primary: #F3F4F6;
+  --text-muted: #9CA3AF;
+  --accent-primary: #10B981;
+  --accent-secondary: #00E5FF;
+  --accent-gold: #F59E0B;
+  --accent-danger: #F87171;
+  --accent-soft: rgba(16, 185, 129, 0.12);
+  --gold-soft: rgba(245, 158, 11, 0.14);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+
+* {
+  box-sizing: border-box;
 }
 
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  overflow-x: hidden;
+}
+
+/* Script-specific typography per PRD Section 6.2 */
+.font-arabic {
+  font-family: var(--font-amiri), "Noto Naskh Arabic", serif;
+  line-height: 2.1;
+}
+
+.font-urdu {
+  font-family: var(--font-gulzar), var(--font-noto-urdu), "Noto Naskh Arabic", serif;
+  line-height: 2.25;
+}
+
+.font-hindi {
+  font-family: var(--font-devanagari), sans-serif;
+  line-height: 1.75;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Elevated Bento Glass Surface */
+.bento-card {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 1.25rem;
+}
+
+/* Custom subtle scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-hairline);
+  border-radius: 9999px;
 }

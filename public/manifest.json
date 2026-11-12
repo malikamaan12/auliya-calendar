@@ -1,0 +1,16 @@
+{
+  "name": "Auliya Calendar & Sunni Companion",
+  "short_name": "Auliya Calendar",
+  "description": "Sunni (Ahl-e-Sunnat wal Jama'at) & Hanafi digital sanctuary with Auliya encyclopedia, Shajrah, 360° Ziyarat, Hanafi Azan & Jamaat, Kanzul Iman Quran, Bahar-e-Shariat Fiqh, Smart Tasbih, Zakat, and Sahib-e-Ilm Trivia.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D0F12",
+  "theme_color": "#047857",
+  "icons": [
+    {
+      "src": "/images/shrines/baghdad.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    }
+  ]
+}
