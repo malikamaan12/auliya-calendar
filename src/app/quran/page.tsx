@@ -185,7 +185,23 @@ export default function QuranPage() {
       {/* Main Content + Hanafi Sajda Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <div className="lg:col-span-8 space-y-4">
-          {QURAN_AYAHS.map((ayah) => {
+          {/* Calligraphic Bismillah Surah Header Banner */}
+          <div
+            className="bento-card hero-surface p-5 text-center space-y-1.5"
+            style={{ borderColor: "color-mix(in srgb, var(--accent-primary) 28%, var(--border-hairline))" }}
+          >
+            <div className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--accent-gold)" }}>
+              Kanzul Iman • Khazain-ul-Irfan
+            </div>
+            <p dir="rtl" className="font-arabic text-2xl sm:text-3xl leading-relaxed">
+              بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ
+            </p>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              In the name of Allah, the Most Affectionate, the Merciful
+            </p>
+          </div>
+
+          {QURAN_AYAHS.map((ayah, idx) => {
             const isPlaying = playingId === ayah.id;
             const isBookmarked = lastQuranRef === ayah.id;
             const sajdaDone = sajdaCompleted.includes(ayah.id);
@@ -200,7 +216,18 @@ export default function QuranPage() {
                 }}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
+                    {/* 8-point Islamic Star (Octagram) Verse Medallion */}
+                    <span
+                      className="relative w-8 h-8 inline-flex items-center justify-center shrink-0"
+                      style={{ color: "var(--accent-primary)" }}
+                    >
+                      <svg viewBox="0 0 32 32" className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.6">
+                        <rect x="6" y="6" width="20" height="20" rx="2" />
+                        <rect x="6" y="6" width="20" height="20" rx="2" transform="rotate(45 16 16)" />
+                      </svg>
+                      <span className="absolute text-[10px] font-bold tabular-nums">{idx + 1}</span>
+                    </span>
                     <span
                       className="px-2.5 py-1 rounded-lg text-xs font-bold tabular-nums"
                       style={{ backgroundColor: "var(--bg-muted)" }}

@@ -17,6 +17,10 @@ import {
   CheckCircle2,
   ArrowRight,
   Sparkles,
+  Clock,
+  Scale,
+  ShieldCheck,
+  Check,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { t } from "@/lib/i18n";
@@ -100,27 +104,75 @@ export default function DashboardPage() {
       {/* 1. Dynamic Rafiq Companion Bar */}
       <RafiqBar />
 
+      {/* 1b. Quick Sanctuary Shortcuts (inspired by clean mobile/web launcher tiles) */}
+      <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
+        {[
+          { href: "/prayer", label: "Prayer", icon: Clock, tone: "var(--accent-primary)", bg: "var(--accent-soft)" },
+          { href: "/quran", label: "Quran", icon: BookOpen, tone: "var(--accent-secondary)", bg: "rgba(2, 132, 199, 0.12)" },
+          { href: "/tasbih", label: "Tasbih", icon: Sparkles, tone: "var(--accent-gold)", bg: "var(--gold-soft)" },
+          { href: "/auliya", label: "Auliya 360°", icon: Compass, tone: "var(--accent-primary)", bg: "var(--accent-soft)" },
+          { href: "/fiqh", label: "Fiqh", icon: Scale, tone: "var(--accent-secondary)", bg: "rgba(2, 132, 199, 0.12)" },
+          { href: "/zakat", label: "Zakat", icon: Calculator, tone: "var(--accent-gold)", bg: "var(--gold-soft)" },
+          { href: "/quiz", label: "Ilm Quiz", icon: Trophy, tone: "var(--accent-primary)", bg: "var(--accent-soft)" },
+          { href: "/admin", label: "Studio", icon: ShieldCheck, tone: "var(--text-muted)", bg: "var(--bg-muted)" },
+        ].map((tile) => {
+          const Icon = tile.icon;
+          return (
+            <Link
+              key={tile.href}
+              href={tile.href}
+              className="bento-card bento-card-interactive p-2.5 sm:p-3 flex flex-col items-center justify-center gap-1.5 text-center"
+            >
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: tile.bg, color: tile.tone }}
+              >
+                <Icon className="w-4 h-4" />
+              </div>
+              <span className="text-[11px] font-semibold tracking-tight truncate w-full">
+                {tile.label}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+
       {/* 2. Apple-Style Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Hero Card: Live Hanafi Azan & Custom Jamaat Countdown */}
+        {/* Hero Card: Live Hanafi Azan & Custom Jamaat Countdown with Celestial Sky & Mosque Arc */}
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 380, damping: 32 }}
-          className="lg:col-span-7 bento-card hero-surface p-5 sm:p-6 relative overflow-hidden"
+          className="lg:col-span-7 bento-card hero-surface p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between"
         >
-          {/* Subtle 4% opacity geometric octagram watermark strictly on hero header */}
+          {/* Atmospheric twilight/night mosque silhouette & celestial arc */}
           <svg
             aria-hidden="true"
-            className="pointer-events-none absolute -end-10 -top-10 w-56 h-56 opacity-[0.04]"
-            viewBox="0 0 100 100"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.2"
+            viewBox="0 0 600 180"
+            preserveAspectRatio="xMidYMax slice"
+            className="pointer-events-none absolute inset-x-0 bottom-0 w-full h-44 opacity-[0.12] dark:opacity-[0.18]"
           >
-            <rect x="20" y="20" width="60" height="60" />
-            <rect x="20" y="20" width="60" height="60" transform="rotate(45 50 50)" />
-            <circle cx="50" cy="50" r="24" />
+            <defs>
+              <linearGradient id="skyArc" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#10B981" stopOpacity="0.1" />
+                <stop offset="50%" stopColor="#F59E0B" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#00E5FF" stopOpacity="0.2" />
+              </linearGradient>
+            </defs>
+            {/* Celestial sun/moon arc */}
+            <path d="M 60 155 Q 300 10 540 155" fill="none" stroke="url(#skyArc)" strokeWidth="2" strokeDasharray="4 4" />
+            <circle cx="145" cy="100" r="4" fill="#10B981" />
+            <circle cx="240" cy="65" r="4" fill="#F59E0B" />
+            <circle cx="345" cy="62" r="5" fill="#F59E0B" />
+            <circle cx="445" cy="96" r="4" fill="#00E5FF" />
+            {/* Crescent */}
+            <path d="M 520 34 A 12 12 0 1 0 534 48 A 9 9 0 1 1 520 34 Z" fill="#F59E0B" opacity="0.8" />
+            {/* Mosque dome & minarets silhouette */}
+            <path
+              d="M0 180 L0 152 L48 152 L48 124 L54 106 L60 124 L60 152 L110 152 L110 140 Q140 105 170 140 L170 152 L225 152 L225 132 Q265 78 305 132 L305 152 L345 152 L345 110 L351 90 L357 110 L357 152 L420 152 L420 138 Q445 110 470 138 L470 152 L535 152 L535 120 L541 102 L547 120 L547 152 L600 152 L600 180 Z"
+              fill="currentColor"
+            />
           </svg>
 
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -171,7 +223,7 @@ export default function DashboardPage() {
 
             <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2.5 shrink-0">
               <div
-                className="px-3.5 py-2 rounded-2xl border text-center sm:text-end"
+                className="px-3.5 py-2 rounded-2xl border text-center sm:text-end backdrop-blur-md"
                 style={{
                   borderColor: "var(--border-hairline)",
                   backgroundColor: "var(--bg-muted)",
@@ -210,63 +262,93 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* 5 Daily Prayers Quick-Log Row */}
-          <div className="relative z-10 grid grid-cols-2 sm:grid-cols-5 gap-2 mt-5 pt-4 border-t" style={{ borderColor: "var(--border-hairline)" }}>
-            {schedule.rows.map((row) => {
-              const status = salahToday[row.name];
-              const isDone = status !== "none";
-              const isNext = schedule.nextPrayer.name === row.name;
-              const cycle: Record<string, "none" | "jamaat" | "ontime" | "qaza"> = {
-                none: "jamaat",
-                jamaat: "ontime",
-                ontime: "qaza",
-                qaza: "none",
-              };
-              const statusLabel =
-                status === "none"
-                  ? "Tap to log"
-                  : status === "jamaat"
-                  ? "Jamaat"
-                  : status === "ontime"
-                  ? "On Time"
-                  : "Qaza";
-              return (
-                <button
-                  key={row.name}
-                  type="button"
-                  onClick={() => logSalah(row.name as PrayerName, cycle[status])}
-                  className="p-2.5 rounded-xl border text-start transition-all cursor-pointer active:scale-95 hover:brightness-105"
-                  style={{
-                    borderColor: isDone
-                      ? "var(--accent-primary)"
-                      : isNext
-                      ? "var(--accent-secondary)"
-                      : "var(--border-hairline)",
-                    backgroundColor: isDone ? "var(--accent-soft)" : "var(--bg-muted)",
-                  }}
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[11px] font-semibold tracking-wide truncate">
-                      {row.name.toUpperCase()}
-                    </span>
-                    {isNext && !isDone && (
-                      <span
-                        className="w-1.5 h-1.5 rounded-full shrink-0"
-                        style={{ backgroundColor: "var(--accent-secondary)" }}
-                        title="Next Prayer"
-                      />
-                    )}
-                  </div>
-                  <div className="text-sm font-bold tabular-nums mt-0.5">{formatTime(row.jamaatTime)}</div>
-                  <div
-                    className="text-[10px] mt-1 font-medium"
-                    style={{ color: isDone ? "var(--accent-primary)" : "var(--text-muted)" }}
+          {/* Connected 5-Prayer Tracker Stepper (1-tap cycle) */}
+          <div className="relative z-10 mt-6 pt-5 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                Today&apos;s Prayer Tracker (tap to log)
+              </span>
+              <span className="text-[11px] font-medium" style={{ color: "var(--accent-primary)" }}>
+                {Object.values(salahToday).filter((s) => s !== "none").length}/5 logged
+              </span>
+            </div>
+
+            <div className="relative grid grid-cols-5 gap-1 sm:gap-2">
+              {/* Connecting horizontal track behind nodes */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute top-[38px] inset-x-[10%] h-[2px]"
+                style={{ backgroundColor: "var(--border-hairline)" }}
+              />
+              {schedule.rows.map((row) => {
+                const status = salahToday[row.name];
+                const isDone = status !== "none";
+                const isNext = schedule.nextPrayer.name === row.name;
+                const cycle: Record<string, "none" | "jamaat" | "ontime" | "qaza"> = {
+                  none: "jamaat",
+                  jamaat: "ontime",
+                  ontime: "qaza",
+                  qaza: "none",
+                };
+                const statusLabel =
+                  status === "none"
+                    ? "Log"
+                    : status === "jamaat"
+                    ? "Jamaat"
+                    : status === "ontime"
+                    ? "On Time"
+                    : "Qaza";
+                const nodeColor =
+                  status === "jamaat"
+                    ? "var(--accent-primary)"
+                    : status === "ontime"
+                    ? "var(--accent-secondary)"
+                    : status === "qaza"
+                    ? "var(--accent-gold)"
+                    : isNext
+                    ? "var(--accent-secondary)"
+                    : "var(--border-hairline)";
+                return (
+                  <button
+                    key={row.name}
+                    type="button"
+                    onClick={() => logSalah(row.name as PrayerName, cycle[status])}
+                    className="relative z-10 flex flex-col items-center text-center group cursor-pointer active:scale-95 transition-transform"
                   >
-                    {statusLabel}
-                  </div>
-                </button>
-              );
-            })}
+                    <span className="text-[10px] sm:text-[11px] font-semibold tracking-wide capitalize">
+                      {row.name}
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-bold tabular-nums mb-1.5" style={{ color: "var(--text-muted)" }}>
+                      {formatTime(row.jamaatTime)}
+                    </span>
+                    <span
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center transition-all"
+                      style={{
+                        borderColor: nodeColor,
+                        backgroundColor: isDone ? nodeColor : "var(--bg-surface)",
+                        color: isDone ? "#FFFFFF" : "var(--text-muted)",
+                        boxShadow: isNext && !isDone ? "0 0 0 4px rgba(0, 229, 255, 0.14)" : undefined,
+                      }}
+                    >
+                      {isDone ? (
+                        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.75]" />
+                      ) : (
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: isNext ? "var(--accent-secondary)" : "var(--border-hairline)" }}
+                        />
+                      )}
+                    </span>
+                    <span
+                      className="text-[10px] mt-1 font-medium"
+                      style={{ color: isDone ? nodeColor : "var(--text-muted)" }}
+                    >
+                      {statusLabel}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </motion.section>
 

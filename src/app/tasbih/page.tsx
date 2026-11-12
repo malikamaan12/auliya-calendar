@@ -96,22 +96,83 @@ export default function TasbihPage() {
             </div>
           </div>
 
-          {/* Eyes-Free Tap Pad */}
+          {/* Luminous Circular Tasbih Ring & Tap Orb */}
           <motion.button
             type="button"
             whileTap={{ scale: 0.97 }}
             onClick={handleTap}
-            className="w-full py-12 rounded-3xl border-2 flex flex-col items-center justify-center gap-2 cursor-pointer select-none transition-colors"
+            className="w-full py-8 rounded-3xl border flex flex-col items-center justify-center gap-3 cursor-pointer select-none relative overflow-hidden"
             style={{
-              borderColor: "var(--accent-primary)",
-              backgroundColor: "var(--accent-soft)",
+              borderColor: "var(--border-hairline)",
+              background:
+                "radial-gradient(circle at 50% 45%, rgba(0, 229, 255, 0.12), rgba(16, 185, 129, 0.05) 55%, transparent 80%)",
             }}
           >
-            <span className="text-5xl sm:text-6xl font-bold tabular-nums">
-              {tasbihTotalToday}
-            </span>
+            {(() => {
+              const size = 212;
+              const stroke = 11;
+              const r = (size - stroke) / 2;
+              const circ = 2 * Math.PI * r;
+              const pct = Math.min(1, tasbihTotalToday / Math.max(1, tasbihTarget));
+              return (
+                <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+                  <svg width={size} height={size} className="-rotate-90">
+                    <defs>
+                      <linearGradient id="tasbihArc" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#10B981" />
+                        <stop offset="100%" stopColor="#00E5FF" />
+                      </linearGradient>
+                    </defs>
+                    <circle
+                      cx={size / 2}
+                      cy={size / 2}
+                      r={r}
+                      fill="none"
+                      stroke="var(--border-hairline)"
+                      strokeWidth={stroke}
+                    />
+                    <circle
+                      cx={size / 2}
+                      cy={size / 2}
+                      r={r}
+                      fill="none"
+                      stroke="url(#tasbihArc)"
+                      strokeWidth={stroke}
+                      strokeLinecap="round"
+                      strokeDasharray={circ}
+                      strokeDashoffset={circ * (1 - pct)}
+                      style={{ transition: "stroke-dashoffset 0.25s ease" }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent-secondary)" }}>
+                      {activeLitany.name.split(" ")[0]}
+                    </span>
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <span className="text-4xl sm:text-5xl font-bold tabular-nums">
+                        {String(tasbihTotalToday).padStart(3, "0")}
+                      </span>
+                      <span className="text-sm font-semibold tabular-nums" style={{ color: "var(--text-muted)" }}>
+                        / {tasbihTarget}
+                      </span>
+                    </div>
+                    <span
+                      className="mt-2.5 w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold"
+                      style={{
+                        borderColor: "var(--accent-secondary)",
+                        backgroundColor: "rgba(0, 229, 255, 0.14)",
+                        boxShadow: "0 0 18px rgba(0, 229, 255, 0.35)",
+                        color: "var(--accent-secondary)",
+                      }}
+                    >
+                      +1
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
             <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--accent-primary)" }}>
-              Target: {tasbihTarget} • Tap Anywhere to Count
+              Tap Anywhere to Count
             </span>
           </motion.button>
 
