@@ -523,3 +523,50 @@ export const QUIZ_BANK: QuizQuestion[] = [
     proofLinkLabel: "Explore Hanafi Fiqh Studio",
   },
 ];
+
+export interface FastestFingerChallenge {
+  id: string;
+  prompt: string;
+  items: string[]; // scrambled display order
+  correctOrder: number[]; // indices into items in exact sequence
+  explanation: string;
+}
+
+export const FASTEST_FINGER_BANK: FastestFingerChallenge[] = [
+  {
+    id: "ff-1",
+    prompt: "Arrange the Four Rightly-Guided Caliphs (Khulafa-e-Rashideen رضي الله عنهم) in chronological order of their Khilafah:",
+    items: [
+      "Sayyiduna Ali ibn Abi Talib",
+      "Sayyiduna Abu Bakr as-Siddiq",
+      "Sayyiduna Uthman ibn Affan",
+      "Sayyiduna Umar ibn al-Khattab",
+    ],
+    correctOrder: [1, 3, 2, 0],
+    explanation: "The Khulafa-e-Rashideen followed in order: Abu Bakr (11–13 AH), Umar (13–23 AH), Uthman (23–35 AH), and Ali (35–40 AH).",
+  },
+  {
+    id: "ff-2",
+    prompt: "Arrange the 4 Fara'id of Wudu (Surah Al-Ma'idah 5:6) in their standard sequence:",
+    items: [
+      "Washing both feet including ankles",
+      "Washing both arms including elbows",
+      "Washing the face",
+      "Masah of 1/4th of the head",
+    ],
+    correctOrder: [2, 1, 3, 0],
+    explanation: "Quran 5:6 lists the sequence: wash the face, wash the arms to the elbows, wipe (Masah) the head, and wash the feet to the ankles.",
+  },
+  {
+    id: "ff-3",
+    prompt: "Arrange these 4 Sacred Hijri Months / Dates in calendar order from Muharram onwards:",
+    items: [
+      "Laylat-ul-Qadr (Ramadan)",
+      "Eid Milad-un-Nabi ﷺ (Rabi' al-Awwal)",
+      "Yawm-e-Ashura (Muharram)",
+      "Shab-e-Mi'raj (Rajab)",
+    ],
+    correctOrder: [2, 1, 3, 0],
+    explanation: "Muharram (1st month) → Rabi' al-Awwal (3rd) → Rajab (7th) → Ramadan (9th).",
+  },
+];
