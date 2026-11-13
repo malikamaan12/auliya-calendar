@@ -10,23 +10,24 @@ import {
   XCircle,
   RotateCcw,
   Users,
-  Lightbulb,
+  PhoneCall,
   Shuffle,
   Split,
   ArrowRight,
-  Clock,
   ShieldCheck,
   Volume2,
   VolumeX,
   LogOut,
   Award,
+  Lock,
+  Infinity as InfinityIcon,
 } from "lucide-react";
 import { QUIZ_BANK, QUIZ_CATEGORIES, QuizQuestion, SAFE_TIERS, TIER_REWARDS } from "@/data/quiz";
 import { useApp } from "@/lib/store";
 
 type CategoryFilter = "all" | QuizQuestion["category"];
 
-function playQuizTone(kind: "correct" | "wrong" | "lock" | "win", muted: boolean) {
+function playKbcTone(kind: "select" | "lock" | "correct" | "milestone" | "wrong" | "win", muted: boolean) {
   if (muted) return;
   try {
     const Ctx =
@@ -36,32 +37,35 @@ function playQuizTone(kind: "correct" | "wrong" | "lock" | "win", muted: boolean
     const ctx = new Ctx();
     const seq =
       kind === "win"
-        ? [523.25, 659.25, 783.99, 1046.5]
+        ? [523.25, 659.25, 783.99, 1046.5, 1318.5]
+        : kind === "milestone"
+        ? [440, 554.37, 659.25, 880]
         : kind === "correct"
-        ? [523.25, 659.25]
+        ? [523.25, 659.25, 783.99]
         : kind === "lock"
-        ? [440]
-        : [260, 210];
+        ? [293.66, 369.99, 440]
+        : kind === "select"
+        ? [392]
+        : [220, 174.61];
     seq.forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = kind === "wrong" ? "triangle" : "sine";
+      osc.type = kind === "wrong" ? "sawtooth" : kind === "lock" ? "triangle" : "sine";
       osc.frequency.value = freq;
-      const t0 = ctx.currentTime + i * 0.11;
+      const t0 = ctx.currentTime + i * (kind === "lock" ? 0.08 : 0.1);
       gain.gain.setValueAtTime(0.001, t0);
-      gain.gain.exponentialRampToValueAtTime(0.14, t0 + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.35);
+      gain.gain.exponentialRampToValueAtTime(kind === "wrong" ? 0.1 : 0.15, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.42);
       osc.connect(gain).connect(ctx.destination);
       osc.start(t0);
-      osc.stop(t0 + 0.38);
+      osc.stop(t0 + 0.45);
     });
-    setTimeout(() => ctx.close().catch(() => undefined), 1200);
+    setTimeout(() => ctx.close().catch(() => undefined), 1500);
   } catch {
     // ignore WebAudio restrictions
   }
 }
 
-/** Build a 15-question ladder (or category drill) picking a fresh variant per tier. */
 function buildRunDeck(category: CategoryFilter): QuizQuestion[] {
   if (category === "all") {
     return Array.from({ length: 15 }, (_, idx) => {
@@ -70,8 +74,7 @@ function buildRunDeck(category: CategoryFilter): QuizQuestion[] {
       return pool[Math.floor(Math.random() * pool.length)] || QUIZ_BANK[idx % QUIZ_BANK.length];
     });
   }
-  const catPool = QUIZ_BANK.filter((q) => q.category === category);
-  return catPool.sort((a, b) => a.tier - b.tier);
+  return QUIZ_BANK.filter((q) => q.category === category).sort((a, b) => a.tier - b.tier);
 }
 
 export default function QuizPage() {
@@ -81,7 +84,6 @@ export default function QuizPage() {
   const [deck, setDeck] = useState<QuizQuestion[]>(() => buildRunDeck("all"));
   const [tierIdx, setTierIdx] = useState(0);
   const [selectedOpt, setSelectedOpt] = useState<number | null>(null);
-  const [awaitingFinalConfirm, setAwaitingFinalConfirm] = useState(false);
   const [outcome, setOutcome] = useState<"playing" | "correct" | "wrong" | "won" | "walked">("playing");
   const [eliminatedOpts, setEliminatedOpts] = useState<number[]>([]);
   const [showIshara, setShowIshara] = useState(false);
@@ -89,7 +91,6 @@ export default function QuizPage() {
   const [swappedQuestion, setSwappedQuestion] = useState<QuizQuestion | null>(null);
   const [muted, setMuted] = useState(false);
 
-  // Real Safe-Checkpoint tracking
   const [runXp, setRunXp] = useState(0);
   const [safeXp, setSafeXp] = useState(0);
   const [bankedXp, setBankedXp] = useState<number | null>(null);
@@ -107,7 +108,7 @@ export default function QuizPage() {
   const question = swappedQuestion || deck[tierIdx] || QUIZ_BANK[0];
   const stepReward = isLadder ? TIER_REWARDS[tierIdx] : (question.tier || tierIdx + 1) * 150;
 
-  // Countdown: 30s (Steps 1-5), 45s (Steps 6-10), untimed (Steps 11+)
+  // KBC Clock: 30s (Tiers 1-5), 45s (Tiers 6-10), untimed (Tiers 11-15)
   const totalSeconds = tierIdx < 5 ? 30 : tierIdx < 10 ? 45 : null;
   const [secondsLeft, setSecondsLeft] = useState<number | null>(30);
 
@@ -125,34 +126,33 @@ export default function QuizPage() {
       if (secondsLeft <= 1) {
         setSecondsLeft(0);
         setOutcome("wrong");
-        playQuizTone("wrong", muted);
-        commitPoints(safeXp, tierIdx > 0 ? tierIdx : undefined);
+        playKbcTone("wrong", muted);
+        commitPoints(safeXp, isLadder && tierIdx > 0 ? tierIdx : undefined);
       } else {
         setSecondsLeft((s) => (s !== null ? s - 1 : null));
       }
     }, 1000);
     return () => clearTimeout(id);
-  }, [secondsLeft, outcome, muted, safeXp, tierIdx, commitPoints]);
+  }, [secondsLeft, outcome, muted, safeXp, isLadder, tierIdx, commitPoints]);
 
-  const evaluateAnswer = useCallback(
+  const lockInAnswer = useCallback(
     (idx: number) => {
-      setAwaitingFinalConfirm(false);
+      if (outcome !== "playing") return;
       if (idx === question.correctIdx) {
-        const nextAnswered = answeredCount + 1;
-        setAnsweredCount(nextAnswered);
+        setAnsweredCount((c) => c + 1);
         if (isLadder) {
           const earned = TIER_REWARDS[tierIdx];
           setRunXp(earned);
-          if (SAFE_TIERS.includes(tierIdx)) {
-            setSafeXp(earned);
-          }
+          const hitSafe = SAFE_TIERS.includes(tierIdx);
+          if (hitSafe) setSafeXp(earned);
+
           if (tierIdx === totalSteps - 1) {
             setOutcome("won");
-            playQuizTone("win", muted);
+            playKbcTone("win", muted);
             commitPoints(earned, 15);
           } else {
             setOutcome("correct");
-            playQuizTone("correct", muted);
+            playKbcTone(hitSafe ? "milestone" : "correct", muted);
           }
         } else {
           const earned = runXp + stepReward;
@@ -160,34 +160,29 @@ export default function QuizPage() {
           setSafeXp(earned);
           if (tierIdx === totalSteps - 1) {
             setOutcome("won");
-            playQuizTone("win", muted);
+            playKbcTone("win", muted);
             commitPoints(earned);
           } else {
             setOutcome("correct");
-            playQuizTone("correct", muted);
+            playKbcTone("correct", muted);
           }
         }
       } else {
         setOutcome("wrong");
-        playQuizTone("wrong", muted);
+        playKbcTone("wrong", muted);
         commitPoints(safeXp, isLadder && tierIdx > 0 ? tierIdx : undefined);
       }
     },
-    [question.correctIdx, answeredCount, isLadder, tierIdx, totalSteps, muted, commitPoints, runXp, stepReward, safeXp]
+    [outcome, question.correctIdx, isLadder, tierIdx, totalSteps, muted, commitPoints, runXp, stepReward, safeXp]
   );
 
-  const handleOptionClick = useCallback(
+  const handleOptionSelect = useCallback(
     (idx: number) => {
       if (outcome !== "playing" || eliminatedOpts.includes(idx)) return;
       setSelectedOpt(idx);
-      if (isLadder && tierIdx >= 5) {
-        setAwaitingFinalConfirm(true);
-        playQuizTone("lock", muted);
-      } else {
-        evaluateAnswer(idx);
-      }
+      playKbcTone("select", muted);
     },
-    [outcome, eliminatedOpts, isLadder, tierIdx, muted, evaluateAnswer]
+    [outcome, eliminatedOpts, muted]
   );
 
   const nextTier = useCallback(() => {
@@ -195,7 +190,6 @@ export default function QuizPage() {
     setTierIdx(next);
     setSecondsLeft(next < 5 ? 30 : next < 10 ? 45 : null);
     setSelectedOpt(null);
-    setAwaitingFinalConfirm(false);
     setOutcome("playing");
     setEliminatedOpts([]);
     setShowIshara(false);
@@ -205,12 +199,10 @@ export default function QuizPage() {
 
   const startNewRun = useCallback((cat: CategoryFilter) => {
     setCategoryFilter(cat);
-    const nextDeck = buildRunDeck(cat);
-    setDeck(nextDeck);
+    setDeck(buildRunDeck(cat));
     setTierIdx(0);
     setSecondsLeft(30);
     setSelectedOpt(null);
-    setAwaitingFinalConfirm(false);
     setOutcome("playing");
     setEliminatedOpts([]);
     setShowIshara(false);
@@ -226,7 +218,7 @@ export default function QuizPage() {
   const walkAway = () => {
     if (runXp <= 0 || outcome === "won" || outcome === "wrong" || outcome === "walked") return;
     setOutcome("walked");
-    playQuizTone("win", muted);
+    playKbcTone("milestone", muted);
     commitPoints(runXp, isLadder ? tierIdx + (outcome === "correct" ? 1 : 0) : undefined);
   };
 
@@ -234,90 +226,104 @@ export default function QuizPage() {
     if (usedLifelines.nisf || outcome !== "playing") return;
     const wrongIndices = [0, 1, 2, 3].filter((i) => i !== question.correctIdx);
     const shuffled = [...wrongIndices].sort(() => Math.random() - 0.5);
-    setEliminatedOpts(shuffled.slice(0, 2));
+    const removed = shuffled.slice(0, 2);
+    setEliminatedOpts(removed);
+    if (selectedOpt !== null && removed.includes(selectedOpt)) setSelectedOpt(null);
     setUsedLifelines((u) => ({ ...u, nisf: true }));
+    playKbcTone("lock", muted);
   };
 
   const triggerIshara = useCallback(() => {
     if (usedLifelines.ishara || outcome !== "playing") return;
     setShowIshara(true);
     setUsedLifelines((u) => ({ ...u, ishara: true }));
-  }, [usedLifelines.ishara, outcome]);
+    playKbcTone("lock", muted);
+  }, [usedLifelines.ishara, outcome, muted]);
 
   const triggerPoll = () => {
     if (usedLifelines.poll || outcome !== "playing") return;
     setShowPoll(true);
     setUsedLifelines((u) => ({ ...u, poll: true }));
+    playKbcTone("lock", muted);
   };
 
   const triggerTabdeeli = () => {
     if (usedLifelines.tabdeeli || outcome !== "playing") return;
-    const sameTierAlt = QUIZ_BANK.find(
-      (q) => q.id !== question.id && q.tier === question.tier
-    );
+    const sameTierAlt = QUIZ_BANK.find((q) => q.id !== question.id && q.tier === question.tier);
     const sameCatAlt = QUIZ_BANK.find(
       (q) => q.id !== question.id && q.category === question.category && !deck.some((d) => d.id === q.id)
     );
-    const fallback = QUIZ_BANK.find((q) => q.id !== question.id) || QUIZ_BANK[0];
-    setSwappedQuestion(sameTierAlt || sameCatAlt || fallback);
+    setSwappedQuestion(sameTierAlt || sameCatAlt || QUIZ_BANK[0]);
     setEliminatedOpts([]);
     setSelectedOpt(null);
-    setAwaitingFinalConfirm(false);
+    setShowIshara(false);
+    setShowPoll(false);
     setUsedLifelines((u) => ({ ...u, tabdeeli: true }));
+    playKbcTone("lock", muted);
   };
 
-  // Keyboard shortcuts (A-D / 1-4, Enter, H)
+  // Keyboard shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const k = e.key.toLowerCase();
       if (outcome === "playing") {
-        if (k === "1" || k === "a") handleOptionClick(0);
-        else if (k === "2" || k === "b") handleOptionClick(1);
-        else if (k === "3" || k === "c") handleOptionClick(2);
-        else if (k === "4" || k === "d") handleOptionClick(3);
+        if (k === "1" || k === "a") handleOptionSelect(0);
+        else if (k === "2" || k === "b") handleOptionSelect(1);
+        else if (k === "3" || k === "c") handleOptionSelect(2);
+        else if (k === "4" || k === "d") handleOptionSelect(3);
         else if (k === "h") triggerIshara();
-        else if (k === "enter" && awaitingFinalConfirm && selectedOpt !== null) evaluateAnswer(selectedOpt);
+        else if (k === "enter" && selectedOpt !== null) {
+          playKbcTone("lock", muted);
+          lockInAnswer(selectedOpt);
+        }
       } else if (outcome === "correct" && k === "enter") {
         nextTier();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [outcome, awaitingFinalConfirm, selectedOpt, handleOptionClick, evaluateAnswer, nextTier, triggerIshara]);
+  }, [outcome, selectedOpt, muted, handleOptionSelect, lockInAnswer, nextTier, triggerIshara]);
 
   const timerPct = useMemo(() => {
     if (secondsLeft === null || totalSeconds === null) return 100;
     return Math.max(0, Math.min(100, (secondsLeft / totalSeconds) * 100));
   }, [secondsLeft, totalSeconds]);
 
+  const lifelines = [
+    { id: "nisf", label: "50:50", sub: "Nisf", icon: Split, used: usedLifelines.nisf, onClick: triggerNisf },
+    { id: "ishara", label: "Phone a Scholar", sub: "Ishara", icon: PhoneCall, used: usedLifelines.ishara, onClick: triggerIshara },
+    { id: "poll", label: "Audience Poll", sub: "Ijma'", icon: Users, used: usedLifelines.poll, onClick: triggerPoll },
+    { id: "tabdeeli", label: "Flip Question", sub: "Tabdeeli", icon: Shuffle, used: usedLifelines.tabdeeli, onClick: triggerTabdeeli },
+  ];
+
   const lifelinesRemaining = Object.values(usedLifelines).filter((v) => !v).length;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-5">
+      {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--accent-gold)" }}>
             <Trophy className="w-3.5 h-3.5" />
-            <span>15-Tier Sahib-e-Ilm Ladder • Halal Non-Monetary Gamification</span>
+            <span>KBC-Style Hot Seat • 15-Tier Sahib-e-Ilm Ladder</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Sahib-e-Ilm Sunni Trivia
+            Sahib-e-Ilm Hot Seat Quiz
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <button
             type="button"
             onClick={() => setMuted((m) => !m)}
-            aria-label={muted ? "Unmute quiz chimes" : "Mute quiz chimes"}
+            aria-label={muted ? "Unmute quiz audio" : "Mute quiz audio"}
             className="p-2 rounded-xl border cursor-pointer"
             style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
           >
             {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />}
           </button>
           <span className="px-3 py-1.5 rounded-xl border font-bold tabular-nums" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}>
-            Total Ilm XP: {ilmPoints.toLocaleString()}
+            Total XP: {ilmPoints.toLocaleString()}
           </span>
           <span className="px-3 py-1.5 rounded-xl border font-semibold" style={{ borderColor: "var(--border-hairline)" }}>
             Best Tier: {bestQuizTier}/15
@@ -325,19 +331,19 @@ export default function QuizPage() {
         </div>
       </div>
 
-      {/* Mode / Category Selector */}
+      {/* Mode Switcher */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <button
           type="button"
           onClick={() => startNewRun("all")}
           className="px-3 py-1.5 rounded-xl border font-semibold cursor-pointer"
           style={{
-            borderColor: categoryFilter === "all" ? "var(--accent-primary)" : "var(--border-hairline)",
-            backgroundColor: categoryFilter === "all" ? "var(--accent-soft)" : "var(--bg-muted)",
-            color: categoryFilter === "all" ? "var(--accent-primary)" : "var(--text-muted)",
+            borderColor: categoryFilter === "all" ? "var(--accent-gold)" : "var(--border-hairline)",
+            backgroundColor: categoryFilter === "all" ? "var(--gold-soft)" : "var(--bg-muted)",
+            color: categoryFilter === "all" ? "var(--accent-gold)" : "var(--text-muted)",
           }}
         >
-          15-Tier Grand Ladder
+          15-Tier KBC Ladder
         </button>
         {QUIZ_CATEGORIES.map((cat) => {
           const active = categoryFilter === cat;
@@ -359,137 +365,166 @@ export default function QuizPage() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Main Arena */}
-        <section className="lg:col-span-8 bento-card p-5 sm:p-6 space-y-5">
-          {/* Step + Timer + Run XP */}
-          <div className="space-y-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-bold text-white" style={{ backgroundColor: "var(--accent-primary)" }}>
-                  {isLadder ? `Tier ${tierIdx + 1} / 15` : `Q ${tierIdx + 1} / ${totalSteps}`} • {stepReward.toLocaleString()} XP
-                </span>
-                <span className="text-xs px-2.5 py-1 rounded-full border" style={{ borderColor: "var(--border-hairline)" }}>
-                  {question.category}
-                </span>
-                {safeXp > 0 && (
-                  <span
-                    className="text-[11px] px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1"
-                    style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
-                  >
-                    <ShieldCheck className="w-3 h-3" />
-                    Safe: {safeXp.toLocaleString()} XP
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3">
-                {runXp > 0 && (outcome === "playing" || outcome === "correct") && (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* KBC Hot-Seat Stage */}
+        <section
+          className="lg:col-span-8 bento-card p-5 sm:p-6 space-y-5 relative overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 60% at 50% 0%, rgba(245, 158, 11, 0.08), transparent 65%), var(--bg-surface-elevated)",
+          }}
+        >
+          {/* KBC Lifelines Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b" style={{ borderColor: "var(--border-hairline)" }}>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1">
+              {lifelines.map((lf) => {
+                const Icon = lf.icon;
+                return (
                   <button
+                    key={lf.id}
                     type="button"
-                    onClick={walkAway}
-                    className="px-2.5 py-1 rounded-xl border text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer hover:opacity-90"
-                    style={{ borderColor: "var(--accent-gold)", color: "var(--accent-gold)" }}
-                    title="End run now and bank your current XP"
+                    disabled={lf.used || outcome !== "playing"}
+                    onClick={lf.onClick}
+                    className="relative px-3 py-2 rounded-2xl border flex items-center gap-2 text-start cursor-pointer transition-all disabled:opacity-35 hover:brightness-110"
+                    style={{
+                      borderColor: lf.used ? "var(--border-hairline)" : "rgba(245, 158, 11, 0.45)",
+                      backgroundColor: lf.used ? "var(--bg-muted)" : "rgba(245, 158, 11, 0.08)",
+                    }}
                   >
-                    <LogOut className="w-3 h-3" />
-                    <span>Claim {runXp.toLocaleString()} XP</span>
+                    <span
+                      className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: lf.used ? "transparent" : "var(--gold-soft)",
+                        color: lf.used ? "var(--text-muted)" : "var(--accent-gold)",
+                      }}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                    </span>
+                    <div className="min-w-0 leading-tight">
+                      <div className={`text-[11px] font-bold truncate ${lf.used ? "line-through" : ""}`}>{lf.label}</div>
+                      <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>{lf.sub}</div>
+                    </div>
                   </button>
-                )}
-                <div
-                  className="text-xs font-bold tabular-nums inline-flex items-center gap-1.5"
-                  style={{ color: secondsLeft !== null && secondsLeft <= 8 ? "#F87171" : "var(--accent-secondary)" }}
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{secondsLeft !== null ? `${secondsLeft}s` : "Untimed"}</span>
-                </div>
-              </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* KBC Circular Stage Clock + Current Prize */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span
+                className="px-3 py-1 rounded-full font-bold"
+                style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
+              >
+                {isLadder ? `Sawal #${tierIdx + 1}` : `Q${tierIdx + 1}/${totalSteps}`} • {stepReward.toLocaleString()} XP
+              </span>
+              <span className="px-2.5 py-1 rounded-full border text-[11px]" style={{ borderColor: "var(--border-hairline)" }}>
+                {question.category}
+              </span>
+              {safeXp > 0 && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold" style={{ color: "var(--accent-primary)" }}>
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Padav: {safeXp.toLocaleString()} XP
+                </span>
+              )}
             </div>
 
-            {/* Smooth Timer Progress Bar */}
-            {secondsLeft !== null && (
-              <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--bg-muted)" }}>
-                <div
-                  className="h-full rounded-full transition-all duration-1000 ease-linear"
-                  style={{
-                    width: `${timerPct}%`,
-                    backgroundColor: secondsLeft <= 8 ? "#EF4444" : "var(--accent-secondary)",
-                  }}
-                />
-              </div>
-            )}
+            {/* Circular KBC Clock */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              {runXp > 0 && (outcome === "playing" || outcome === "correct") && (
+                <button
+                  type="button"
+                  onClick={walkAway}
+                  className="px-3 py-1.5 rounded-xl border text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer hover:brightness-110"
+                  style={{ borderColor: "var(--accent-gold)", color: "var(--accent-gold)" }}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Quit &amp; Take {runXp.toLocaleString()}</span>
+                </button>
+              )}
+
+              {(() => {
+                const size = 54;
+                const r = 22;
+                const c = 2 * Math.PI * r;
+                const urgent = secondsLeft !== null && secondsLeft <= 8;
+                return (
+                  <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+                    <svg width={size} height={size} className="-rotate-90">
+                      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border-hairline)" strokeWidth="4" />
+                      <circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={r}
+                        fill="none"
+                        stroke={urgent ? "#EF4444" : "var(--accent-gold)"}
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                        strokeDasharray={c}
+                        strokeDashoffset={c * (1 - timerPct / 100)}
+                        style={{ transition: "stroke-dashoffset 0.9s linear" }}
+                      />
+                    </svg>
+                    <span
+                      className="absolute text-xs font-extrabold tabular-nums"
+                      style={{ color: urgent ? "#F87171" : "var(--accent-gold)" }}
+                    >
+                      {secondsLeft !== null ? secondsLeft : <InfinityIcon className="w-4 h-4" />}
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
 
-          {/* 4 Lifelines */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            <button
-              type="button"
-              disabled={usedLifelines.nisf || outcome !== "playing"}
-              onClick={triggerNisf}
-              className="p-2.5 rounded-xl border font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
-              style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
-            >
-              <Split className="w-3.5 h-3.5" />
-              <span>50:50 (Nisf)</span>
-            </button>
-            <button
-              type="button"
-              disabled={usedLifelines.ishara || outcome !== "playing"}
-              onClick={triggerIshara}
-              className="p-2.5 rounded-xl border font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
-              style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
-            >
-              <Lightbulb className="w-3.5 h-3.5" />
-              <span>Scholar&apos;s Ishara</span>
-            </button>
-            <button
-              type="button"
-              disabled={usedLifelines.poll || outcome !== "playing"}
-              onClick={triggerPoll}
-              className="p-2.5 rounded-xl border font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
-              style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Ijma&apos; Poll</span>
-            </button>
-            <button
-              type="button"
-              disabled={usedLifelines.tabdeeli || outcome !== "playing"}
-              onClick={triggerTabdeeli}
-              className="p-2.5 rounded-xl border font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
-              style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
-            >
-              <Shuffle className="w-3.5 h-3.5" />
-              <span>Tabdeeli</span>
-            </button>
+          {/* KBC Question Box */}
+          <div
+            className="p-5 sm:p-6 rounded-2xl border-2 text-center"
+            style={{
+              borderColor: "rgba(245, 158, 11, 0.4)",
+              backgroundColor: "var(--bg-muted)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+            }}
+          >
+            <h2 className="text-lg sm:text-xl font-bold leading-snug">{question.question}</h2>
           </div>
 
-          {/* Question */}
-          <h2 className="text-lg sm:text-xl font-bold leading-snug">{question.question}</h2>
-
+          {/* Lifeline Outputs: Phone a Scholar (Ishara) & Audience Poll (Vertical Bars) */}
           {showIshara && (
-            <div className="p-3 rounded-xl text-xs" style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}>
-              <strong>Scholar&apos;s Clue (Ishara):</strong> {question.isharaHint}
+            <div className="p-3.5 rounded-2xl border text-xs flex items-start gap-2.5" style={{ borderColor: "var(--accent-gold)", backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}>
+              <PhoneCall className="w-4 h-4 shrink-0 mt-0.5" />
+              <div>
+                <strong>Scholar&apos;s Call (Ishara):</strong> {question.isharaHint}
+              </div>
             </div>
           )}
 
           {showPoll && (
-            <div className="p-3.5 rounded-xl border text-xs grid grid-cols-2 sm:grid-cols-4 gap-3" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}>
-              {question.communityPoll.map((pct, i) => (
-                <div key={i} className="space-y-1">
-                  <div className="flex items-center justify-between font-bold">
-                    <span>Option {String.fromCharCode(65 + i)}</span>
-                    <span className="tabular-nums" style={{ color: "var(--accent-secondary)" }}>{pct}%</span>
+            <div className="p-4 rounded-2xl border space-y-2" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}>
+              <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--accent-secondary)" }}>
+                Ijma&apos; Audience Poll Results
+              </div>
+              <div className="grid grid-cols-4 gap-3 items-end h-24 pt-2">
+                {question.communityPoll.map((pct, i) => (
+                  <div key={i} className="flex flex-col items-center justify-end h-full gap-1">
+                    <span className="text-[11px] font-bold tabular-nums" style={{ color: "var(--accent-secondary)" }}>
+                      {pct}%
+                    </span>
+                    <div className="w-full max-w-[36px] bg-black/25 rounded-t-lg overflow-hidden flex items-end h-14">
+                      <div
+                        className="w-full rounded-t-lg transition-all duration-500"
+                        style={{ height: `${pct}%`, backgroundColor: "var(--accent-secondary)" }}
+                      />
+                    </div>
+                    <span className="text-[11px] font-bold">{String.fromCharCode(65 + i)}</span>
                   </div>
-                  <div className="h-1.5 rounded-full overflow-hidden bg-black/20">
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: "var(--accent-secondary)" }} />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Options */}
+          {/* KBC 2x2 Options */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {question.options.map((opt, idx) => {
               const isElim = eliminatedOpts.includes(idx);
@@ -498,17 +533,26 @@ export default function QuizPage() {
 
               let borderCol = "var(--border-hairline)";
               let bgCol = "var(--bg-muted)";
+              let badgeBg = "transparent";
+              let badgeText = "var(--accent-gold)";
+
               if (outcome !== "playing" && outcome !== "walked") {
                 if (isCorr) {
                   borderCol = "#10B981";
-                  bgCol = "rgba(16,185,129,0.16)";
+                  bgCol = "rgba(16,185,129,0.2)";
+                  badgeBg = "#10B981";
+                  badgeText = "#FFFFFF";
                 } else if (isSel) {
                   borderCol = "#EF4444";
-                  bgCol = "rgba(239,68,68,0.16)";
+                  bgCol = "rgba(239,68,68,0.2)";
+                  badgeBg = "#EF4444";
+                  badgeText = "#FFFFFF";
                 }
               } else if (isSel) {
-                borderCol = "var(--accent-gold)";
-                bgCol = "var(--gold-soft)";
+                borderCol = "#F59E0B";
+                bgCol = "rgba(245,158,11,0.18)";
+                badgeBg = "#F59E0B";
+                badgeText = "#000000";
               }
 
               return (
@@ -517,35 +561,48 @@ export default function QuizPage() {
                   whileTap={{ scale: 0.98 }}
                   type="button"
                   disabled={isElim || outcome !== "playing"}
-                  onClick={() => handleOptionClick(idx)}
-                  className="p-4 rounded-2xl border text-start text-sm font-medium flex items-center gap-3 cursor-pointer disabled:opacity-25 hover:brightness-105 transition-all"
+                  onClick={() => handleOptionSelect(idx)}
+                  className="p-3.5 sm:p-4 rounded-2xl border-2 text-start text-sm font-medium flex items-center gap-3 cursor-pointer disabled:opacity-20 transition-all hover:brightness-110"
                   style={{ borderColor: borderCol, backgroundColor: bgCol }}
                 >
-                  <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 border" style={{ borderColor: "var(--border-hairline)" }}>
-                    {String.fromCharCode(65 + idx)}
+                  <span
+                    className="w-7 h-7 rounded-lg rotate-45 flex items-center justify-center shrink-0 border"
+                    style={{ borderColor: borderCol, backgroundColor: badgeBg, color: badgeText }}
+                  >
+                    <span className="-rotate-45 text-xs font-extrabold">{String.fromCharCode(65 + idx)}</span>
                   </span>
-                  <span>{opt}</span>
+                  <span className="leading-snug">{opt}</span>
                 </motion.button>
               );
             })}
           </div>
 
-          {awaitingFinalConfirm && selectedOpt !== null && (
-            <div className="p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-3" style={{ borderColor: "var(--accent-gold)", backgroundColor: "var(--gold-soft)" }}>
-              <span className="text-xs font-semibold">
-                Tier {tierIdx + 1} Lock-In: Is Option {String.fromCharCode(65 + selectedOpt)} your Final Answer?
-              </span>
+          {/* KBC "Lock Kiya Jaye?" Dramatic Confirmation Bar */}
+          {outcome === "playing" && selectedOpt !== null && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-2xl border-2 flex flex-wrap items-center justify-between gap-3"
+              style={{ borderColor: "#F59E0B", backgroundColor: "var(--gold-soft)" }}
+            >
+              <div className="text-xs sm:text-sm font-bold">
+                Option {String.fromCharCode(65 + selectedOpt)} selected — <span style={{ color: "var(--accent-gold)" }}>Lock Kiya Jaye?</span>
+              </div>
               <button
                 type="button"
-                onClick={() => evaluateAnswer(selectedOpt)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 text-black cursor-pointer"
+                onClick={() => {
+                  playKbcTone("lock", muted);
+                  lockInAnswer(selectedOpt);
+                }}
+                className="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-amber-500 text-black cursor-pointer inline-flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all"
               >
-                Lock In Final Answer
+                <Lock className="w-3.5 h-3.5" />
+                <span>Lock Kiya Jaye!</span>
               </button>
-            </div>
+            </motion.div>
           )}
 
-          {/* Learn Why Proof Card / Run Summary */}
+          {/* Result & Learn Why Proof Card */}
           {outcome !== "playing" && (
             <div className="p-5 rounded-2xl border space-y-3" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}>
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -554,37 +611,40 @@ export default function QuizPage() {
                     <>
                       <XCircle className="w-5 h-5 text-red-400" />
                       <span>
-                        {secondsLeft === 0 ? "Time Up" : "Incorrect"} — Banked {bankedXp?.toLocaleString() ?? 0} Safe XP
+                        {secondsLeft === 0 ? "Time Up" : "Galat Jawab"} — Banked {bankedXp?.toLocaleString() ?? 0} Safe XP
                       </span>
                     </>
                   ) : outcome === "walked" ? (
                     <>
                       <Award className="w-5 h-5 text-amber-400" />
-                      <span>Run Claimed! +{bankedXp?.toLocaleString() ?? 0} Ilm XP Banked</span>
+                      <span>Shabash! +{bankedXp?.toLocaleString() ?? 0} Ilm XP Claimed Safely</span>
                     </>
                   ) : outcome === "won" ? (
                     <>
                       <Trophy className="w-5 h-5 text-amber-400" />
-                      <span>MashaAllah! Sahib-e-Ilm Crown Achieved (+{bankedXp?.toLocaleString() ?? 0} XP)!</span>
+                      <span>MashaAllah! 15/15 Sahib-e-Ilm Grand Crown (+{bankedXp?.toLocaleString() ?? 0} XP)!</span>
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                      <span>Correct! Ladder at {runXp.toLocaleString()} Ilm XP</span>
+                      <span>
+                        Sahi Jawab! {SAFE_TIERS.includes(tierIdx) ? "★ Safe Padav Reached — " : ""}
+                        {runXp.toLocaleString()} Ilm XP
+                      </span>
                     </>
                   )}
                 </div>
 
                 {(outcome === "won" || outcome === "walked" || outcome === "wrong") && (
                   <span className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
-                    {answeredCount} correct • {lifelinesRemaining}/4 lifelines unused
+                    {answeredCount} correct • {lifelinesRemaining}/4 lifelines left
                   </span>
                 )}
               </div>
 
               {outcome !== "walked" && (
                 <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                  <strong>Learn Why (Proof Card):</strong> {question.proofExplanation}
+                  <strong>Learn Why (Proof):</strong> {question.proofExplanation}
                 </p>
               )}
 
@@ -605,7 +665,7 @@ export default function QuizPage() {
                     className="btn-primary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>Proceed to {isLadder ? `Tier ${tierIdx + 2}` : `Question ${tierIdx + 2}`}</span>
+                    <span>Next Sawal ({isLadder ? `Tier ${tierIdx + 2}` : `Q${tierIdx + 2}`})</span>
                   </button>
                 ) : (
                   <button
@@ -614,7 +674,7 @@ export default function QuizPage() {
                     className="btn-primary px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>New Run (Fresh Questions)</span>
+                    <span>Play Again (New Seat)</span>
                   </button>
                 )}
               </div>
@@ -622,18 +682,26 @@ export default function QuizPage() {
           )}
 
           <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-            Tip: Use keys <kbd className="px-1 py-0.5 rounded border" style={{ borderColor: "var(--border-hairline)" }}>A</kbd>–
-            <kbd className="px-1 py-0.5 rounded border" style={{ borderColor: "var(--border-hairline)" }}>D</kbd> to answer,{" "}
-            <kbd className="px-1 py-0.5 rounded border" style={{ borderColor: "var(--border-hairline)" }}>H</kbd> for Ishara,{" "}
-            <kbd className="px-1 py-0.5 rounded border" style={{ borderColor: "var(--border-hairline)" }}>Enter</kbd> to advance.
+            Shortcuts: <kbd className="px-1 py-0.5 rounded border" style={{ borderColor: "var(--border-hairline)" }}>A</kbd>–
+            <kbd className="px-1 py-0.5 rounded border" style={{ borderColor: "var(--border-hairline)" }}>D</kbd> select •{" "}
+            <kbd className="px-1 py-0.5 rounded border" style={{ borderColor: "var(--border-hairline)" }}>Enter</kbd> Lock Kiya Jaye / Next •{" "}
+            <kbd className="px-1 py-0.5 rounded border" style={{ borderColor: "var(--border-hairline)" }}>H</kbd> Scholar Call
           </p>
         </section>
 
-        {/* 15-Tier Ladder Sidebar */}
+        {/* Classic KBC 15-Tier Prize Tree */}
         <aside className="lg:col-span-4 bento-card p-5 space-y-2">
-          <h2 className="text-sm font-bold mb-2">
-            {isLadder ? "Sahib-e-Ilm 15-Tier Ladder" : `${categoryFilter} Drill (${totalSteps} Qs)`}
-          </h2>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-sm font-bold">
+              {isLadder ? "KBC 15-Tier Prize Tree" : `${categoryFilter} (${totalSteps} Qs)`}
+            </h2>
+            {isLadder && (
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent-gold)" }}>
+                ★ Safe Padav
+              </span>
+            )}
+          </div>
+
           {isLadder ? (
             <div className="space-y-1 flex flex-col-reverse">
               {TIER_REWARDS.map((pts, i) => {
@@ -643,20 +711,27 @@ export default function QuizPage() {
                 return (
                   <div
                     key={i}
-                    className="px-3 py-1.5 rounded-xl text-xs flex items-center justify-between border"
+                    className="px-3 py-1.5 rounded-xl text-xs flex items-center justify-between border transition-all"
                     style={{
-                      borderColor: isCurrent ? "var(--accent-gold)" : "transparent",
+                      borderColor: isCurrent ? "#F59E0B" : isSafe ? "rgba(245,158,11,0.28)" : "transparent",
                       backgroundColor: isCurrent
-                        ? "var(--gold-soft)"
+                        ? "rgba(245, 158, 11, 0.22)"
                         : isPassed
                         ? "var(--accent-soft)"
                         : "transparent",
-                      color: isSafe ? "var(--accent-gold)" : isPassed ? "var(--accent-primary)" : "var(--text-muted)",
-                      fontWeight: isCurrent || isSafe ? 700 : 500,
+                      color: isCurrent
+                        ? "#FBBF24"
+                        : isSafe
+                        ? "var(--accent-gold)"
+                        : isPassed
+                        ? "var(--accent-primary)"
+                        : "var(--text-muted)",
+                      fontWeight: isCurrent || isSafe ? 800 : 500,
                     }}
                   >
-                    <span>
-                      Tier {i + 1} {isSafe ? "★ Safe" : ""}
+                    <span className="flex items-center gap-2 tabular-nums">
+                      <span className="w-5 text-end opacity-75">{i + 1}</span>
+                      <span>{isSafe ? "★" : "•"}</span>
                     </span>
                     <span className="tabular-nums">{pts.toLocaleString()} XP</span>
                   </div>
@@ -683,7 +758,7 @@ export default function QuizPage() {
                       fontWeight: isCurrent ? 700 : 500,
                     }}
                   >
-                    <span>Question {i + 1} (Tier {q.tier})</span>
+                    <span>Sawal {i + 1} (Tier {q.tier})</span>
                     <span className="tabular-nums">{(q.tier * 150).toLocaleString()} XP</span>
                   </div>
                 );
