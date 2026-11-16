@@ -45,18 +45,21 @@ export default function TasbihPage() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--accent-gold)" }}>
+        <div
+          className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider mb-1"
+          style={{ color: "var(--accent-primary)" }}
+        >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Haptic Tasbih Studio • Sunnah Matrix • Qaza-e-Umri Ledger</span>
+          <span>Daily Adhkar &amp; Sunnah Companion</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Sunnah Habit Tracker &amp; Smart Tasbih
+          Tasbih Counter &amp; Daily Sunnah
         </h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Full-Screen Tactile Tasbih Studio */}
-        <section className="lg:col-span-7 bento-card p-6 space-y-5">
+        {/* Left: Tactile Tasbih Counter */}
+        <section className="lg:col-span-7 bento-card p-5 sm:p-6 space-y-5">
           <div className="flex flex-wrap gap-2">
             {TASBIH_LITANIES.map((lit) => {
               const active = lit.id === activeLitany.id;
@@ -65,11 +68,11 @@ export default function TasbihPage() {
                   key={lit.id}
                   type="button"
                   onClick={() => setActiveLitany(lit.id, lit.defaultTarget)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold border cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all"
                   style={{
-                    borderColor: active ? "var(--accent-gold)" : "var(--border-hairline)",
-                    backgroundColor: active ? "var(--gold-soft)" : "var(--bg-muted)",
-                    color: active ? "var(--accent-gold)" : "var(--text-muted)",
+                    backgroundImage: active ? "var(--gradient-brand)" : undefined,
+                    backgroundColor: active ? undefined : "var(--bg-muted)",
+                    color: active ? "#ffffff" : "var(--text-muted)",
                   }}
                 >
                   {lit.name}
@@ -78,25 +81,28 @@ export default function TasbihPage() {
             })}
           </div>
 
-          <div className="p-4 rounded-2xl border space-y-2" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}>
+          <div
+            className="p-4 sm:p-5 rounded-2xl border space-y-2"
+            style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
+          >
             <div className="text-[11px] font-semibold" style={{ color: "var(--accent-primary)" }}>
-              Recommended: {activeLitany.recommendedWindow}
+              Recommended Time: {activeLitany.recommendedWindow}
             </div>
-            <p dir="rtl" className="font-arabic text-2xl text-right leading-loose">
+            <p dir="rtl" className="font-arabic text-2xl sm:text-3xl text-right leading-loose">
               {activeLitany.arabic}
             </p>
-            <p className="text-xs italic" style={{ color: "var(--accent-secondary)" }}>
+            <p className="text-xs font-medium" style={{ color: "var(--accent-primary)" }}>
               {activeLitany.transliteration}
             </p>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
               {activeLitany.translation}
             </p>
-            <div className="text-[11px] pt-1" style={{ color: "var(--accent-gold)" }}>
-              Fazilat: {activeLitany.fazilat}
+            <div className="text-[11px] pt-1 font-medium" style={{ color: "var(--accent-gold)" }}>
+              Virtue: {activeLitany.fazilat}
             </div>
           </div>
 
-          {/* Luminous Circular Tasbih Ring & Tap Orb */}
+          {/* Luminous Lavender-to-Violet Circular Tasbih Ring & Tap Orb */}
           <motion.button
             type="button"
             whileTap={{ scale: 0.97 }}
@@ -105,7 +111,7 @@ export default function TasbihPage() {
             style={{
               borderColor: "var(--border-hairline)",
               background:
-                "radial-gradient(circle at 50% 45%, rgba(0, 229, 255, 0.12), rgba(16, 185, 129, 0.05) 55%, transparent 80%)",
+                "radial-gradient(circle at 50% 45%, rgba(223, 152, 250, 0.16), rgba(144, 85, 255, 0.06) 55%, transparent 80%)",
             }}
           >
             {(() => {
@@ -119,8 +125,8 @@ export default function TasbihPage() {
                   <svg width={size} height={size} className="-rotate-90">
                     <defs>
                       <linearGradient id="tasbihArc" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#10B981" />
-                        <stop offset="100%" stopColor="#00E5FF" />
+                        <stop offset="0%" stopColor="#DF98FA" />
+                        <stop offset="100%" stopColor="#9055FF" />
                       </linearGradient>
                     </defs>
                     <circle
@@ -145,7 +151,7 @@ export default function TasbihPage() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent-secondary)" }}>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
                       {activeLitany.name.split(" ")[0]}
                     </span>
                     <div className="flex items-baseline gap-1 mt-0.5">
@@ -157,12 +163,9 @@ export default function TasbihPage() {
                       </span>
                     </div>
                     <span
-                      className="mt-2.5 w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold"
+                      className="mt-2.5 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-md"
                       style={{
-                        borderColor: "var(--accent-secondary)",
-                        backgroundColor: "rgba(0, 229, 255, 0.14)",
-                        boxShadow: "0 0 18px rgba(0, 229, 255, 0.35)",
-                        color: "var(--accent-secondary)",
+                        backgroundImage: "var(--gradient-brand)",
                       }}
                     >
                       +1
@@ -172,7 +175,7 @@ export default function TasbihPage() {
               );
             })()}
             <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--accent-primary)" }}>
-              Tap Anywhere to Count
+              Tap Circle to Count
             </span>
           </motion.button>
 
@@ -180,15 +183,15 @@ export default function TasbihPage() {
             <button
               type="button"
               onClick={() => incrementTasbih(33)}
-              className="px-3 py-1.5 rounded-xl border font-semibold cursor-pointer"
-              style={{ borderColor: "var(--border-hairline)" }}
+              className="px-3.5 py-2 rounded-full border font-semibold cursor-pointer"
+              style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
             >
-              +33 Quick Log
+              +33 Bead Set
             </button>
             <button
               type="button"
               onClick={resetTasbihToday}
-              className="px-3 py-1.5 rounded-xl border font-semibold inline-flex items-center gap-1 cursor-pointer"
+              className="px-3.5 py-2 rounded-full border font-semibold inline-flex items-center gap-1.5 cursor-pointer"
               style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)" }}
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -197,10 +200,10 @@ export default function TasbihPage() {
           </div>
         </section>
 
-        {/* Right Column: Sunnah Habit Matrix & Qaza-e-Umri Ledger */}
+        {/* Right Column: Daily Sunnah Checklist & Qaza-e-Umri Tracker */}
         <aside className="lg:col-span-5 space-y-5">
           <div className="bento-card p-5 space-y-3">
-            <h2 className="text-base font-bold">Daily Sunnah Habit Matrix</h2>
+            <h2 className="text-base font-bold">Daily Sunnah Checklist</h2>
             <div className="space-y-2">
               {sunnahList.map((item) => {
                 const done = Boolean(sunnahChecks[item.id]);
@@ -209,13 +212,13 @@ export default function TasbihPage() {
                     key={item.id}
                     type="button"
                     onClick={() => toggleSunnah(item.id)}
-                    className="w-full p-3 rounded-xl border flex items-center justify-between text-xs font-medium cursor-pointer"
+                    className="w-full p-3 rounded-xl border flex items-center justify-between text-xs font-medium cursor-pointer transition-colors"
                     style={{
                       borderColor: done ? "var(--accent-primary)" : "var(--border-hairline)",
                       backgroundColor: done ? "var(--accent-soft)" : "var(--bg-muted)",
                     }}
                   >
-                    <span>{item.label}</span>
+                    <span className="text-start">{item.label}</span>
                     <CheckCircle2
                       className="w-4 h-4 shrink-0"
                       style={{ color: done ? "var(--accent-primary)" : "var(--text-muted)" }}
@@ -228,9 +231,9 @@ export default function TasbihPage() {
 
           <div className="bento-card p-5 space-y-3">
             <div>
-              <h2 className="text-base font-bold">Hanafi Qaza-e-Umri Ledger</h2>
+              <h2 className="text-base font-bold">Qaza-e-Umri Prayer Tracker</h2>
               <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                Chip away at lifetime missed Fard + Witr prayers with 1-tap logging.
+                Keep track of missed Fard and Wajib Witr prayers with one-tap logging.
               </p>
             </div>
             <form
@@ -258,17 +261,12 @@ export default function TasbihPage() {
               />
               <button
                 type="submit"
-                className="px-3 py-2 rounded-xl text-xs font-semibold text-white cursor-pointer shrink-0"
-                style={{ backgroundColor: "var(--accent-primary)" }}
+                className="btn-primary px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer shrink-0"
               >
-                Set
+                Calculate
               </button>
             </form>
-            <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-              Estimate the years of missed Salah since Bulugh (puberty); we count 365 of each Fard + Witr per year.
-              Tap a prayer below each time you offer one Qaza.
-            </p>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
               {(["fajr", "dhuhr", "asr", "maghrib", "isha", "witr"] as (PrayerName | "witr")[]).map(
                 (p) => (
                   <button
@@ -281,7 +279,7 @@ export default function TasbihPage() {
                     <div className="text-start">
                       <div className="uppercase font-bold">{p}</div>
                       <div className="tabular-nums text-[11px]" style={{ color: "var(--text-muted)" }}>
-                        {qazaUmriRemaining[p]} left
+                        {qazaUmriRemaining[p]} remaining
                       </div>
                     </div>
                     <MinusCircle className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />

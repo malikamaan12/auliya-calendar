@@ -1,43 +1,43 @@
 @import "tailwindcss";
 
 :root {
-  /* Light Theme with Violet / Lavender Quran App Palette */
-  --bg-canvas: #F8F7FC;
+  /* Light Theme — Soft Lavender & Alabaster */
+  --bg-canvas: #F6F4FC;
   --bg-surface: #FFFFFF;
-  --bg-surface-elevated: rgba(255, 255, 255, 0.94);
-  --bg-muted: #EFEBF9;
-  --border-hairline: #E2DCF5;
-  --text-primary: #141229;
-  --text-muted: #6E6A8F;
+  --bg-surface-elevated: rgba(255, 255, 255, 0.95);
+  --bg-muted: #EDE8FA;
+  --border-hairline: rgba(134, 62, 213, 0.14);
+  --text-primary: #240F4F;
+  --text-muted: #8789A3;
   --accent-primary: #863ED5;
-  --accent-secondary: #3B82F6;
-  --accent-gold: #F59E0B;
+  --accent-secondary: #672CBC;
+  --accent-gold: #E08E6D;
   --accent-danger: #EF4444;
-  --accent-soft: rgba(134, 62, 213, 0.12);
-  --gold-soft: rgba(245, 158, 11, 0.12);
+  --accent-soft: rgba(134, 62, 213, 0.11);
+  --gold-soft: rgba(249, 176, 145, 0.22);
   --gradient-brand: linear-gradient(135deg, #DF98FA 0%, #9055FF 100%);
   --gradient-twilight: linear-gradient(135deg, #672CBC 0%, #3B1D7A 55%, #1E1348 100%);
-  --shadow-card: 0 2px 6px rgba(20, 18, 41, 0.04), 0 10px 28px rgba(103, 44, 188, 0.07);
+  --shadow-card: 0 4px 20px -2px rgba(36, 15, 79, 0.06);
 }
 
 html.dark {
-  /* Deep Indigo Night Theme (Matching Reference UI Mockups) */
+  /* Deep Indigo Night Theme (Exact Reference UI Palette: #040C23, #121931, #A19CC5, #DF98FA -> #9055FF, #F9B091) */
   --bg-canvas: #040C23;
   --bg-surface: #121931;
-  --bg-surface-elevated: rgba(18, 25, 49, 0.92);
-  --bg-muted: #1D2646;
-  --border-hairline: rgba(161, 156, 197, 0.14);
+  --bg-surface-elevated: rgba(18, 25, 49, 0.94);
+  --bg-muted: #1B2444;
+  --border-hairline: rgba(161, 156, 197, 0.13);
   --text-primary: #FFFFFF;
   --text-muted: #A19CC5;
   --accent-primary: #A44AFF;
-  --accent-secondary: #60A5FA;
+  --accent-secondary: #DF98FA;
   --accent-gold: #F9B091;
   --accent-danger: #F87171;
-  --accent-soft: rgba(164, 74, 255, 0.16);
+  --accent-soft: rgba(164, 74, 255, 0.15);
   --gold-soft: rgba(249, 176, 145, 0.16);
   --gradient-brand: linear-gradient(135deg, #DF98FA 0%, #9055FF 100%);
-  --gradient-twilight: linear-gradient(135deg, #431B82 0%, #241256 58%, #121931 100%);
-  --shadow-card: 0 8px 32px rgba(2, 6, 20, 0.55);
+  --gradient-twilight: linear-gradient(135deg, #471E8A 0%, #27155D 55%, #121931 100%);
+  --shadow-card: 0 12px 34px -8px rgba(1, 4, 15, 0.65);
 }
 
 * {
@@ -47,27 +47,17 @@ html.dark {
 html,
 body {
   background-color: var(--bg-canvas);
-  background-image:
-    radial-gradient(ellipse 80% 50% at 50% -15%, rgba(144, 85, 255, 0.14), transparent 65%),
-    radial-gradient(ellipse 50% 35% at 95% 10%, rgba(223, 152, 250, 0.08), transparent 60%);
   color: var(--text-primary);
-  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-poppins), var(--font-inter), system-ui, -apple-system, sans-serif;
   transition: background-color 0.25s ease, color 0.25s ease;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-html.dark,
-html.dark body {
-  background-image:
-    radial-gradient(ellipse 80% 50% at 50% -15%, rgba(164, 74, 255, 0.22), transparent 65%),
-    radial-gradient(ellipse 50% 35% at 95% 10%, rgba(96, 165, 250, 0.1), transparent 60%);
-}
-
-/* Script-specific typography per PRD Section 6.2 */
+/* Script-specific typography */
 .font-arabic {
   font-family: var(--font-amiri), "Noto Naskh Arabic", serif;
-  line-height: 2.1;
+  line-height: 2.15;
 }
 
 .font-urdu {
@@ -84,63 +74,77 @@ html.dark body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Elevated Bento Glass Surface */
+/* Clean Elevated Card Surface */
 .bento-card {
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-hairline);
-  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-card);
   border-radius: 1.25rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-html.dark .bento-card {
-  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.07);
-}
-
 .bento-card-interactive:hover {
   border-color: color-mix(in srgb, var(--accent-primary) 45%, var(--border-hairline));
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
-/* Signature Lavender-to-Violet Gradient Card (from Reference UI) */
+/* Reference UI Signature Lavender-to-Violet Gradient Card (#DF98FA -> #9055FF) */
 .quran-gradient-card {
   background-image: var(--gradient-brand);
   color: #ffffff;
-  border-radius: 1.5rem;
-  box-shadow: 0 14px 32px -8px rgba(144, 85, 255, 0.45);
+  border-radius: 1.35rem;
+  box-shadow: 0 16px 36px -10px rgba(144, 85, 255, 0.48);
 }
 
+/* Reference UI Twilight Mosque Prayer Card */
 .twilight-hero-card {
   background-image: var(--gradient-twilight);
   color: #ffffff;
-  border-radius: 1.5rem;
-  box-shadow: 0 14px 32px -8px rgba(36, 18, 86, 0.55);
+  border-radius: 1.35rem;
+  box-shadow: 0 16px 36px -10px rgba(24, 11, 64, 0.6);
 }
 
-.hero-surface {
-  background-image: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--accent-primary) 12%, var(--bg-surface-elevated)) 0%,
-    var(--bg-surface-elevated) 58%,
-    color-mix(in srgb, var(--accent-secondary) 8%, var(--bg-surface-elevated)) 100%
-  );
+/* Reference UI Verse Top Action Pill Bar (#121931 in Dark Mode) */
+.verse-action-pill {
+  background-color: var(--bg-surface);
+  border-radius: 0.85rem;
+}
+
+/* Custom Select Appearance (Removes raw browser look) */
+select.ui-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23A19CC5' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  padding-right: 1.85rem;
 }
 
 .btn-primary {
   background-image: var(--gradient-brand);
   color: #ffffff;
   transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 4px 14px rgba(144, 85, 255, 0.35);
+  box-shadow: 0 6px 18px -4px rgba(144, 85, 255, 0.45);
 }
 
 .btn-primary:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.06);
 }
 
 .btn-primary:active {
   transform: scale(0.98);
+}
+
+.btn-peach {
+  background-color: #F9B091;
+  color: #091945;
+  font-weight: 600;
+  transition: filter 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 8px 20px -4px rgba(249, 176, 145, 0.4);
+}
+
+.btn-peach:hover {
+  filter: brightness(1.05);
 }
 
 :focus-visible {
@@ -150,8 +154,8 @@ html.dark .bento-card {
 
 /* Custom subtle scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;

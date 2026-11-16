@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Amiri, Noto_Sans_Devanagari, Gulzar } from "next/font/google";
+import { Inter, Poppins, Amiri, Noto_Sans_Devanagari, Gulzar } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/lib/store";
 import { AppShell } from "@/components/AppShell";
@@ -7,6 +7,13 @@ import { AppShell } from "@/components/AppShell";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-poppins",
   display: "swap",
 });
 
@@ -32,16 +39,16 @@ const devanagari = Noto_Sans_Devanagari({
 });
 
 export const metadata: Metadata = {
-  title: "Auliya Calendar & Sunni Companion | Ahl-e-Sunnat & Hanafi Platform",
+  title: "Quran & Sunni Companion | Auliya Calendar",
   description:
-    "Cross-platform Sunni (Ahl-e-Sunnat wal Jama'at) & Hanafi digital sanctuary featuring Auliya Allah encyclopedia, Shajrah lineage graphs, 360° Ziyarat, Hanafi Azan & custom Jamaat timings, Kanzul Iman Quran, Bahar-e-Shariat Fiqh, Smart Tasbih, Zakat Calculator, and Sahib-e-Ilm Trivia.",
+    "Complete 604-page Quran Mushaf with Kanzul Iman translation, Hanafi prayer times, Qibla compass, Tasbih counter, Auliya Allah Urs calendar, and Sunni Fiqh companion.",
   manifest: "/manifest.json",
-  applicationName: "Auliya Calendar",
-  appleWebApp: { capable: true, title: "Auliya Calendar", statusBarStyle: "black-translucent" },
+  applicationName: "Quran & Sunni Companion",
+  appleWebApp: { capable: true, title: "Quran Companion", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#047857",
+  themeColor: "#040C23",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -56,7 +63,7 @@ export default function RootLayout({
     <html
       lang="en"
       dir="ltr"
-      className={`dark ${inter.variable} ${amiri.variable} ${gulzar.variable} ${devanagari.variable} h-full antialiased`}
+      className={`dark ${poppins.variable} ${inter.variable} ${amiri.variable} ${gulzar.variable} ${devanagari.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">

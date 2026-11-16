@@ -1,7 +1,5 @@
 "use client";
 
-import { assetUrl } from "@/lib/assets";
-
 import React, { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -91,9 +89,9 @@ function AuliyaInner() {
         position: { x: 260, y: 10 },
         data: { label: "Sayyiduna Muhammad ﷺ (Khatam-un-Nabiyyin)" },
         style: {
-          background: "linear-gradient(135deg, #047857, #065F46)",
+          background: "linear-gradient(135deg, #DF98FA, #9055FF)",
           color: "#FFFFFF",
-          border: "1px solid #F59E0B",
+          border: "1px solid #F9B091",
           borderRadius: "14px",
           padding: "10px 16px",
           fontWeight: 700,
@@ -107,9 +105,9 @@ function AuliyaInner() {
         position: { x: 260, y: 100 },
         data: { label: "Imam Ali ibn Abi Talib (رضي الله عنه)" },
         style: {
-          background: "#161920",
-          color: "#F3F4F6",
-          border: "1px solid #10B981",
+          background: "#121931",
+          color: "#FFFFFF",
+          border: "1px solid #A44AFF",
           borderRadius: "12px",
           padding: "8px 14px",
           fontSize: "12px",
@@ -139,9 +137,9 @@ function AuliyaInner() {
           position: pos,
           data: { label: `${a.name} (${a.silsila})` },
           style: {
-            background: isSel ? "#047857" : "#1D212B",
-            color: "#F3F4F6",
-            border: isSel ? "2px solid #F59E0B" : "1px solid rgba(255,255,255,0.16)",
+            background: isSel ? "linear-gradient(135deg, #DF98FA, #9055FF)" : "#121931",
+            color: "#FFFFFF",
+            border: isSel ? "2px solid #F9B091" : "1px solid rgba(161, 156, 197, 0.25)",
             borderRadius: "12px",
             padding: "8px 12px",
             fontSize: "11px",
@@ -154,19 +152,19 @@ function AuliyaInner() {
       });
 
     const rfEdges: Edge[] = [
-      { id: "e-p-a", source: "prophet", target: "ali", animated: true, style: { stroke: "#F59E0B" } },
+      { id: "e-p-a", source: "prophet", target: "ali", animated: true, style: { stroke: "#F9B091" } },
       {
         id: "e-a-g",
         source: "ali",
         target: "ghaus-e-azam",
-        markerEnd: { type: MarkerType.ArrowClosed, color: "#10B981" },
-        style: { stroke: "#10B981" },
+        markerEnd: { type: MarkerType.ArrowClosed, color: "#A44AFF" },
+        style: { stroke: "#A44AFF" },
       },
       {
         id: "e-a-d",
         source: "ali",
         target: "data-ganj-bakhsh",
-        style: { stroke: "#00E5FF" },
+        style: { stroke: "#DF98FA" },
       },
     ];
 
@@ -178,8 +176,8 @@ function AuliyaInner() {
           source: a.murshidId!,
           target: a.id,
           animated: a.id === saint.id,
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#10B981" },
-          style: { stroke: a.id === saint.id ? "#F59E0B" : "#10B981" },
+          markerEnd: { type: MarkerType.ArrowClosed, color: "#A44AFF" },
+          style: { stroke: a.id === saint.id ? "#F9B091" : "#A44AFF" },
         });
       });
 
@@ -191,10 +189,10 @@ function AuliyaInner() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Auliya Allah Encyclopedia, Shajrah &amp; 360° Ziyarat
+            Auliya Allah Directory &amp; Urs Calendar
           </h1>
           <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
-            Face-free architectural Ziyarat, interactive spiritual lineage graphs, Malfuzat &amp; Hijri Urs calendar.
+            Biographies, spiritual lineage (Shajrah), Malfuzat, and architectural shrine Ziyarat.
           </p>
         </div>
       </div>
@@ -202,7 +200,7 @@ function AuliyaInner() {
       {/* Search & Silsila Filter Bar */}
       <div className="bento-card p-4 flex flex-col sm:flex-row gap-3">
         <div
-          className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border"
+          className="flex-1 flex items-center gap-2 px-3.5 py-2 rounded-full border"
           style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
         >
           <Search className="w-4 h-4 opacity-60" />
@@ -210,8 +208,8 @@ function AuliyaInner() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, Alqab (Sultan-ul-Hind, Ala Hazrat), Urdu, or city..."
-            className="w-full bg-transparent outline-none text-sm"
+            placeholder="Search by saint name, title, or city…"
+            className="w-full bg-transparent outline-none text-xs sm:text-sm"
           />
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -220,11 +218,11 @@ function AuliyaInner() {
               key={s}
               type="button"
               onClick={() => setSilsilaFilter(s)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold border cursor-pointer"
+              className="px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all"
               style={{
-                borderColor: silsilaFilter === s ? "var(--accent-primary)" : "var(--border-hairline)",
-                backgroundColor: silsilaFilter === s ? "var(--accent-soft)" : "transparent",
-                color: silsilaFilter === s ? "var(--accent-primary)" : "var(--text-muted)",
+                backgroundImage: silsilaFilter === s ? "var(--gradient-brand)" : undefined,
+                backgroundColor: silsilaFilter === s ? undefined : "var(--bg-muted)",
+                color: silsilaFilter === s ? "#ffffff" : "var(--text-muted)",
               }}
             >
               {s}

@@ -9,12 +9,13 @@ import {
   Volume2,
   CheckCircle2,
   Sun,
+  MapPin,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
-import { CalcMethodId, formatTime, PrayerName } from "@/lib/prayer-engine";
+import { CalcMethodId, formatCountdown, formatTime, PrayerName } from "@/lib/prayer-engine";
 
 export default function PrayerPage() {
-  const { city, calcMethod, setCalcMethod, schedule, prayerSettings, updatePrayerSetting } = useApp();
+  const { now, city, calcMethod, setCalcMethod, schedule, prayerSettings, updatePrayerSetting } = useApp();
   const [chimePlayed, setChimePlayed] = useState<string | null>(null);
   const [notifPerm, setNotifPerm] = useState<NotificationPermission | "unsupported">("default");
 
@@ -57,26 +58,57 @@ export default function PrayerPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--accent-primary)" }}>
+      {/* Reference Image 2 Twilight Mosque Hero Card */}
+      <div className="twilight-hero-card p-6 sm:p-8 relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 500 200"
+          preserveAspectRatio="xMidYMax slice"
+          className="pointer-events-none absolute inset-0 w-full h-full opacity-35"
+        >
+          <defs>
+            <radialGradient id="prayerMoon" cx="75%" cy="32%" r="30%">
+              <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
+              <stop offset="45%" stopColor="#DF98FA" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#27155D" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <circle cx="380" cy="64" r="58" fill="url(#prayerMoon)" />
+          <path
+            d="M0 200 L0 164 L42 164 L42 124 L47 104 L52 124 L52 164 L108 164 Q142 124 176 164 L218 164 L218 140 Q250 92 282 140 L282 164 L324 164 Q358 124 392 164 L448 164 L448 124 L453 104 L458 124 L458 164 L500 164 L500 200 Z"
+            fill="#0A0E24"
+          />
+        </svg>
+
+        <div className="relative z-10 space-y-1">
+          <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-purple-200">
             <Clock className="w-3.5 h-3.5" />
-            <span>Hanafi Astronomical Engine (adhan-js • Madhab.Hanafi)</span>
+            <span>Next Jamaat • {schedule.nextPrayer.label}</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Hanafi Azan &amp; Custom Jamaat Timings — {city.name}
-          </h1>
+          <div className="text-3xl sm:text-5xl font-bold tracking-tight tabular-nums text-white">
+            {formatTime(schedule.nextPrayer.jamaatTime)}
+          </div>
+          <div className="inline-flex items-center gap-1.5 text-xs text-purple-100/90 pt-1">
+            <MapPin className="w-3.5 h-3.5 text-amber-300" />
+            <span>
+              {city.name}, {city.country} • Azan {formatTime(schedule.nextPrayer.azanTime)} • in{" "}
+              {formatCountdown(schedule.nextPrayer.jamaatTime, now)}
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
-            Twilight Preset:
+        <div className="relative z-10 flex flex-col items-start sm:items-end gap-2">
+          <label className="text-[11px] font-medium text-purple-200">
+            Calculation Method (Hanafi Mithlayn Asr)
           </label>
           <select
             value={calcMethod}
             onChange={(e) => setCalcMethod(e.target.value as CalcMethodId)}
-            className="px-3 py-2 rounded-xl border text-xs font-semibold bg-transparent outline-none"
-            style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
+            className="ui-select px-3.5 py-2 rounded-xl border text-xs font-semibold text-white outline-none cursor-pointer"
+            style={{
+              borderColor: "rgba(255,255,255,0.22)",
+              backgroundColor: "rgba(18, 25, 49, 0.75)",
+            }}
           >
             <option value="Karachi" className="text-black">Univ. of Islamic Sciences, Karachi (18°/18°)</option>
             <option value="MuslimWorldLeague" className="text-black">Muslim World League</option>
@@ -90,22 +122,20 @@ export default function PrayerPage() {
 
       {/* Azan / Jamaat alert permission */}
       <div
-        className="p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-        style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
+        className="bento-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
       >
         <div className="flex items-start gap-3">
           <Bell className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "var(--accent-primary)" }} />
           <div className="text-sm">
-            <div className="font-semibold">Azan &amp; Jamaat Alerts</div>
+            <div className="font-semibold">Azan &amp; Jamaat Reminders</div>
             <div className="text-xs" style={{ color: "var(--text-muted)" }}>
               {notifPerm === "granted"
-                ? "Alerts are on. A chime and notification play at Azan and before Jamaat while this app is open."
+                ? "Reminders are active. A gentle chime and notification play at Azan and before Jamaat."
                 : notifPerm === "denied"
-                ? "Notifications are blocked in your browser settings. A chime will still play while this app is open."
+                ? "Browser notifications are blocked, but an audio chime will still play while the app is open."
                 : notifPerm === "unsupported"
-                ? "This browser does not support notifications. A chime will play while this app is open."
-                : "Allow notifications to be reminded at Azan time and before Jamaat (works while the app is open)."}{" "}
-              Times shown are local to {city.name}.
+                ? "Audio chimes will play at prayer times while the app is open."
+                : "Enable reminders to be alerted at Azan time and before your local Masjid Jamaat."}
             </div>
           </div>
         </div>
@@ -113,10 +143,9 @@ export default function PrayerPage() {
           <button
             type="button"
             onClick={enableNotifications}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-white cursor-pointer shrink-0"
-            style={{ backgroundColor: "var(--accent-primary)" }}
+            className="btn-primary px-4 py-2 rounded-full text-xs font-semibold cursor-pointer shrink-0"
           >
-            Enable Alerts
+            Enable Reminders
           </button>
         )}
       </div>
@@ -134,7 +163,7 @@ export default function PrayerPage() {
         </div>
       )}
 
-      {/* Dual-Time Display & Custom Jamaat Modification Table */}
+      {/* Dual-Time Display & Custom Jamaat Table */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <div className="lg:col-span-8 space-y-3">
           {schedule.rows.map((row) => {
@@ -143,14 +172,14 @@ export default function PrayerPage() {
               <div key={row.name} className="bento-card p-5 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-bold">{row.label}</h2>
+                    <h2 className="text-base sm:text-lg font-bold">{row.label}</h2>
                     <div className="text-xs flex items-center gap-3 mt-1" style={{ color: "var(--text-muted)" }}>
                       <span>
-                        Azan / Waqt: <strong className="tabular-nums text-[var(--text-primary)]">{formatTime(row.azanTime)}</strong>
+                        Waqt Begins: <strong className="tabular-nums text-[var(--text-primary)]">{formatTime(row.azanTime)}</strong>
                       </span>
-                      <span>→</span>
+                      <span>•</span>
                       <span>
-                        Your Jamaat:{" "}
+                        Masjid Jamaat:{" "}
                         <strong className="tabular-nums" style={{ color: "var(--accent-primary)" }}>
                           {formatTime(row.jamaatTime)}
                         </strong>
@@ -159,11 +188,11 @@ export default function PrayerPage() {
                   </div>
 
                   {/* Two-Tier Alert Toggles */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => updatePrayerSetting(row.name as PrayerName, { azanAudioEnabled: !cfg.azanAudioEnabled })}
-                      className="px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer"
+                      className="px-3 py-1.5 rounded-full border text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer"
                       style={{
                         borderColor: cfg.azanAudioEnabled ? "var(--accent-primary)" : "var(--border-hairline)",
                         backgroundColor: cfg.azanAudioEnabled ? "var(--accent-soft)" : "transparent",
@@ -175,22 +204,22 @@ export default function PrayerPage() {
                     <button
                       type="button"
                       onClick={() => updatePrayerSetting(row.name as PrayerName, { salawatBeforeAzan: !cfg.salawatBeforeAzan })}
-                      className="px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer"
+                      className="px-3 py-1.5 rounded-full border text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer"
                       style={{
                         borderColor: cfg.salawatBeforeAzan ? "var(--accent-gold)" : "var(--border-hairline)",
                         backgroundColor: cfg.salawatBeforeAzan ? "var(--gold-soft)" : "transparent",
                       }}
                     >
                       <Bell className="w-3.5 h-3.5" />
-                      <span>Salat-o-Salam</span>
+                      <span>Salawat</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => playGentleChime(row.label)}
-                      className="px-2.5 py-1.5 rounded-xl border text-[11px] cursor-pointer"
+                      className="px-3 py-1.5 rounded-full border text-[11px] cursor-pointer"
                       style={{ borderColor: "var(--border-hairline)" }}
                     >
-                      {chimePlayed === row.label ? "Playing..." : "Test Chime"}
+                      {chimePlayed === row.label ? "Playing…" : "Preview"}
                     </button>
                   </div>
                 </div>
@@ -199,7 +228,7 @@ export default function PrayerPage() {
                   <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-xs text-amber-300 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <span>
-                      Seasonal Alert: Azan ({formatTime(row.azanTime)}) has shifted past your Fixed Jamaat ({cfg.fixedTime}). Please adjust your fixed clock.
+                      Seasonal Notice: Azan ({formatTime(row.azanTime)}) is later than your fixed Jamaat ({cfg.fixedTime}).
                     </span>
                   </div>
                 )}
@@ -208,7 +237,7 @@ export default function PrayerPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t text-xs" style={{ borderColor: "var(--border-hairline)" }}>
                   <div>
                     <label className="block mb-1 font-semibold" style={{ color: "var(--text-muted)" }}>
-                      Jamaat Mode
+                      Jamaat Schedule
                     </label>
                     <div className="flex rounded-xl border overflow-hidden" style={{ borderColor: "var(--border-hairline)" }}>
                       <button
@@ -216,22 +245,22 @@ export default function PrayerPage() {
                         onClick={() => updatePrayerSetting(row.name as PrayerName, { mode: "offset" })}
                         className="flex-1 py-1.5 font-semibold cursor-pointer"
                         style={{
-                          backgroundColor: cfg.mode === "offset" ? "var(--accent-primary)" : "transparent",
+                          backgroundImage: cfg.mode === "offset" ? "var(--gradient-brand)" : undefined,
                           color: cfg.mode === "offset" ? "#FFF" : "var(--text-muted)",
                         }}
                       >
-                        +Offset
+                        +Minutes
                       </button>
                       <button
                         type="button"
                         onClick={() => updatePrayerSetting(row.name as PrayerName, { mode: "fixed" })}
                         className="flex-1 py-1.5 font-semibold cursor-pointer"
                         style={{
-                          backgroundColor: cfg.mode === "fixed" ? "var(--accent-primary)" : "transparent",
+                          backgroundImage: cfg.mode === "fixed" ? "var(--gradient-brand)" : undefined,
                           color: cfg.mode === "fixed" ? "#FFF" : "var(--text-muted)",
                         }}
                       >
-                        Fixed Clock
+                        Fixed Time
                       </button>
                     </div>
                   </div>
@@ -239,17 +268,17 @@ export default function PrayerPage() {
                   {cfg.mode === "offset" ? (
                     <div>
                       <label className="block mb-1 font-semibold" style={{ color: "var(--text-muted)" }}>
-                        Delay After Azan (0–60m)
+                        Minutes After Azan
                       </label>
                       <div className="flex items-center gap-1.5">
-                        {[5, 10, 15, 25].map((m) => (
+                        {[10, 15, 20, 30].map((m) => (
                           <button
                             key={m}
                             type="button"
                             onClick={() => updatePrayerSetting(row.name as PrayerName, { offsetMinutes: m })}
                             className="px-2 py-1.5 rounded-lg border font-semibold cursor-pointer"
                             style={{
-                              borderColor: cfg.offsetMinutes === m ? "var(--accent-secondary)" : "var(--border-hairline)",
+                              borderColor: cfg.offsetMinutes === m ? "var(--accent-primary)" : "var(--border-hairline)",
                               backgroundColor: cfg.offsetMinutes === m ? "var(--accent-soft)" : "transparent",
                             }}
                           >
@@ -266,7 +295,7 @@ export default function PrayerPage() {
                               offsetMinutes: Math.max(0, Math.min(60, Number(e.target.value))),
                             })
                           }
-                          className="w-14 px-2 py-1.5 rounded-lg border bg-transparent text-center tabular-nums"
+                          className="w-12 px-1.5 py-1.5 rounded-lg border bg-transparent text-center tabular-nums"
                           style={{ borderColor: "var(--border-hairline)" }}
                         />
                       </div>
@@ -274,7 +303,7 @@ export default function PrayerPage() {
                   ) : (
                     <div>
                       <label className="block mb-1 font-semibold" style={{ color: "var(--text-muted)" }}>
-                        Fixed Masjid Clock
+                        MasjidJamaat Time
                       </label>
                       <input
                         type="time"
@@ -288,7 +317,7 @@ export default function PrayerPage() {
 
                   <div>
                     <label className="block mb-1 font-semibold" style={{ color: "var(--text-muted)" }}>
-                      Azan Calibration (± mins)
+                      Fine-Tune Azan (±m)
                     </label>
                     <input
                       type="number"
@@ -310,46 +339,52 @@ export default function PrayerPage() {
           })}
         </div>
 
-        {/* Right Sidebar: Qibla Compass + Hanafi Nafl & Makruh Windows */}
+        {/* Right Sidebar: Qibla Compass + Sunnah & Makruh Windows */}
         <aside className="lg:col-span-4 space-y-4">
           <div className="bento-card p-5 text-center space-y-3">
             <div className="flex items-center justify-center gap-2 text-sm font-bold">
-              <Compass className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
-              <span>Qibla Bearing — {city.name}</span>
+              <Compass className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+              <span>Qibla Direction — {city.name}</span>
             </div>
-            <div className="mx-auto w-36 h-36 rounded-full border-2 flex items-center justify-center relative" style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}>
+            <div
+              className="mx-auto w-36 h-36 rounded-full border-2 flex items-center justify-center relative"
+              style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
+            >
               <span className="absolute top-1.5 text-[10px] font-bold opacity-60">N</span>
               <span className="absolute bottom-1.5 text-[10px] font-bold opacity-60">S</span>
               <span className="absolute end-2 text-[10px] font-bold opacity-60">E</span>
               <span className="absolute start-2 text-[10px] font-bold opacity-60">W</span>
               <div
-                className="w-1 h-20 rounded-full origin-center transition-transform duration-500"
+                className="w-1.5 h-20 rounded-full origin-center transition-transform duration-500"
                 style={{
                   transform: `rotate(${schedule.qiblaBearing}deg)`,
-                  background: "linear-gradient(to top, transparent 50%, var(--accent-gold) 50%)",
+                  background: "linear-gradient(to top, transparent 50%, var(--accent-primary) 50%)",
                 }}
               />
-              <div className="w-3 h-3 rounded-full bg-emerald-400 absolute" />
+              <div
+                className="w-3.5 h-3.5 rounded-full absolute shadow-md"
+                style={{ backgroundImage: "var(--gradient-brand)" }}
+              />
             </div>
-            <div className="text-xl font-bold tabular-nums" style={{ color: "var(--accent-gold)" }}>
+            <div className="text-xl font-bold tabular-nums" style={{ color: "var(--accent-primary)" }}>
               {schedule.qiblaBearing}° from North
             </div>
           </div>
 
           <div className="bento-card p-5 space-y-3">
             <div className="flex items-center gap-2 text-sm font-bold">
-              <Sun className="w-4 h-4" style={{ color: "var(--accent-secondary)" }} />
-              <span>Hanafi Nafl &amp; Fasting Windows</span>
+              <Sun className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
+              <span>Nafl &amp; Fasting Timings</span>
             </div>
             <div className="space-y-2 text-xs">
               {[
-                { label: "Sahar Cutoff (Subh Sadiq)", time: schedule.rows[0].azanTime },
-                { label: "Sunrise (Tulu-e-Aftab)", time: schedule.sunrise },
-                { label: "Ishraq Starts (+20m)", time: schedule.ishraq },
+                { label: "Sehri Ends (Subh Sadiq)", time: schedule.rows[0].azanTime },
+                { label: "Sunrise", time: schedule.sunrise },
+                { label: "Ishraq (+20m)", time: schedule.ishraq },
                 { label: "Chasht / Duha", time: schedule.chasht },
-                { label: "Dahwa-e-Kubra (Fasting Niyyah)", time: schedule.dahwaKubra },
+                { label: "Dahwa-e-Kubra", time: schedule.dahwaKubra },
                 { label: "Iftar / Sunset", time: schedule.sunset },
-                { label: "Tahajjud (Last 1/3 Night)", time: schedule.tahajjudStart },
+                { label: "Tahajjud (Last Third)", time: schedule.tahajjudStart },
               ].map((item) => (
                 <div
                   key={item.label}
@@ -366,7 +401,7 @@ export default function PrayerPage() {
           <div className="bento-card p-5 space-y-3">
             <div className="flex items-center gap-2 text-sm font-bold text-red-400">
               <AlertTriangle className="w-4 h-4" />
-              <span>3 Hanafi Makruh Tahrimi Windows</span>
+              <span>Makruh Times (No Salah)</span>
             </div>
             <div className="space-y-2 text-xs">
               {schedule.makruhWindows.map((w) => (
@@ -380,7 +415,7 @@ export default function PrayerPage() {
             </div>
             <div className="text-[11px] flex items-center gap-1.5" style={{ color: "var(--accent-primary)" }}>
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>All calculations run 100% offline locally.</span>
+              <span>Calculated for {city.name} according to Hanafi Fiqh.</span>
             </div>
           </div>
         </aside>

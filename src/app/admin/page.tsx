@@ -40,7 +40,7 @@ export default function AdminPage() {
     setSuccessMsg(null);
 
     if (status === "Published" && !fidoVerified) {
-      setErrorMsg("Scholar review approval is required before publishing. Tap \"Confirm Scholar Review\" first.");
+      setErrorMsg("Scholar review confirmation is required before publishing.");
       return;
     }
 
@@ -56,7 +56,7 @@ export default function AdminPage() {
     });
 
     if (!parsed.success) {
-      setErrorMsg(parsed.error.issues[0]?.message || "Validation failed");
+      setErrorMsg(parsed.error.issues[0]?.message || "Please check all fields.");
       return;
     }
 
@@ -81,7 +81,7 @@ export default function AdminPage() {
       shrineImage: "/images/shrines/bareilly.jpg",
       shortSummary: parsed.data.shortSummary,
       fullTazkirah: parsed.data.shortSummary,
-      karamat: ["Added via Scholarly Admin CMS Studio."],
+      karamat: ["Added via Community Curator Studio."],
       adabZiyarat: ["Enter with Wudu and recite Salawat upon the Prophet ﷺ."],
       hotspots: [],
       books: [],
@@ -92,9 +92,9 @@ export default function AdminPage() {
 
     upsertCustomAuliya(
       newProfile,
-      fidoVerified ? "Scholar Reviewer (local approval)" : "Content Editor"
+      fidoVerified ? "Scholar Reviewer" : "Community Contributor"
     );
-    setSuccessMsg(`Saved "${newProfile.name}" with status: ${status}`);
+    setSuccessMsg(`Saved "${newProfile.name}" (${status})`);
     setName("");
     setUrduName("");
     setCity("");
@@ -107,17 +107,17 @@ export default function AdminPage() {
         <div>
           <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--accent-primary)" }}>
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Headless Admin CMS • Two-Step Scholar Approval Gate</span>
+            <span>Community &amp; Scholarly Curator</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Admin Studio &amp; Security Audit Log
+            Add Auliya Profile &amp; Urs Record
           </h1>
         </div>
 
         <button
           type="button"
           onClick={() => setFidoVerified(!fidoVerified)}
-          className="px-4 py-2 rounded-xl border text-xs font-semibold inline-flex items-center gap-2 cursor-pointer"
+          className="px-4 py-2 rounded-full border text-xs font-semibold inline-flex items-center gap-2 cursor-pointer"
           style={{
             borderColor: fidoVerified ? "var(--accent-primary)" : "var(--accent-gold)",
             backgroundColor: fidoVerified ? "var(--accent-soft)" : "var(--gold-soft)",
@@ -129,22 +129,14 @@ export default function AdminPage() {
         </button>
       </div>
 
-      <div
-        className="p-3 rounded-xl border text-xs"
-        style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)", color: "var(--text-muted)" }}
-      >
-        Profiles you add here are saved on this device and appear in your Auliya directory. A shared, multi-user
-        CMS with hardware-key (FIDO2) sign-in requires connecting a backend server.
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Visual Builder */}
+        {/* Form */}
         <section className="lg:col-span-7 bento-card p-6 space-y-4">
-          <h2 className="text-base font-bold">Auliya Profile Visual Builder (Zod Validated)</h2>
-          <form onSubmit={handlePublish} className="space-y-3 text-xs">
+          <h2 className="text-base font-bold">New Saint Biography &amp; Urs Date</h2>
+          <form onSubmit={handlePublish} className="space-y-3.5 text-xs">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold mb-1">English Name</label>
+                <label className="block font-semibold mb-1">Saint Name (English)</label>
                 <input
                   type="text"
                   value={name}
@@ -188,11 +180,11 @@ export default function AdminPage() {
                 />
               </div>
               <div>
-                <label className="block font-semibold mb-1">Silsila Order</label>
+                <label className="block font-semibold mb-1">Spiritual Order (Silsila)</label>
                 <select
                   value={silsila}
                   onChange={(e) => setSilsila(e.target.value as AuliyaProfile["silsila"])}
-                  className="w-full px-3 py-2 rounded-xl border bg-transparent"
+                  className="ui-select w-full px-3 py-2 rounded-xl border bg-transparent"
                   style={{ borderColor: "var(--border-hairline)" }}
                 >
                   {["Qadri", "Chishti", "Razavi", "Naqshbandi", "Suhrawardi"].map((s) => (
@@ -203,7 +195,7 @@ export default function AdminPage() {
                 </select>
               </div>
               <div>
-                <label className="block font-semibold mb-1">Urs Hijri Date</label>
+                <label className="block font-semibold mb-1">Annual Urs Date (Hijri)</label>
                 <div className="flex gap-2">
                   <input
                     type="number"
@@ -211,13 +203,13 @@ export default function AdminPage() {
                     max={30}
                     value={ursDay}
                     onChange={(e) => setUrsDay(Number(e.target.value))}
-                    className="w-16 px-2 py-2 rounded-xl border bg-transparent"
+                    className="w-16 px-2 py-2 rounded-xl border bg-transparent text-center"
                     style={{ borderColor: "var(--border-hairline)" }}
                   />
                   <select
                     value={ursMonth}
                     onChange={(e) => setUrsMonth(Number(e.target.value))}
-                    className="flex-1 px-2 py-2 rounded-xl border bg-transparent"
+                    className="ui-select flex-1 px-2.5 py-2 rounded-xl border bg-transparent"
                     style={{ borderColor: "var(--border-hairline)" }}
                   >
                     {HIJRI_MONTHS.map((m, idx) => (
@@ -231,34 +223,34 @@ export default function AdminPage() {
             </div>
 
             <div>
-              <label className="block font-semibold mb-1">Tazkirah Summary</label>
+              <label className="block font-semibold mb-1">Biographical Summary (Tazkirah)</label>
               <textarea
                 rows={3}
                 value={shortSummary}
                 onChange={(e) => setShortSummary(e.target.value)}
-                placeholder="Verified Sunni biographical overview..."
+                placeholder="Write a brief biography and spiritual legacy…"
                 className="w-full px-3 py-2 rounded-xl border bg-transparent"
                 style={{ borderColor: "var(--border-hairline)" }}
               />
             </div>
 
             <div>
-              <label className="block font-semibold mb-1">Editorial Approval Gate Status</label>
+              <label className="block font-semibold mb-1">Publication Status</label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as AuliyaProfile["status"])}
-                className="w-full px-3 py-2 rounded-xl border bg-transparent font-semibold"
+                className="ui-select w-full px-3 py-2 rounded-xl border bg-transparent font-semibold"
                 style={{ borderColor: "var(--border-hairline)" }}
               >
-                <option value="Draft" className="text-black">1. Draft</option>
-                <option value="Scholarly Verification" className="text-black">2. Scholarly Verification</option>
-                <option value="Published" className="text-black">3. Published (Requires Scholar Review)</option>
+                <option value="Draft" className="text-black">Draft</option>
+                <option value="Scholarly Verification" className="text-black">Pending Scholarly Review</option>
+                <option value="Published" className="text-black">Published (Visible in Directory)</option>
               </select>
             </div>
 
             {errorMsg && <div className="p-2.5 rounded-xl bg-red-500/15 text-red-300">{errorMsg}</div>}
             {successMsg && (
-              <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-300 flex items-center gap-1.5">
+              <div className="p-2.5 rounded-xl flex items-center gap-1.5" style={{ backgroundColor: "var(--accent-soft)", color: "var(--accent-primary)" }}>
                 <CheckCircle2 className="w-4 h-4" />
                 <span>{successMsg}</span>
               </div>
@@ -266,21 +258,20 @@ export default function AdminPage() {
 
             <button
               type="submit"
-              className="px-4 py-2.5 rounded-xl font-semibold text-white inline-flex items-center gap-1.5 cursor-pointer"
-              style={{ backgroundColor: "var(--accent-primary)" }}
+              className="btn-primary px-5 py-2.5 rounded-full font-semibold inline-flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Save &amp; Sync Delta</span>
+              <span>Save Profile</span>
             </button>
           </form>
         </section>
 
-        {/* Right: Immutable Audit Log & Active Catalog */}
+        {/* Right: Activity History */}
         <aside className="lg:col-span-5 space-y-4">
           <div className="bento-card p-5 space-y-3">
             <div className="flex items-center gap-2 font-bold text-sm">
-              <FileText className="w-4 h-4" style={{ color: "var(--accent-secondary)" }} />
-              <span>Immutable Append-Only Audit Log</span>
+              <FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+              <span>Recent Changes</span>
             </div>
             <div className="space-y-2 max-h-60 overflow-y-auto text-xs">
               {auditLogs.map((log) => (
@@ -295,7 +286,7 @@ export default function AdminPage() {
                   </div>
                   <div className="mt-0.5">{log.target}</div>
                   <div className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    Actor: {log.actor}
+                    By {log.actor}
                   </div>
                 </div>
               ))}
@@ -303,10 +294,9 @@ export default function AdminPage() {
           </div>
 
           <div className="bento-card p-5 space-y-2 text-xs">
-            <div className="font-bold text-sm">Synced Encyclopedia Count: {allAuliya.length} Profiles</div>
+            <div className="font-bold text-sm">Directory Total: {allAuliya.length} Saints</div>
             <p style={{ color: "var(--text-muted)" }}>
-              OWASP ASVS Level 2 &amp; MASVS controls active: Zod payload validation, SHA-256 sacred text digests,
-              AES-256-GCM Zakat encryption, and strict HTTP security headers.
+              Profiles you add here are saved on your device and appear immediately in the Auliya Directory and Urs calendar.
             </p>
           </div>
         </aside>

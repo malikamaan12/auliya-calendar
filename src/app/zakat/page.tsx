@@ -99,7 +99,7 @@ export default function ZakatPage() {
       paidEntries,
     });
     localStorage.setItem("auliya_encrypted_zakat_v1", blob);
-    setEncryptedStatus(`Encrypted with AES-256-GCM (${blob.slice(0, 42)}...)`);
+    setEncryptedStatus("Saved privately on this device");
   };
 
   return (
@@ -108,10 +108,10 @@ export default function ZakatPage() {
         <div>
           <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--accent-primary)" }}>
             <Calculator className="w-3.5 h-3.5" />
-            <span>Hanafi Silver-First Nisab (612.36g) &amp; Dhamm Engine</span>
+            <span>Hanafi Silver Nisab • 52.5 Tola (612.36g)</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Hanafi Zakat Calculator &amp; Lunar Hawl Ledger
+            Zakat Calculator &amp; Payment Tracker
           </h1>
         </div>
 
@@ -119,8 +119,8 @@ export default function ZakatPage() {
           <select
             value={currency}
             onChange={(e) => handleCurrencyChange(e.target.value as CurrencyCode)}
-            className="px-3 py-2 rounded-xl border font-semibold bg-transparent outline-none"
-            style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
+            className="ui-select px-3.5 py-2 rounded-full border font-semibold bg-transparent outline-none cursor-pointer"
+            style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-surface)" }}
           >
             {(Object.keys(DEFAULT_RATES) as CurrencyCode[]).map((c) => (
               <option key={c} value={c} className="text-black">
@@ -131,8 +131,8 @@ export default function ZakatPage() {
           <button
             type="button"
             onClick={() => setUnit(unit === "grams" ? "tola" : "grams")}
-            className="px-3 py-2 rounded-xl border font-semibold cursor-pointer"
-            style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
+            className="px-3.5 py-2 rounded-full border font-semibold cursor-pointer"
+            style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-surface)" }}
           >
             Weight: {unit === "grams" ? "Grams" : "Tola"}
           </button>
@@ -143,15 +143,14 @@ export default function ZakatPage() {
         {/* Inputs */}
         <section className="lg:col-span-7 bento-card p-6 space-y-5">
           <p
-            className="p-3 rounded-xl border text-[11px]"
+            className="p-3 rounded-xl border text-xs"
             style={{ borderColor: "var(--accent-gold)", backgroundColor: "var(--gold-soft)" }}
           >
-            The gold and silver prices below are approximate starting values. Please enter today&apos;s price from
-            your local market or jeweller before calculating your Zakat.
+            Please enter today&apos;s local gold and silver rates per gram from your jeweller before calculating your annual Zakat.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="block font-semibold mb-1">24K Gold Spot ({sym} / gram)</label>
+              <label className="block font-semibold mb-1">24K Gold Price ({sym} / gram)</label>
               <input
                 type="number"
                 value={goldRate}
@@ -161,7 +160,7 @@ export default function ZakatPage() {
               />
             </div>
             <div>
-              <label className="block font-semibold mb-1">Silver Spot ({sym} / gram)</label>
+              <label className="block font-semibold mb-1">Silver Price ({sym} / gram)</label>
               <input
                 type="number"
                 step="0.01"
@@ -174,7 +173,7 @@ export default function ZakatPage() {
 
             <div>
               <label className="block font-semibold mb-1">
-                Gold Jewelry &amp; Bullion ({unit}) — Zakatable in Hanafi Fiqh
+                Gold Jewelry &amp; Bullion ({unit})
               </label>
               <div className="flex gap-2">
                 <input
@@ -188,7 +187,7 @@ export default function ZakatPage() {
                 <select
                   value={goldKarat}
                   onChange={(e) => setGoldKarat(e.target.value as typeof goldKarat)}
-                  className="px-2.5 py-2 rounded-xl border bg-transparent font-semibold"
+                  className="ui-select px-2.5 py-2 rounded-xl border bg-transparent font-semibold"
                   style={{ borderColor: "var(--border-hairline)" }}
                 >
                   {["24K", "22K", "21K", "18K"].map((k) => (
@@ -213,7 +212,7 @@ export default function ZakatPage() {
             </div>
 
             <div>
-              <label className="block font-semibold mb-1">Cash &amp; Bank Balances ({sym})</label>
+              <label className="block font-semibold mb-1">Cash &amp; Savings ({sym})</label>
               <input
                 type="number"
                 min={0}
@@ -225,7 +224,7 @@ export default function ZakatPage() {
             </div>
 
             <div>
-              <label className="block font-semibold mb-1">Trade Inventory / Shares ({sym})</label>
+              <label className="block font-semibold mb-1">Business Goods / Shares ({sym})</label>
               <input
                 type="number"
                 min={0}
@@ -237,7 +236,7 @@ export default function ZakatPage() {
             </div>
 
             <div>
-              <label className="block font-semibold mb-1">Strong Receivables / Dayn Qawi ({sym})</label>
+              <label className="block font-semibold mb-1">Money Owed to You ({sym})</label>
               <input
                 type="number"
                 min={0}
@@ -249,7 +248,7 @@ export default function ZakatPage() {
             </div>
 
             <div>
-              <label className="block font-semibold mb-1 text-red-400">Immediate Due Debts / Liabilities ({sym})</label>
+              <label className="block font-semibold mb-1 text-red-400">Immediate Debts Due ({sym})</label>
               <input
                 type="number"
                 min={0}
@@ -261,11 +260,10 @@ export default function ZakatPage() {
             </div>
           </div>
 
-          {/* Hijri Hawl & AES-256-GCM Save */}
           <div className="pt-4 border-t flex flex-wrap items-center justify-between gap-3 text-xs" style={{ borderColor: "var(--border-hairline)" }}>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
-              <span>Personal Hijri Hawl Date:</span>
+              <span>Zakat Anniversary (Hijri):</span>
               <input
                 type="number"
                 min={1}
@@ -278,7 +276,7 @@ export default function ZakatPage() {
               <select
                 value={hawlHijriMonth}
                 onChange={(e) => setHawlDate(Number(e.target.value), hawlHijriDay)}
-                className="px-2 py-1 rounded-lg border bg-transparent"
+                className="ui-select px-2.5 py-1 rounded-lg border bg-transparent"
                 style={{ borderColor: "var(--border-hairline)" }}
               >
                 {HIJRI_MONTHS.map((m, idx) => (
@@ -292,15 +290,14 @@ export default function ZakatPage() {
             <button
               type="button"
               onClick={handleEncryptSave}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-1.5 cursor-pointer"
-              style={{ backgroundColor: "var(--accent-primary)" }}
+              className="btn-primary px-4 py-2 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
             >
               <Lock className="w-3.5 h-3.5" />
-              <span>Encrypt &amp; Save Ledger</span>
+              <span>Save Zakat Record</span>
             </button>
           </div>
           {encryptedStatus && (
-            <div className="text-[11px] font-mono flex items-center gap-1.5" style={{ color: "var(--accent-primary)" }}>
+            <div className="text-xs flex items-center gap-1.5" style={{ color: "var(--accent-primary)" }}>
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>{encryptedStatus}</span>
             </div>
@@ -312,7 +309,7 @@ export default function ZakatPage() {
           <div className="bento-card p-6 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
-                {calc.onlyPureGold ? "Gold Nisab (87.48g)" : "Hanafi Silver Nisab (612.36g)"}
+                {calc.onlyPureGold ? "Gold Nisab (87.48g)" : "Silver Nisab (612.36g)"}
               </span>
               <span className="text-xs tabular-nums" style={{ color: "var(--text-muted)" }}>
                 Threshold: {sym}{calc.activeNisab.toLocaleString(undefined, { maximumFractionDigits: 2 })}
@@ -328,14 +325,14 @@ export default function ZakatPage() {
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl border" style={{ borderColor: "var(--accent-primary)", backgroundColor: "var(--accent-soft)" }}>
-              <div className="text-xs font-semibold" style={{ color: "var(--accent-primary)" }}>
+            <div className="quran-gradient-card p-5 space-y-1">
+              <div className="text-xs font-semibold text-white/90">
                 {calc.isSahibNisab ? "2.5% Zakat Obligatory (Wajib)" : "Below Nisab — No Zakat Due"}
               </div>
-              <div className="text-3xl font-bold tabular-nums mt-1">
+              <div className="text-3xl font-bold tabular-nums text-white">
                 {sym}{calc.zakatDue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </div>
-              <div className="text-xs mt-1 tabular-nums" style={{ color: "var(--text-muted)" }}>
+              <div className="text-xs text-white/85 tabular-nums pt-1">
                 Paid: {sym}{calc.totalPaid.toLocaleString()} • Remaining: {sym}{calc.remaining.toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </div>
             </div>
@@ -348,7 +345,7 @@ export default function ZakatPage() {
                 if (!amt || amt <= 0) return;
                 setPaidEntries((prev) => [
                   ...prev,
-                  { id: `p-${Date.now()}`, note: payNote || "Zakat Installment", amount: amt },
+                  { id: `p-${Date.now()}`, note: payNote || "Zakat Payment", amount: amt },
                 ]);
                 setPayAmount("");
                 setPayNote("");
@@ -365,7 +362,7 @@ export default function ZakatPage() {
               />
               <input
                 type="text"
-                placeholder="Recipient / Masarif note"
+                placeholder="Recipient note"
                 value={payNote}
                 onChange={(e) => setPayNote(e.target.value)}
                 className="flex-1 px-2.5 py-2 rounded-xl border text-xs bg-transparent"
@@ -373,8 +370,7 @@ export default function ZakatPage() {
               />
               <button
                 type="submit"
-                className="px-3 py-2 rounded-xl text-xs font-semibold text-white cursor-pointer"
-                style={{ backgroundColor: "var(--accent-primary)" }}
+                className="btn-primary px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -384,11 +380,11 @@ export default function ZakatPage() {
           <div className="bento-card p-5 space-y-2 text-xs" style={{ color: "var(--text-muted)" }}>
             <div className="font-bold text-sm flex items-center gap-1.5" style={{ color: "var(--accent-gold)" }}>
               <Info className="w-4 h-4" />
-              <span>Hanafi Masarif al-Zakat Guidelines</span>
+              <span>Who Can Receive Zakat (Masarif)</span>
             </div>
-            <p>
-              Zakat is given unconditionally (Tamlik) to eligible Fuqara, Masakin, or travelers in need.
-              <strong> Sadat (descendants of Banu Hashim)</strong> are honored with <em>Hadiya</em> gifts rather than Zakat.
+            <p className="leading-relaxed">
+              Zakat is given as unconditional ownership (Tamlik) to eligible poor and needy Muslims (Fuqara and Masakin).
+              <strong> Sadat (descendants of the Prophet ﷺ)</strong> are honored with voluntary gifts (<em>Hadiya</em>) rather than Zakat.
             </p>
           </div>
         </aside>
