@@ -120,6 +120,184 @@ function zonedWallTimeToDate(year: number, month: number, day: number, hour: num
   return new Date(guess - (asUtc - guess));
 }
 
+export interface RakatUnit {
+  id: string;
+  rakaat: number;
+  type: "Sunnah Mu'akkadah" | "Sunnah Ghayr Mu'akkadah" | "Fard" | "Wajib Witr" | "Nafl";
+  timing: "Before Fard" | "Fard" | "After Fard";
+  shortLabel: string;
+  fiqhNote: string;
+}
+
+export const HANAFI_RAKAT_GUIDE: Record<PrayerName, { totalRakaat: number; summary: string; units: RakatUnit[] }> = {
+  fajr: {
+    totalRakaat: 4,
+    summary: "2 Sunnah Mu'akkadah + 2 Fard (4 Rak'at Total)",
+    units: [
+      {
+        id: "fajr-sunnah-2",
+        rakaat: 2,
+        type: "Sunnah Mu'akkadah",
+        timing: "Before Fard",
+        shortLabel: "2 Sunnah (Pre-Fard)",
+        fiqhNote: "Most emphasized Sunnah of the day—more beloved than the world and all it contains (Sahih Muslim).",
+      },
+      {
+        id: "fajr-fard-2",
+        rakaat: 2,
+        type: "Fard",
+        timing: "Fard",
+        shortLabel: "2 Fard",
+        fiqhNote: "Recited aloud (Jahri) with Masnoon Tiwal-e-Mufassal Qira'at.",
+      },
+    ],
+  },
+  dhuhr: {
+    totalRakaat: 12,
+    summary: "4 Sunnah Mu'akkadah + 4 Fard + 2 Sunnah Mu'akkadah + 2 Nafl (12 Rak'at Total)",
+    units: [
+      {
+        id: "dhuhr-sunnah-pre-4",
+        rakaat: 4,
+        type: "Sunnah Mu'akkadah",
+        timing: "Before Fard",
+        shortLabel: "4 Sunnah (Pre-Fard)",
+        fiqhNote: "Offered in a single 4-Rak'at unit with one Salam in Hanafi fiqh.",
+      },
+      {
+        id: "dhuhr-fard-4",
+        rakaat: 4,
+        type: "Fard",
+        timing: "Fard",
+        shortLabel: "4 Fard",
+        fiqhNote: "Silent recitation (Sirri); on Friday replaced by 2 Fard of Jumu'ah + 4 & 2 Sunnah after.",
+      },
+      {
+        id: "dhuhr-sunnah-post-2",
+        rakaat: 2,
+        type: "Sunnah Mu'akkadah",
+        timing: "After Fard",
+        shortLabel: "2 Sunnah (Post-Fard)",
+        fiqhNote: "Emphasized Sunnah immediately following the 4 Fard of Dhuhr.",
+      },
+      {
+        id: "dhuhr-nafl-post-2",
+        rakaat: 2,
+        type: "Nafl",
+        timing: "After Fard",
+        shortLabel: "2 Nafl",
+        fiqhNote: "Completes 12 Rak'at of Dhuhr; whoever prays 4 before and 4 after Dhuhr is shielded from the Fire (Tirmidhi).",
+      },
+    ],
+  },
+  asr: {
+    totalRakaat: 8,
+    summary: "4 Sunnah Ghayr Mu'akkadah + 4 Fard (8 Rak'at Total)",
+    units: [
+      {
+        id: "asr-sunnah-pre-4",
+        rakaat: 4,
+        type: "Sunnah Ghayr Mu'akkadah",
+        timing: "Before Fard",
+        shortLabel: "4 Sunnah Ghayr Mu'akkadah",
+        fiqhNote: "Prophetic Dua: 'May Allah have mercy on the person who prays 4 Rak'at before Asr' (Abu Dawud, Tirmidhi).",
+      },
+      {
+        id: "asr-fard-4",
+        rakaat: 4,
+        type: "Fard",
+        timing: "Fard",
+        shortLabel: "4 Fard (Mithlayn)",
+        fiqhNote: "Salat al-Wusta (Middle Prayer); no Nafl prayer is offered after Asr Fard until Maghrib.",
+      },
+    ],
+  },
+  maghrib: {
+    totalRakaat: 7,
+    summary: "3 Fard + 2 Sunnah Mu'akkadah + 2 Nafl (+ 6 Awwabin Nafl optional)",
+    units: [
+      {
+        id: "maghrib-fard-3",
+        rakaat: 3,
+        type: "Fard",
+        timing: "Fard",
+        shortLabel: "3 Fard",
+        fiqhNote: "Offered promptly after sunset with short Qisar-e-Mufassal Surahs.",
+      },
+      {
+        id: "maghrib-sunnah-post-2",
+        rakaat: 2,
+        type: "Sunnah Mu'akkadah",
+        timing: "After Fard",
+        shortLabel: "2 Sunnah (Post-Fard)",
+        fiqhNote: "Emphasized Sunnah after Maghrib Fard.",
+      },
+      {
+        id: "maghrib-nafl-2",
+        rakaat: 2,
+        type: "Nafl",
+        timing: "After Fard",
+        shortLabel: "2 Nafl (+ Awwabin)",
+        fiqhNote: "2 Nafl (or 6 Rak'at Salat al-Awwabin in sets of 2, carrying reward of 12 years of worship).",
+      },
+    ],
+  },
+  isha: {
+    totalRakaat: 17,
+    summary: "4 Sunnah Ghayr Mu'akkadah + 4 Fard + 2 Sunnah Mu'akkadah + 2 Nafl + 3 Wajib Witr + 2 Nafl (17 Rak'at)",
+    units: [
+      {
+        id: "isha-sunnah-pre-4",
+        rakaat: 4,
+        type: "Sunnah Ghayr Mu'akkadah",
+        timing: "Before Fard",
+        shortLabel: "4 Sunnah Ghayr Mu'akkadah",
+        fiqhNote: "Mustahab / Sunnah Ghayr Mu'akkadah before Isha Fard.",
+      },
+      {
+        id: "isha-fard-4",
+        rakaat: 4,
+        type: "Fard",
+        timing: "Fard",
+        shortLabel: "4 Fard",
+        fiqhNote: "Praying Isha in Jamaat carries the reward of standing half the night in prayer (Sahih Muslim).",
+      },
+      {
+        id: "isha-sunnah-post-2",
+        rakaat: 2,
+        type: "Sunnah Mu'akkadah",
+        timing: "After Fard",
+        shortLabel: "2 Sunnah (Post-Fard)",
+        fiqhNote: "Emphasized Sunnah after Isha Fard.",
+      },
+      {
+        id: "isha-nafl-pre-witr-2",
+        rakaat: 2,
+        type: "Nafl",
+        timing: "After Fard",
+        shortLabel: "2 Nafl (Before Witr)",
+        fiqhNote: "2 Rak'at Nafl before offering Salat al-Witr.",
+      },
+      {
+        id: "isha-witr-3",
+        rakaat: 3,
+        type: "Wajib Witr",
+        timing: "After Fard",
+        shortLabel: "3 Wajib Witr (Dua-e-Qunoot)",
+        fiqhNote: "Wajib in Hanafi fiqh: 3 Rak'at with one Salam and Takbir + Dua-e-Qunoot in the 3rd Rak'at before Ruku.",
+      },
+      {
+        id: "isha-nafl-post-witr-2",
+        rakaat: 2,
+        type: "Nafl",
+        timing: "After Fard",
+        shortLabel: "2 Nafl (After Witr)",
+        fiqhNote: "Seals the nightly Isha prayer sequence.",
+      },
+    ],
+  },
+};
+
 export interface ComputedPrayerRow {
   name: PrayerName;
   label: string;

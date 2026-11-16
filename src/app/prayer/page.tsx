@@ -36,6 +36,7 @@ import {
   computeHanafiSchedule,
   formatCountdown,
   formatTime,
+  HANAFI_RAKAT_GUIDE,
   PrayerName,
 } from "@/lib/prayer-engine";
 import {
@@ -76,6 +77,8 @@ export default function PrayerPage() {
     updatePrayerSetting,
     salahToday,
     logSalah,
+    sunnahChecks,
+    toggleSunnah,
     rings,
     weather,
     weatherLoading,
@@ -1539,9 +1542,10 @@ export default function PrayerPage() {
             const isNext = schedule.nextPrayer.name === p.name && dayOffset === 0;
             const loggedStatus = salahToday[p.name];
             const isExpanded = expandedPrayer === p.name;
+            const rakatGuide = HANAFI_RAKAT_GUIDE[p.name];
 
             return (
-              <div key={p.name} className="py-3.5 first:pt-1 last:pb-1">
+              <div key={p.name} className="py-4 first:pt-1 last:pb-1 space-y-2.5">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                   {/* Prayer Name & Jamaat/Azan Summary */}
                   <div className="flex items-center gap-3">
@@ -1557,8 +1561,11 @@ export default function PrayerPage() {
                       {p.label.slice(0, 2)}
                     </button>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-base text-[var(--text-primary)]">{p.label}</span>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--accent-gold)]">
+                          {rakatGuide.totalRakaat} Rak&apos;at Total
+                        </span>
                         {isNext && <span className="badge-pill badge-emerald">Next</span>}
                         {p.isConflict && (
                           <span className="badge-pill badge-crimson">Check Fixed Time</span>
@@ -1566,7 +1573,8 @@ export default function PrayerPage() {
                       </div>
                       <div className="text-[11px] text-[var(--text-muted)]">
                         Azan <strong className="text-[var(--text-primary)] font-mono">{fmtTz(p.azanTime)}</strong> • Jamaat{" "}
-                        <strong className="text-[var(--accent-gold)] font-mono">{fmtTz(p.jamaatTime)}</strong>
+                        <strong className="text-[var(--accent-gold)] font-mono">{fmtTz(p.jamaatTime)}</strong> •{" "}
+                        <span>{rakatGuide.summary}</span>
                       </div>
                     </div>
                   </div>
@@ -1606,7 +1614,7 @@ export default function PrayerPage() {
                       onClick={() => setExpandedPrayer(isExpanded ? null : p.name)}
                       className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer ml-1"
                     >
-                      {isExpanded ? "Hide Config" : "Jamaat Config"}
+                      {isExpanded ? "Hide Details" : "Sunnah & Config"}
                     </button>
 
                     <button
@@ -1620,7 +1628,53 @@ export default function PrayerPage() {
                   </div>
                 </div>
 
-                {/* Expandable Per-Prayer Customization Drawer */}
+                {/* Interactive Sunnah, Fard, Wajib Witr & Nafl Rak'at Sequence Strip */}
+                <div className="flex flex-wrap items-center gap-1.5 pl-0 lg:pl-13">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mr-1">
+                    Rak&apos;at Sequence:
+                  </span>
+                  {rakatGuide.units.map((u, idx) => {
+                    const isFardUnit = u.type === "Fard";
+                    const checked = isFardUnit
+                      ? loggedStatus === "jamaat" || loggedStatus === "ontime"
+                      : Boolean(sunnahChecks[u.id]);
+                    return (
+                      <React.Fragment key={u.id}>
+                        <button
+                          type="button"
+                          title={u.fiqhNote}
+                          onClick={() => {
+                            if (isFardUnit) {
+                              logSalah(p.name, checked ? "none" : "jamaat");
+                            } else {
+                              toggleSunnah(u.id);
+                            }
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition flex items-center gap-1.5 cursor-pointer ${
+                            checked
+                              ? "bg-emerald-500/15 border-emerald-500/45 text-emerald-300"
+                              : u.type === "Fard"
+                              ? "bg-[var(--accent-gold)]/15 border-[var(--accent-gold)]/40 text-[var(--accent-gold)]"
+                              : u.type === "Wajib Witr"
+                              ? "bg-purple-500/15 border-purple-400/35 text-purple-300"
+                              : u.type === "Sunnah Mu'akkadah"
+                              ? "bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]"
+                              : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
+                          }`}
+                        >
+                          <span>{checked ? "✓" : "○"}</span>
+                          <span>{u.shortLabel}</span>
+                          <span className="text-[9px] opacity-75">({u.type})</span>
+                        </button>
+                        {idx < rakatGuide.units.length - 1 && (
+                          <span className="text-[10px] text-[var(--text-muted)]">→</span>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+
+                {/* Expandable Per-Prayer Customization & Detailed Sunnah/Nafl Fiqh Drawer */}
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div
@@ -1629,7 +1683,30 @@ export default function PrayerPage() {
                       exit={{ opacity: 0, height: 0 }}
                       className="overflow-hidden"
                     >
-                      <div className="mt-3 p-3.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="mt-2 space-y-3">
+                        <div className="p-3.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] space-y-2">
+                          <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent-gold)]">
+                            Hanafi Sunnah, Fard, Wajib &amp; Nafl Breakdown ({p.label})
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {rakatGuide.units.map((u) => (
+                              <div
+                                key={u.id}
+                                className="p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)] text-xs space-y-0.5"
+                              >
+                                <div className="flex items-center justify-between font-bold text-[var(--text-primary)]">
+                                  <span>{u.shortLabel}</span>
+                                  <span className="text-[10px] text-[var(--accent-gold)]">{u.type}</span>
+                                </div>
+                                <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                                  {u.fiqhNote}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                         <div>
                           <label className="text-[10px] uppercase text-[var(--text-muted)] block mb-1">
                             Jamaat Mode
@@ -1706,6 +1783,7 @@ export default function PrayerPage() {
                             className="w-24 px-2.5 py-1 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] font-mono text-[var(--text-primary)]"
                           />
                         </div>
+                      </div>
                       </div>
                     </motion.div>
                   )}
