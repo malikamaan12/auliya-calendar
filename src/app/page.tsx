@@ -92,7 +92,10 @@ export default function DashboardPage() {
     {
       href: "/quiz",
       title: "Sahib-e-Ilm Quiz",
-      subtitle: bestQuizTier > 0 ? `Tier ${bestQuizTier}/15` : `${ilmPoints.toLocaleString()} XP`,
+      subtitle:
+        bestQuizTier > 0
+          ? `Tier ${bestQuizTier}/15 • 300 Qs`
+          : `300 Qs • ${ilmPoints.toLocaleString()} XP`,
       icon: Trophy,
     },
     {
