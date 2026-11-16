@@ -83,7 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { href: "/tasbih", label: t(lang, "navTasbih"), shortLabel: "Tasbih", desc: "Adhkar, Durood & Habit Tracker", icon: Sparkles },
     { href: "/auliya", label: t(lang, "navAuliya"), shortLabel: "Auliya", desc: "Urs Calendar & 360° Ziyarat", icon: Compass },
     { href: "/quiz", label: t(lang, "navQuiz"), shortLabel: "Quiz", desc: "15-Tier Sahib-e-Ilm Challenge", icon: Trophy },
-    { href: "/fiqh", label: t(lang, "navFiqh"), shortLabel: "Fiqh", desc: "Bahar-e-Shariat & Hadith", icon: Scale },
+    { href: "/fiqh", label: t(lang, "navFiqh"), shortLabel: "Fiqh", desc: "11 Hadith Books, Namaz & Fiqh", icon: Scale },
     { href: "/zakat", label: t(lang, "navZakat"), shortLabel: "Zakat", desc: "Silver Nisab Calculator", icon: Calculator },
     { href: "/admin", label: t(lang, "navAdmin"), shortLabel: "Curator", desc: "Add Profiles & Family Barsis", icon: ShieldCheck },
   ];

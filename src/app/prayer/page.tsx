@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock,
@@ -29,6 +30,7 @@ import {
   RefreshCw,
   Navigation,
   ShieldCheck,
+  BookOpen,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import {
@@ -1483,8 +1485,16 @@ export default function PrayerPage() {
             </p>
           </div>
 
-          {/* Interactive Date Scrubber & Calculation Authority Selector */}
+          {/* Interactive Date Scrubber, Namaz Guide Link & Calculation Authority Selector */}
           <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/fiqh?tab=prayer-method"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--accent-gold)]/15 border border-[var(--accent-gold)]/45 text-xs font-bold text-[var(--accent-gold)] hover:bg-[var(--accent-gold)]/25 transition"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Tariqa-e-Namaz Guide</span>
+            </Link>
+
             <div className="inline-flex items-center rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] p-1">
               <button
                 type="button"

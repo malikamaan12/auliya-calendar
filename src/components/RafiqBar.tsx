@@ -37,9 +37,9 @@ export function RafiqBar() {
     if (minsToNext > 0 && minsToNext <= 25) {
       return {
         badge: `${schedule.nextPrayer.label} in ${minsToNext}m`,
-        message: `Assalamu Alaikum — ${schedule.nextPrayer.label} Jamaat stands in ${minsToNext} mins. Ready to review Hanafi Wudu Fara'id & queue Tasbih-e-Fatima?`,
-        ctaLabel: "Wudu & Prayer Prep",
-        href: "/fiqh",
+        message: `Assalamu Alaikum — ${schedule.nextPrayer.label} Jamaat stands in ${minsToNext} mins. Ready to review Hanafi Wudu Fara'id & Step-by-Step Namaz Method?`,
+        ctaLabel: "Wudu & Namaz Method",
+        href: "/fiqh?tab=prayer-method",
       };
     }
 

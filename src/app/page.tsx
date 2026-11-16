@@ -100,8 +100,8 @@ export default function DashboardPage() {
     },
     {
       href: "/fiqh",
-      title: "Hanafi Fiqh",
-      subtitle: "Bahar-e-Shariat & Hadith",
+      title: "Fiqh, Hadith & Namaz",
+      subtitle: "11 Hadith Books • Tariqa-e-Namaz",
       icon: Scale,
     },
     {
