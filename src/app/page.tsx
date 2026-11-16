@@ -45,6 +45,7 @@ export default function DashboardPage() {
     sajdaCompleted,
     allAuliya,
     user,
+    weather,
   } = useApp();
 
   // Exact tabs from Reference Image 1: Surah | Para | Page | Hijb
@@ -73,7 +74,7 @@ export default function DashboardPage() {
     {
       href: "/prayer",
       title: "Prayer & Qibla",
-      subtitle: `${fardCompletedCount}/5 Today • ${city.name}`,
+      subtitle: `${fardCompletedCount}/5 Today • Qibla ${schedule.qiblaBearing}°`,
       icon: Clock,
     },
     {
@@ -254,11 +255,16 @@ export default function DashboardPage() {
             <div className="text-3xl sm:text-4xl font-bold tracking-tight tabular-nums text-white">
               {formatTime(schedule.nextPrayer.jamaatTime)}
             </div>
-            <div className="inline-flex items-center gap-1.5 text-xs text-purple-100/90 pt-0.5">
+            <div className="inline-flex flex-wrap items-center justify-center gap-1.5 text-xs text-purple-100/90 pt-0.5">
               <MapPin className="w-3.5 h-3.5 text-amber-300" />
               <span>
-                {city.name}, {city.country} • in {formatCountdown(schedule.nextPrayer.jamaatTime, now)}
+                {city.name} ({city.tz || "Local"}) • in {formatCountdown(schedule.nextPrayer.jamaatTime, now)}
               </span>
+              {weather && (
+                <span className="px-2 py-0.5 rounded-full bg-white/15 text-white font-semibold tabular-nums">
+                  {Math.round(weather.temperatureC)}°C{weather.usAqi !== null ? ` • AQI ${weather.usAqi}` : ""}
+                </span>
+              )}
             </div>
           </div>
         </Link>

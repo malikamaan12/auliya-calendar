@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { LangCode, LANGUAGES } from "./i18n";
 import {
   CalcMethodId,
@@ -15,6 +15,12 @@ import {
   setDisplayTimeZone,
   zonedParts,
 } from "./prayer-engine";
+import {
+  fetchWeatherAndAqi,
+  LiveWeatherData,
+  resolveCityForTimezone,
+  reverseGeocodeGps,
+} from "./location-weather";
 import { getHijriDate, HijriDateInfo } from "./hijri";
 import { AULIYA_DATA, AuliyaProfile } from "@/data/auliya";
 
@@ -70,6 +76,8 @@ interface PersistedState {
   auditLogs: AuditEntry[];
   user: AppUser | null;
   hasInteracted: boolean;
+  /** Compass calibration trim in degrees (-30 to +30) */
+  qiblaCalibrationOffset: number;
   /** YYYY-MM-DD (city-local) of the last day the app was used — drives daily rollover. */
   lastActiveDate: string;
 }
@@ -117,10 +125,12 @@ const DEFAULT_STATE: PersistedState = {
   auditLogs: [],
   user: null,
   hasInteracted: false,
+  qiblaCalibrationOffset: 0,
   lastActiveDate: "",
 };
 
 const STORAGE_KEY = "auliya_companion_state_v2";
+const WEATHER_CACHE_KEY = "auliya_weather_cache_v1";
 
 function dayKey(d: Date, tz?: string): string {
   const p = zonedParts(d, tz);
@@ -148,7 +158,6 @@ function applyDailyRollover(s: PersistedState, today: string): PersistedState {
     streakDays += 1;
     if (streakDays > 0 && streakDays % 7 === 0) qazaShieldAvailable = true;
   } else if (qazaShieldAvailable && gap <= 2) {
-    // Qaza Shield protects the streak once
     qazaShieldAvailable = false;
   } else {
     streakDays = 0;
@@ -167,19 +176,26 @@ function applyDailyRollover(s: PersistedState, today: string): PersistedState {
 }
 
 interface AppContextValue extends PersistedState {
-  /** True once localStorage has been read on the client (avoids SSR hydration mismatch). */
   hydrated: boolean;
   now: Date;
-  /** Current hour (0-23) in the selected city's timezone. */
   cityHour: number;
   hijri: HijriDateInfo;
   schedule: HanafiPrayerSchedule;
   allAuliya: AuliyaProfile[];
   rings: { salah: number; ilm: number; dhikr: number };
+  weather: LiveWeatherData | null;
+  weatherLoading: boolean;
+  weatherError: string | null;
+  gpsLoading: boolean;
+  gpsError: string | null;
   setTheme: (t: "dark" | "light") => void;
   setLang: (l: LangCode) => void;
   setHilalOffset: (o: number) => void;
   setCity: (c: CityPreset) => void;
+  setTimezone: (tz: string, updateCoordinates?: boolean) => void;
+  requestGpsLocation: () => Promise<void>;
+  refreshWeather: () => Promise<void>;
+  setQiblaCalibrationOffset: (deg: number) => void;
   setCalcMethod: (m: CalcMethodId) => void;
   updatePrayerSetting: (p: PrayerName, patch: Partial<PrayerSettingsMap[PrayerName]>) => void;
   logSalah: (p: PrayerName, status: PrayerLogStatus) => void;
@@ -206,7 +222,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [now, setNow] = useState<Date>(() => new Date());
 
-  // Hydrate offline-first from localStorage in < 5ms
+  const [weather, setWeather] = useState<LiveWeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
+  // Hydrate offline-first from localStorage
   useEffect(() => {
     Promise.resolve().then(() => {
       let next: PersistedState = DEFAULT_STATE;
@@ -216,9 +238,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const parsed = JSON.parse(raw) as Partial<PersistedState>;
           next = { ...DEFAULT_STATE, ...parsed };
         } else {
-          // First launch: pick the preset city matching this device's timezone
           const detected = detectCityFromDevice();
-          if (detected) next = { ...DEFAULT_STATE, city: detected };
+          if (detected) {
+            next = { ...DEFAULT_STATE, city: detected };
+          } else {
+            try {
+              const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+              if (deviceTz) {
+                next = {
+                  ...DEFAULT_STATE,
+                  city: resolveCityForTimezone(deviceTz, DEFAULT_STATE.city),
+                };
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
+        const rawWeather = localStorage.getItem(WEATHER_CACHE_KEY);
+        if (rawWeather) {
+          setWeather(JSON.parse(rawWeather) as LiveWeatherData);
         }
       } catch {
         // ignore corrupted storage
@@ -239,6 +278,105 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // ignore quota errors
     }
   }, [state, hydrated]);
+
+  // Fetch live Weather & AQI whenever coordinates change
+  const loadWeatherForCoords = useCallback(async (lat: number, lng: number) => {
+    setWeatherLoading(true);
+    setWeatherError(null);
+    try {
+      const data = await fetchWeatherAndAqi(lat, lng);
+      setWeather(data);
+      try {
+        localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(data));
+      } catch {
+        // ignore
+      }
+      if (data.resolvedTimezone) {
+        setState((prev) => {
+          if (prev.city.id === "gps" && prev.city.tz !== data.resolvedTimezone) {
+            return {
+              ...prev,
+              city: { ...prev.city, tz: data.resolvedTimezone },
+            };
+          }
+          return prev;
+        });
+      }
+    } catch {
+      setWeatherError("Live weather temporarily unreachable.");
+    } finally {
+      setWeatherLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    Promise.resolve().then(() => {
+      loadWeatherForCoords(state.city.lat, state.city.lng);
+    });
+  }, [hydrated, state.city.lat, state.city.lng, loadWeatherForCoords]);
+
+  const requestGpsLocation = useCallback(async () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGpsError("Geolocation is not supported by this browser.");
+      return;
+    }
+    setGpsLoading(true);
+    setGpsError(null);
+    return new Promise<void>((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const preset = await reverseGeocodeGps(pos.coords.latitude, pos.coords.longitude);
+            setState((s) => ({ ...s, city: preset }));
+          } catch {
+            let tz: string | undefined;
+            try {
+              tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            } catch {
+              tz = undefined;
+            }
+            setState((s) => ({
+              ...s,
+              city: {
+                id: "gps",
+                name: "GPS Location",
+                country: `${pos.coords.latitude.toFixed(3)}°, ${pos.coords.longitude.toFixed(3)}°`,
+                lat: Number(pos.coords.latitude.toFixed(5)),
+                lng: Number(pos.coords.longitude.toFixed(5)),
+                tz,
+              },
+            }));
+          } finally {
+            setGpsLoading(false);
+            resolve();
+          }
+        },
+        (err) => {
+          setGpsLoading(false);
+          setGpsError(
+            err.code === 1
+              ? "Location permission denied. Allow GPS access or select your timezone/city."
+              : "Could not acquire GPS signal. Please select your timezone or search your city."
+          );
+          resolve();
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+  }, []);
+
+  const setTimezone = useCallback((tz: string, updateCoordinates = true) => {
+    setState((s) => {
+      if (!updateCoordinates) {
+        return { ...s, city: { ...s.city, tz } };
+      }
+      return {
+        ...s,
+        city: resolveCityForTimezone(tz, s.city),
+      };
+    });
+  }, []);
 
   // Apply HTML theme class + RTL/LTR dir & lang attributes
   useEffect(() => {
@@ -314,11 +452,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     schedule,
     allAuliya,
     rings,
+    weather,
+    weatherLoading,
+    weatherError,
+    gpsLoading,
+    gpsError,
     setTheme: (theme) => setState((s) => ({ ...s, theme })),
     setLang: (lang) => setState((s) => ({ ...s, lang })),
     setHilalOffset: (hilalOffset) =>
       setState((s) => ({ ...s, hilalOffset: Math.max(-2, Math.min(2, hilalOffset)) })),
     setCity: (city) => setState((s) => ({ ...s, city })),
+    setTimezone,
+    requestGpsLocation,
+    refreshWeather: () => loadWeatherForCoords(state.city.lat, state.city.lng),
+    setQiblaCalibrationOffset: (deg) =>
+      setState((s) => ({ ...s, qiblaCalibrationOffset: Math.max(-30, Math.min(30, deg)) })),
     setCalcMethod: (calcMethod) => setState((s) => ({ ...s, calcMethod })),
     updatePrayerSetting: (p, patch) =>
       setState((s) => ({

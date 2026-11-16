@@ -317,7 +317,7 @@ export function computeHanafiSchedule(
     dahwaKubra,
     sunset,
     tahajjudStart: sunnah.lastThirdOfTheNight,
-    qiblaBearing: Math.round(Qibla(coords)),
+    qiblaBearing: Number(Qibla(coords).toFixed(1)),
     makruhWindows,
     activeMakruh,
     nextPrayer,
@@ -325,9 +325,9 @@ export function computeHanafiSchedule(
   };
 }
 
-export function formatTime(d: Date): string {
+export function formatTime(d: Date, tz?: string): string {
   try {
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZone: displayTimeZone });
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZone: tz || displayTimeZone });
   } catch {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
