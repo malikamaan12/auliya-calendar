@@ -172,30 +172,42 @@ export interface SurahMeta {
   englishNameTranslation: string;
   numberOfAyahs: number;
   revelationType: "Meccan" | "Medinan";
+  startPage: number;
+  juz: number;
+}
+
+export interface JuzMeta {
+  juz: number;
+  arabicTitle: string;
+  startPage: number;
+  surahNum: number;
+  ayahNum: number;
+  surahName: string;
 }
 
 export interface HanafiSajdaItem {
   ref: string;
   surahNum: number;
   ayahNum: number;
+  page: number;
   label: string;
 }
 
 export const HANAFI_SAJDA_ITEMS: HanafiSajdaItem[] = [
-  { ref: "7:206", surahNum: 7, ayahNum: 206, label: "7:206 (Al-A'raf)" },
-  { ref: "13:15", surahNum: 13, ayahNum: 15, label: "13:15 (Ar-Ra'd)" },
-  { ref: "16:50", surahNum: 16, ayahNum: 50, label: "16:50 (An-Nahl)" },
-  { ref: "17:109", surahNum: 17, ayahNum: 109, label: "17:109 (Al-Isra)" },
-  { ref: "19:58", surahNum: 19, ayahNum: 58, label: "19:58 (Maryam)" },
-  { ref: "22:18", surahNum: 22, ayahNum: 18, label: "22:18 (Al-Hajj — 1st only)" },
-  { ref: "25:60", surahNum: 25, ayahNum: 60, label: "25:60 (Al-Furqan)" },
-  { ref: "27:26", surahNum: 27, ayahNum: 26, label: "27:26 (An-Naml)" },
-  { ref: "32:15", surahNum: 32, ayahNum: 15, label: "32:15 (As-Sajdah)" },
-  { ref: "38:24", surahNum: 38, ayahNum: 24, label: "38:24 (Sad)" },
-  { ref: "41:38", surahNum: 41, ayahNum: 38, label: "41:38 (Fussilat)" },
-  { ref: "53:62", surahNum: 53, ayahNum: 62, label: "53:62 (An-Najm)" },
-  { ref: "84:21", surahNum: 84, ayahNum: 21, label: "84:21 (Al-Inshiqaq)" },
-  { ref: "96:19", surahNum: 96, ayahNum: 19, label: "96:19 (Al-Alaq)" },
+  { ref: "7:206", surahNum: 7, ayahNum: 206, page: 176, label: "7:206 (Al-A'raf)" },
+  { ref: "13:15", surahNum: 13, ayahNum: 15, page: 251, label: "13:15 (Ar-Ra'd)" },
+  { ref: "16:50", surahNum: 16, ayahNum: 50, page: 272, label: "16:50 (An-Nahl)" },
+  { ref: "17:109", surahNum: 17, ayahNum: 109, page: 293, label: "17:109 (Al-Isra)" },
+  { ref: "19:58", surahNum: 19, ayahNum: 58, page: 309, label: "19:58 (Maryam)" },
+  { ref: "22:18", surahNum: 22, ayahNum: 18, page: 334, label: "22:18 (Al-Hajj — 1st only)" },
+  { ref: "25:60", surahNum: 25, ayahNum: 60, page: 365, label: "25:60 (Al-Furqan)" },
+  { ref: "27:26", surahNum: 27, ayahNum: 26, page: 379, label: "27:26 (An-Naml)" },
+  { ref: "32:15", surahNum: 32, ayahNum: 15, page: 416, label: "32:15 (As-Sajdah)" },
+  { ref: "38:24", surahNum: 38, ayahNum: 24, page: 454, label: "38:24 (Sad)" },
+  { ref: "41:38", surahNum: 41, ayahNum: 38, page: 480, label: "41:38 (Fussilat)" },
+  { ref: "53:62", surahNum: 53, ayahNum: 62, page: 528, label: "53:62 (An-Najm)" },
+  { ref: "84:21", surahNum: 84, ayahNum: 21, page: 589, label: "84:21 (Al-Inshiqaq)" },
+  { ref: "96:19", surahNum: 96, ayahNum: 19, page: 597, label: "96:19 (Al-Alaq)" },
 ];
 
 export const HANAFI_SAJDA_REFS = new Set(HANAFI_SAJDA_ITEMS.map((s) => s.ref));
@@ -206,6 +218,257 @@ export function getEveryAyahUrl(surahNum: number, ayahNum: number): string {
   return `https://everyayah.com/data/Alafasy_128kbps/${s}${a}.mp3`;
 }
 
+export function toArabicIndicDigits(num: number): string {
+  const digits = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+  return String(num)
+    .split("")
+    .map((c) => digits[Number(c)] ?? c)
+    .join("");
+}
+
+export const JUZ_LIST: JuzMeta[] = [
+  {
+    "juz": 1,
+    "arabicTitle": "الم",
+    "startPage": 1,
+    "surahNum": 1,
+    "ayahNum": 1,
+    "surahName": "Al-Faatiha"
+  },
+  {
+    "juz": 2,
+    "arabicTitle": "سيقول",
+    "startPage": 22,
+    "surahNum": 2,
+    "ayahNum": 142,
+    "surahName": "Al-Baqara"
+  },
+  {
+    "juz": 3,
+    "arabicTitle": "تلك الرسل",
+    "startPage": 42,
+    "surahNum": 2,
+    "ayahNum": 253,
+    "surahName": "Al-Baqara"
+  },
+  {
+    "juz": 4,
+    "arabicTitle": "لن تنالوا",
+    "startPage": 62,
+    "surahNum": 3,
+    "ayahNum": 93,
+    "surahName": "Aal-i-Imraan"
+  },
+  {
+    "juz": 5,
+    "arabicTitle": "والمحصنات",
+    "startPage": 82,
+    "surahNum": 4,
+    "ayahNum": 24,
+    "surahName": "An-Nisaa"
+  },
+  {
+    "juz": 6,
+    "arabicTitle": "لا يحب الله",
+    "startPage": 102,
+    "surahNum": 4,
+    "ayahNum": 148,
+    "surahName": "An-Nisaa"
+  },
+  {
+    "juz": 7,
+    "arabicTitle": "وإذا سمعوا",
+    "startPage": 121,
+    "surahNum": 5,
+    "ayahNum": 82,
+    "surahName": "Al-Maaida"
+  },
+  {
+    "juz": 8,
+    "arabicTitle": "ولو أننا",
+    "startPage": 142,
+    "surahNum": 6,
+    "ayahNum": 111,
+    "surahName": "Al-An'aam"
+  },
+  {
+    "juz": 9,
+    "arabicTitle": "قال الملأ",
+    "startPage": 162,
+    "surahNum": 7,
+    "ayahNum": 88,
+    "surahName": "Al-A'raaf"
+  },
+  {
+    "juz": 10,
+    "arabicTitle": "واعلموا",
+    "startPage": 182,
+    "surahNum": 8,
+    "ayahNum": 41,
+    "surahName": "Al-Anfaal"
+  },
+  {
+    "juz": 11,
+    "arabicTitle": "يعتذرون",
+    "startPage": 201,
+    "surahNum": 9,
+    "ayahNum": 93,
+    "surahName": "At-Tawba"
+  },
+  {
+    "juz": 12,
+    "arabicTitle": "وما من دابة",
+    "startPage": 222,
+    "surahNum": 11,
+    "ayahNum": 6,
+    "surahName": "Hud"
+  },
+  {
+    "juz": 13,
+    "arabicTitle": "وما أبرئ",
+    "startPage": 242,
+    "surahNum": 12,
+    "ayahNum": 53,
+    "surahName": "Yusuf"
+  },
+  {
+    "juz": 14,
+    "arabicTitle": "ربما",
+    "startPage": 262,
+    "surahNum": 15,
+    "ayahNum": 1,
+    "surahName": "Al-Hijr"
+  },
+  {
+    "juz": 15,
+    "arabicTitle": "سبحان الذي",
+    "startPage": 282,
+    "surahNum": 17,
+    "ayahNum": 1,
+    "surahName": "Al-Israa"
+  },
+  {
+    "juz": 16,
+    "arabicTitle": "قال ألم",
+    "startPage": 302,
+    "surahNum": 18,
+    "ayahNum": 75,
+    "surahName": "Al-Kahf"
+  },
+  {
+    "juz": 17,
+    "arabicTitle": "اقترب للناس",
+    "startPage": 322,
+    "surahNum": 21,
+    "ayahNum": 1,
+    "surahName": "Al-Anbiyaa"
+  },
+  {
+    "juz": 18,
+    "arabicTitle": "قد أفلح",
+    "startPage": 342,
+    "surahNum": 23,
+    "ayahNum": 1,
+    "surahName": "Al-Muminoon"
+  },
+  {
+    "juz": 19,
+    "arabicTitle": "وقال الذين",
+    "startPage": 362,
+    "surahNum": 25,
+    "ayahNum": 21,
+    "surahName": "Al-Furqaan"
+  },
+  {
+    "juz": 20,
+    "arabicTitle": "أمن خلق",
+    "startPage": 382,
+    "surahNum": 27,
+    "ayahNum": 56,
+    "surahName": "An-Naml"
+  },
+  {
+    "juz": 21,
+    "arabicTitle": "اتل ما أوحي",
+    "startPage": 402,
+    "surahNum": 29,
+    "ayahNum": 46,
+    "surahName": "Al-Ankaboot"
+  },
+  {
+    "juz": 22,
+    "arabicTitle": "ومن يقنت",
+    "startPage": 422,
+    "surahNum": 33,
+    "ayahNum": 31,
+    "surahName": "Al-Ahzaab"
+  },
+  {
+    "juz": 23,
+    "arabicTitle": "ومالي",
+    "startPage": 442,
+    "surahNum": 36,
+    "ayahNum": 28,
+    "surahName": "Yaseen"
+  },
+  {
+    "juz": 24,
+    "arabicTitle": "فمن أظلم",
+    "startPage": 462,
+    "surahNum": 39,
+    "ayahNum": 32,
+    "surahName": "Az-Zumar"
+  },
+  {
+    "juz": 25,
+    "arabicTitle": "إليه يرد",
+    "startPage": 482,
+    "surahNum": 41,
+    "ayahNum": 47,
+    "surahName": "Fussilat"
+  },
+  {
+    "juz": 26,
+    "arabicTitle": "حم",
+    "startPage": 502,
+    "surahNum": 46,
+    "ayahNum": 1,
+    "surahName": "Al-Ahqaf"
+  },
+  {
+    "juz": 27,
+    "arabicTitle": "قال فما خطبكم",
+    "startPage": 522,
+    "surahNum": 51,
+    "ayahNum": 31,
+    "surahName": "Adh-Dhaariyat"
+  },
+  {
+    "juz": 28,
+    "arabicTitle": "قد سمع الله",
+    "startPage": 542,
+    "surahNum": 58,
+    "ayahNum": 1,
+    "surahName": "Al-Mujaadila"
+  },
+  {
+    "juz": 29,
+    "arabicTitle": "تبارك الذي",
+    "startPage": 562,
+    "surahNum": 67,
+    "ayahNum": 1,
+    "surahName": "Al-Mulk"
+  },
+  {
+    "juz": 30,
+    "arabicTitle": "عم يتساءلون",
+    "startPage": 582,
+    "surahNum": 78,
+    "ayahNum": 1,
+    "surahName": "An-Naba"
+  }
+];
+
 export const SURAH_LIST: SurahMeta[] = [
   {
     "number": 1,
@@ -213,7 +476,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Faatiha",
     "englishNameTranslation": "The Opening",
     "numberOfAyahs": 7,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 1,
+    "juz": 1
   },
   {
     "number": 2,
@@ -221,7 +486,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Baqara",
     "englishNameTranslation": "The Cow",
     "numberOfAyahs": 286,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 2,
+    "juz": 1
   },
   {
     "number": 3,
@@ -229,7 +496,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Aal-i-Imraan",
     "englishNameTranslation": "The Family of Imraan",
     "numberOfAyahs": 200,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 50,
+    "juz": 3
   },
   {
     "number": 4,
@@ -237,7 +506,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "An-Nisaa",
     "englishNameTranslation": "The Women",
     "numberOfAyahs": 176,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 77,
+    "juz": 4
   },
   {
     "number": 5,
@@ -245,7 +516,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Maaida",
     "englishNameTranslation": "The Table",
     "numberOfAyahs": 120,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 106,
+    "juz": 6
   },
   {
     "number": 6,
@@ -253,7 +526,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-An'aam",
     "englishNameTranslation": "The Cattle",
     "numberOfAyahs": 165,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 128,
+    "juz": 7
   },
   {
     "number": 7,
@@ -261,7 +536,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-A'raaf",
     "englishNameTranslation": "The Heights",
     "numberOfAyahs": 206,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 151,
+    "juz": 8
   },
   {
     "number": 8,
@@ -269,7 +546,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Anfaal",
     "englishNameTranslation": "The Spoils of War",
     "numberOfAyahs": 75,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 177,
+    "juz": 9
   },
   {
     "number": 9,
@@ -277,7 +556,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "At-Tawba",
     "englishNameTranslation": "The Repentance",
     "numberOfAyahs": 129,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 187,
+    "juz": 10
   },
   {
     "number": 10,
@@ -285,7 +566,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Yunus",
     "englishNameTranslation": "Jonas",
     "numberOfAyahs": 109,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 208,
+    "juz": 11
   },
   {
     "number": 11,
@@ -293,7 +576,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Hud",
     "englishNameTranslation": "Hud",
     "numberOfAyahs": 123,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 221,
+    "juz": 11
   },
   {
     "number": 12,
@@ -301,7 +586,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Yusuf",
     "englishNameTranslation": "Joseph",
     "numberOfAyahs": 111,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 235,
+    "juz": 12
   },
   {
     "number": 13,
@@ -309,7 +596,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Ar-Ra'd",
     "englishNameTranslation": "The Thunder",
     "numberOfAyahs": 43,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 249,
+    "juz": 13
   },
   {
     "number": 14,
@@ -317,7 +606,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Ibrahim",
     "englishNameTranslation": "Abraham",
     "numberOfAyahs": 52,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 255,
+    "juz": 13
   },
   {
     "number": 15,
@@ -325,7 +616,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Hijr",
     "englishNameTranslation": "The Rock",
     "numberOfAyahs": 99,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 262,
+    "juz": 14
   },
   {
     "number": 16,
@@ -333,7 +626,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "An-Nahl",
     "englishNameTranslation": "The Bee",
     "numberOfAyahs": 128,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 267,
+    "juz": 14
   },
   {
     "number": 17,
@@ -341,7 +636,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Israa",
     "englishNameTranslation": "The Night Journey",
     "numberOfAyahs": 111,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 282,
+    "juz": 15
   },
   {
     "number": 18,
@@ -349,7 +646,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Kahf",
     "englishNameTranslation": "The Cave",
     "numberOfAyahs": 110,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 293,
+    "juz": 15
   },
   {
     "number": 19,
@@ -357,7 +656,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Maryam",
     "englishNameTranslation": "Mary",
     "numberOfAyahs": 98,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 305,
+    "juz": 16
   },
   {
     "number": 20,
@@ -365,7 +666,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Taa-Haa",
     "englishNameTranslation": "Taa-Haa",
     "numberOfAyahs": 135,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 312,
+    "juz": 16
   },
   {
     "number": 21,
@@ -373,7 +676,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Anbiyaa",
     "englishNameTranslation": "The Prophets",
     "numberOfAyahs": 112,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 322,
+    "juz": 17
   },
   {
     "number": 22,
@@ -381,7 +686,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Hajj",
     "englishNameTranslation": "The Pilgrimage",
     "numberOfAyahs": 78,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 332,
+    "juz": 17
   },
   {
     "number": 23,
@@ -389,7 +696,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Muminoon",
     "englishNameTranslation": "The Believers",
     "numberOfAyahs": 118,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 342,
+    "juz": 18
   },
   {
     "number": 24,
@@ -397,7 +706,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "An-Noor",
     "englishNameTranslation": "The Light",
     "numberOfAyahs": 64,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 350,
+    "juz": 18
   },
   {
     "number": 25,
@@ -405,7 +716,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Furqaan",
     "englishNameTranslation": "The Criterion",
     "numberOfAyahs": 77,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 359,
+    "juz": 18
   },
   {
     "number": 26,
@@ -413,7 +726,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Ash-Shu'araa",
     "englishNameTranslation": "The Poets",
     "numberOfAyahs": 227,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 367,
+    "juz": 19
   },
   {
     "number": 27,
@@ -421,7 +736,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "An-Naml",
     "englishNameTranslation": "The Ant",
     "numberOfAyahs": 93,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 377,
+    "juz": 19
   },
   {
     "number": 28,
@@ -429,7 +746,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Qasas",
     "englishNameTranslation": "The Stories",
     "numberOfAyahs": 88,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 385,
+    "juz": 20
   },
   {
     "number": 29,
@@ -437,7 +756,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Ankaboot",
     "englishNameTranslation": "The Spider",
     "numberOfAyahs": 69,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 396,
+    "juz": 20
   },
   {
     "number": 30,
@@ -445,7 +766,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Ar-Room",
     "englishNameTranslation": "The Romans",
     "numberOfAyahs": 60,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 404,
+    "juz": 21
   },
   {
     "number": 31,
@@ -453,7 +776,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Luqman",
     "englishNameTranslation": "Luqman",
     "numberOfAyahs": 34,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 411,
+    "juz": 21
   },
   {
     "number": 32,
@@ -461,7 +786,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "As-Sajda",
     "englishNameTranslation": "The Prostration",
     "numberOfAyahs": 30,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 415,
+    "juz": 21
   },
   {
     "number": 33,
@@ -469,7 +796,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Ahzaab",
     "englishNameTranslation": "The Clans",
     "numberOfAyahs": 73,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 418,
+    "juz": 21
   },
   {
     "number": 34,
@@ -477,7 +806,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Saba",
     "englishNameTranslation": "Sheba",
     "numberOfAyahs": 54,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 428,
+    "juz": 22
   },
   {
     "number": 35,
@@ -485,7 +816,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Faatir",
     "englishNameTranslation": "The Originator",
     "numberOfAyahs": 45,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 434,
+    "juz": 22
   },
   {
     "number": 36,
@@ -493,7 +826,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Yaseen",
     "englishNameTranslation": "Yaseen",
     "numberOfAyahs": 83,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 440,
+    "juz": 22
   },
   {
     "number": 37,
@@ -501,7 +836,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "As-Saaffaat",
     "englishNameTranslation": "Those drawn up in Ranks",
     "numberOfAyahs": 182,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 446,
+    "juz": 23
   },
   {
     "number": 38,
@@ -509,7 +846,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Saad",
     "englishNameTranslation": "The letter Saad",
     "numberOfAyahs": 88,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 453,
+    "juz": 23
   },
   {
     "number": 39,
@@ -517,7 +856,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Az-Zumar",
     "englishNameTranslation": "The Groups",
     "numberOfAyahs": 75,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 458,
+    "juz": 23
   },
   {
     "number": 40,
@@ -525,7 +866,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Ghafir",
     "englishNameTranslation": "The Forgiver",
     "numberOfAyahs": 85,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 467,
+    "juz": 24
   },
   {
     "number": 41,
@@ -533,7 +876,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Fussilat",
     "englishNameTranslation": "Explained in detail",
     "numberOfAyahs": 54,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 477,
+    "juz": 24
   },
   {
     "number": 42,
@@ -541,7 +886,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Ash-Shura",
     "englishNameTranslation": "Consultation",
     "numberOfAyahs": 53,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 483,
+    "juz": 25
   },
   {
     "number": 43,
@@ -549,7 +896,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Az-Zukhruf",
     "englishNameTranslation": "Ornaments of gold",
     "numberOfAyahs": 89,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 489,
+    "juz": 25
   },
   {
     "number": 44,
@@ -557,7 +906,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Ad-Dukhaan",
     "englishNameTranslation": "The Smoke",
     "numberOfAyahs": 59,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 496,
+    "juz": 25
   },
   {
     "number": 45,
@@ -565,7 +916,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Jaathiya",
     "englishNameTranslation": "Crouching",
     "numberOfAyahs": 37,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 499,
+    "juz": 25
   },
   {
     "number": 46,
@@ -573,7 +926,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Ahqaf",
     "englishNameTranslation": "The Dunes",
     "numberOfAyahs": 35,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 502,
+    "juz": 26
   },
   {
     "number": 47,
@@ -581,7 +936,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Muhammad",
     "englishNameTranslation": "Muhammad",
     "numberOfAyahs": 38,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 507,
+    "juz": 26
   },
   {
     "number": 48,
@@ -589,7 +946,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Fath",
     "englishNameTranslation": "The Victory",
     "numberOfAyahs": 29,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 511,
+    "juz": 26
   },
   {
     "number": 49,
@@ -597,7 +956,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Hujuraat",
     "englishNameTranslation": "The Inner Apartments",
     "numberOfAyahs": 18,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 515,
+    "juz": 26
   },
   {
     "number": 50,
@@ -605,7 +966,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Qaaf",
     "englishNameTranslation": "The letter Qaaf",
     "numberOfAyahs": 45,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 518,
+    "juz": 26
   },
   {
     "number": 51,
@@ -613,7 +976,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Adh-Dhaariyat",
     "englishNameTranslation": "The Winnowing Winds",
     "numberOfAyahs": 60,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 520,
+    "juz": 26
   },
   {
     "number": 52,
@@ -621,7 +986,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "At-Tur",
     "englishNameTranslation": "The Mount",
     "numberOfAyahs": 49,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 523,
+    "juz": 27
   },
   {
     "number": 53,
@@ -629,7 +996,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "An-Najm",
     "englishNameTranslation": "The Star",
     "numberOfAyahs": 62,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 526,
+    "juz": 27
   },
   {
     "number": 54,
@@ -637,7 +1006,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Qamar",
     "englishNameTranslation": "The Moon",
     "numberOfAyahs": 55,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 528,
+    "juz": 27
   },
   {
     "number": 55,
@@ -645,7 +1016,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Ar-Rahmaan",
     "englishNameTranslation": "The Beneficent",
     "numberOfAyahs": 78,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 531,
+    "juz": 27
   },
   {
     "number": 56,
@@ -653,7 +1026,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Waaqia",
     "englishNameTranslation": "The Inevitable",
     "numberOfAyahs": 96,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 534,
+    "juz": 27
   },
   {
     "number": 57,
@@ -661,7 +1036,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Hadid",
     "englishNameTranslation": "The Iron",
     "numberOfAyahs": 29,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 537,
+    "juz": 27
   },
   {
     "number": 58,
@@ -669,7 +1046,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Mujaadila",
     "englishNameTranslation": "The Pleading Woman",
     "numberOfAyahs": 22,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 542,
+    "juz": 28
   },
   {
     "number": 59,
@@ -677,7 +1056,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Hashr",
     "englishNameTranslation": "The Exile",
     "numberOfAyahs": 24,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 545,
+    "juz": 28
   },
   {
     "number": 60,
@@ -685,7 +1066,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Mumtahana",
     "englishNameTranslation": "She that is to be examined",
     "numberOfAyahs": 13,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 549,
+    "juz": 28
   },
   {
     "number": 61,
@@ -693,7 +1076,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "As-Saff",
     "englishNameTranslation": "The Ranks",
     "numberOfAyahs": 14,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 551,
+    "juz": 28
   },
   {
     "number": 62,
@@ -701,7 +1086,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Jumu'a",
     "englishNameTranslation": "Friday",
     "numberOfAyahs": 11,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 553,
+    "juz": 28
   },
   {
     "number": 63,
@@ -709,7 +1096,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Munaafiqoon",
     "englishNameTranslation": "The Hypocrites",
     "numberOfAyahs": 11,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 554,
+    "juz": 28
   },
   {
     "number": 64,
@@ -717,7 +1106,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "At-Taghaabun",
     "englishNameTranslation": "Mutual Disillusion",
     "numberOfAyahs": 18,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 556,
+    "juz": 28
   },
   {
     "number": 65,
@@ -725,7 +1116,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "At-Talaaq",
     "englishNameTranslation": "Divorce",
     "numberOfAyahs": 12,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 558,
+    "juz": 28
   },
   {
     "number": 66,
@@ -733,7 +1126,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "At-Tahrim",
     "englishNameTranslation": "The Prohibition",
     "numberOfAyahs": 12,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 560,
+    "juz": 28
   },
   {
     "number": 67,
@@ -741,7 +1136,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Mulk",
     "englishNameTranslation": "The Sovereignty",
     "numberOfAyahs": 30,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 562,
+    "juz": 29
   },
   {
     "number": 68,
@@ -749,7 +1146,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Qalam",
     "englishNameTranslation": "The Pen",
     "numberOfAyahs": 52,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 564,
+    "juz": 29
   },
   {
     "number": 69,
@@ -757,7 +1156,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Haaqqa",
     "englishNameTranslation": "The Reality",
     "numberOfAyahs": 52,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 566,
+    "juz": 29
   },
   {
     "number": 70,
@@ -765,7 +1166,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Ma'aarij",
     "englishNameTranslation": "The Ascending Stairways",
     "numberOfAyahs": 44,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 568,
+    "juz": 29
   },
   {
     "number": 71,
@@ -773,7 +1176,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Nooh",
     "englishNameTranslation": "Noah",
     "numberOfAyahs": 28,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 570,
+    "juz": 29
   },
   {
     "number": 72,
@@ -781,7 +1186,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Jinn",
     "englishNameTranslation": "The Jinn",
     "numberOfAyahs": 28,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 572,
+    "juz": 29
   },
   {
     "number": 73,
@@ -789,7 +1196,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Muzzammil",
     "englishNameTranslation": "The Enshrouded One",
     "numberOfAyahs": 20,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 574,
+    "juz": 29
   },
   {
     "number": 74,
@@ -797,7 +1206,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Muddaththir",
     "englishNameTranslation": "The Cloaked One",
     "numberOfAyahs": 56,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 575,
+    "juz": 29
   },
   {
     "number": 75,
@@ -805,7 +1216,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Qiyaama",
     "englishNameTranslation": "The Resurrection",
     "numberOfAyahs": 40,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 577,
+    "juz": 29
   },
   {
     "number": 76,
@@ -813,7 +1226,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Insaan",
     "englishNameTranslation": "Man",
     "numberOfAyahs": 31,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 578,
+    "juz": 29
   },
   {
     "number": 77,
@@ -821,7 +1236,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Mursalaat",
     "englishNameTranslation": "The Emissaries",
     "numberOfAyahs": 50,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 580,
+    "juz": 29
   },
   {
     "number": 78,
@@ -829,7 +1246,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "An-Naba",
     "englishNameTranslation": "The Announcement",
     "numberOfAyahs": 40,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 582,
+    "juz": 30
   },
   {
     "number": 79,
@@ -837,7 +1256,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "An-Naazi'aat",
     "englishNameTranslation": "Those who drag forth",
     "numberOfAyahs": 46,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 583,
+    "juz": 30
   },
   {
     "number": 80,
@@ -845,7 +1266,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Abasa",
     "englishNameTranslation": "He frowned",
     "numberOfAyahs": 42,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 585,
+    "juz": 30
   },
   {
     "number": 81,
@@ -853,7 +1276,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "At-Takwir",
     "englishNameTranslation": "The Overthrowing",
     "numberOfAyahs": 29,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 586,
+    "juz": 30
   },
   {
     "number": 82,
@@ -861,7 +1286,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Infitaar",
     "englishNameTranslation": "The Cleaving",
     "numberOfAyahs": 19,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 587,
+    "juz": 30
   },
   {
     "number": 83,
@@ -869,7 +1296,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Mutaffifin",
     "englishNameTranslation": "Defrauding",
     "numberOfAyahs": 36,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 587,
+    "juz": 30
   },
   {
     "number": 84,
@@ -877,7 +1306,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Inshiqaaq",
     "englishNameTranslation": "The Splitting Open",
     "numberOfAyahs": 25,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 589,
+    "juz": 30
   },
   {
     "number": 85,
@@ -885,7 +1316,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Burooj",
     "englishNameTranslation": "The Constellations",
     "numberOfAyahs": 22,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 590,
+    "juz": 30
   },
   {
     "number": 86,
@@ -893,7 +1326,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "At-Taariq",
     "englishNameTranslation": "The Morning Star",
     "numberOfAyahs": 17,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 591,
+    "juz": 30
   },
   {
     "number": 87,
@@ -901,7 +1336,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-A'laa",
     "englishNameTranslation": "The Most High",
     "numberOfAyahs": 19,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 591,
+    "juz": 30
   },
   {
     "number": 88,
@@ -909,7 +1346,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Ghaashiya",
     "englishNameTranslation": "The Overwhelming",
     "numberOfAyahs": 26,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 592,
+    "juz": 30
   },
   {
     "number": 89,
@@ -917,7 +1356,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Fajr",
     "englishNameTranslation": "The Dawn",
     "numberOfAyahs": 30,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 593,
+    "juz": 30
   },
   {
     "number": 90,
@@ -925,7 +1366,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Balad",
     "englishNameTranslation": "The City",
     "numberOfAyahs": 20,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 594,
+    "juz": 30
   },
   {
     "number": 91,
@@ -933,7 +1376,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Ash-Shams",
     "englishNameTranslation": "The Sun",
     "numberOfAyahs": 15,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 595,
+    "juz": 30
   },
   {
     "number": 92,
@@ -941,7 +1386,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Lail",
     "englishNameTranslation": "The Night",
     "numberOfAyahs": 21,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 595,
+    "juz": 30
   },
   {
     "number": 93,
@@ -949,7 +1396,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Ad-Dhuhaa",
     "englishNameTranslation": "The Morning Hours",
     "numberOfAyahs": 11,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 596,
+    "juz": 30
   },
   {
     "number": 94,
@@ -957,7 +1406,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Ash-Sharh",
     "englishNameTranslation": "The Consolation",
     "numberOfAyahs": 8,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 596,
+    "juz": 30
   },
   {
     "number": 95,
@@ -965,7 +1416,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "At-Tin",
     "englishNameTranslation": "The Fig",
     "numberOfAyahs": 8,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 597,
+    "juz": 30
   },
   {
     "number": 96,
@@ -973,7 +1426,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Alaq",
     "englishNameTranslation": "The Clot",
     "numberOfAyahs": 19,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 597,
+    "juz": 30
   },
   {
     "number": 97,
@@ -981,7 +1436,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Qadr",
     "englishNameTranslation": "The Power, Fate",
     "numberOfAyahs": 5,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 598,
+    "juz": 30
   },
   {
     "number": 98,
@@ -989,7 +1446,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Bayyina",
     "englishNameTranslation": "The Evidence",
     "numberOfAyahs": 8,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 598,
+    "juz": 30
   },
   {
     "number": 99,
@@ -997,7 +1456,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Az-Zalzala",
     "englishNameTranslation": "The Earthquake",
     "numberOfAyahs": 8,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 599,
+    "juz": 30
   },
   {
     "number": 100,
@@ -1005,7 +1466,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Aadiyaat",
     "englishNameTranslation": "The Chargers",
     "numberOfAyahs": 11,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 599,
+    "juz": 30
   },
   {
     "number": 101,
@@ -1013,7 +1476,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Qaari'a",
     "englishNameTranslation": "The Calamity",
     "numberOfAyahs": 11,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 600,
+    "juz": 30
   },
   {
     "number": 102,
@@ -1021,7 +1486,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "At-Takaathur",
     "englishNameTranslation": "Competition",
     "numberOfAyahs": 8,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 600,
+    "juz": 30
   },
   {
     "number": 103,
@@ -1029,7 +1496,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Asr",
     "englishNameTranslation": "The Declining Day, Epoch",
     "numberOfAyahs": 3,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 601,
+    "juz": 30
   },
   {
     "number": 104,
@@ -1037,7 +1506,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Humaza",
     "englishNameTranslation": "The Traducer",
     "numberOfAyahs": 9,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 601,
+    "juz": 30
   },
   {
     "number": 105,
@@ -1045,7 +1516,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Fil",
     "englishNameTranslation": "The Elephant",
     "numberOfAyahs": 5,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 601,
+    "juz": 30
   },
   {
     "number": 106,
@@ -1053,7 +1526,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Quraish",
     "englishNameTranslation": "Quraysh",
     "numberOfAyahs": 4,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 602,
+    "juz": 30
   },
   {
     "number": 107,
@@ -1061,7 +1536,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Maa'un",
     "englishNameTranslation": "Almsgiving",
     "numberOfAyahs": 7,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 602,
+    "juz": 30
   },
   {
     "number": 108,
@@ -1069,7 +1546,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Kawthar",
     "englishNameTranslation": "Abundance",
     "numberOfAyahs": 3,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 602,
+    "juz": 30
   },
   {
     "number": 109,
@@ -1077,7 +1556,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Kaafiroon",
     "englishNameTranslation": "The Disbelievers",
     "numberOfAyahs": 6,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 603,
+    "juz": 30
   },
   {
     "number": 110,
@@ -1085,7 +1566,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "An-Nasr",
     "englishNameTranslation": "Divine Support",
     "numberOfAyahs": 3,
-    "revelationType": "Medinan"
+    "revelationType": "Medinan",
+    "startPage": 603,
+    "juz": 30
   },
   {
     "number": 111,
@@ -1093,7 +1576,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Masad",
     "englishNameTranslation": "The Palm Fibre",
     "numberOfAyahs": 5,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 603,
+    "juz": 30
   },
   {
     "number": 112,
@@ -1101,7 +1586,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Ikhlaas",
     "englishNameTranslation": "Sincerity",
     "numberOfAyahs": 4,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 604,
+    "juz": 30
   },
   {
     "number": 113,
@@ -1109,7 +1596,9 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "Al-Falaq",
     "englishNameTranslation": "The Dawn",
     "numberOfAyahs": 5,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 604,
+    "juz": 30
   },
   {
     "number": 114,
@@ -1117,6 +1606,8 @@ export const SURAH_LIST: SurahMeta[] = [
     "englishName": "An-Naas",
     "englishNameTranslation": "Mankind",
     "numberOfAyahs": 6,
-    "revelationType": "Meccan"
+    "revelationType": "Meccan",
+    "startPage": 604,
+    "juz": 30
   }
 ];
