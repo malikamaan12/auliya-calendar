@@ -1,41 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  /* Alabaster Light Theme Tokens (PRD Section 6.1) */
-  --bg-canvas: #FAF9F6;
+  /* Light Theme with Violet / Lavender Quran App Palette */
+  --bg-canvas: #F8F7FC;
   --bg-surface: #FFFFFF;
-  --bg-surface-elevated: rgba(255, 255, 255, 0.92);
-  --bg-muted: #F2EFE9;
-  --border-hairline: #EAE7E0;
-  --text-primary: #111315;
-  --text-muted: #525866;
-  --accent-primary: #047857;
-  --accent-secondary: #0284C7;
-  --accent-gold: #B45309;
-  --accent-danger: #DC2626;
-  --accent-soft: rgba(4, 120, 87, 0.09);
-  --gold-soft: rgba(180, 83, 9, 0.1);
-  --shadow-card: 0 1px 3px rgba(17, 19, 21, 0.04), 0 8px 24px rgba(17, 19, 21, 0.04);
+  --bg-surface-elevated: rgba(255, 255, 255, 0.94);
+  --bg-muted: #EFEBF9;
+  --border-hairline: #E2DCF5;
+  --text-primary: #141229;
+  --text-muted: #6E6A8F;
+  --accent-primary: #863ED5;
+  --accent-secondary: #3B82F6;
+  --accent-gold: #F59E0B;
+  --accent-danger: #EF4444;
+  --accent-soft: rgba(134, 62, 213, 0.12);
+  --gold-soft: rgba(245, 158, 11, 0.12);
+  --gradient-brand: linear-gradient(135deg, #DF98FA 0%, #9055FF 100%);
+  --gradient-twilight: linear-gradient(135deg, #672CBC 0%, #3B1D7A 55%, #1E1348 100%);
+  --shadow-card: 0 2px 6px rgba(20, 18, 41, 0.04), 0 10px 28px rgba(103, 44, 188, 0.07);
 }
 
 html.dark {
-  /* Obsidian Dark Theme Tokens (PRD Section 6.1) */
-  --bg-canvas: #0D0F12;
-  --bg-surface: #161920;
-  --bg-surface-elevated: rgba(22, 25, 32, 0.85);
-  --bg-muted: #1D212B;
-  --border-hairline: rgba(255, 255, 255, 0.09);
-  --text-primary: #F3F4F6;
-  --text-muted: #9CA3AF;
-  --accent-primary: #10B981;
-  --accent-secondary: #00E5FF;
-  --accent-gold: #F59E0B;
+  /* Deep Indigo Night Theme (Matching Reference UI Mockups) */
+  --bg-canvas: #040C23;
+  --bg-surface: #121931;
+  --bg-surface-elevated: rgba(18, 25, 49, 0.92);
+  --bg-muted: #1D2646;
+  --border-hairline: rgba(161, 156, 197, 0.14);
+  --text-primary: #FFFFFF;
+  --text-muted: #A19CC5;
+  --accent-primary: #A44AFF;
+  --accent-secondary: #60A5FA;
+  --accent-gold: #F9B091;
   --accent-danger: #F87171;
-  --accent-soft: rgba(16, 185, 129, 0.12);
-  --gold-soft: rgba(245, 158, 11, 0.14);
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --accent-soft: rgba(164, 74, 255, 0.16);
+  --gold-soft: rgba(249, 176, 145, 0.16);
+  --gradient-brand: linear-gradient(135deg, #DF98FA 0%, #9055FF 100%);
+  --gradient-twilight: linear-gradient(135deg, #431B82 0%, #241256 58%, #121931 100%);
+  --shadow-card: 0 8px 32px rgba(2, 6, 20, 0.55);
 }
-
 
 * {
   box-sizing: border-box;
@@ -45,8 +48,8 @@ html,
 body {
   background-color: var(--bg-canvas);
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -15%, rgba(4, 120, 87, 0.08), transparent 65%),
-    radial-gradient(ellipse 50% 35% at 95% 10%, rgba(180, 83, 9, 0.05), transparent 60%);
+    radial-gradient(ellipse 80% 50% at 50% -15%, rgba(144, 85, 255, 0.14), transparent 65%),
+    radial-gradient(ellipse 50% 35% at 95% 10%, rgba(223, 152, 250, 0.08), transparent 60%);
   color: var(--text-primary);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   transition: background-color 0.25s ease, color 0.25s ease;
@@ -57,8 +60,8 @@ body {
 html.dark,
 html.dark body {
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -15%, rgba(16, 185, 129, 0.12), transparent 65%),
-    radial-gradient(ellipse 50% 35% at 95% 10%, rgba(245, 158, 11, 0.06), transparent 60%);
+    radial-gradient(ellipse 80% 50% at 50% -15%, rgba(164, 74, 255, 0.22), transparent 65%),
+    radial-gradient(ellipse 50% 35% at 95% 10%, rgba(96, 165, 250, 0.1), transparent 60%);
 }
 
 /* Script-specific typography per PRD Section 6.2 */
@@ -81,11 +84,11 @@ html.dark body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Elevated Bento Glass Surface with subtle top-edge specular highlight */
+/* Elevated Bento Glass Surface */
 .bento-card {
   background-color: var(--bg-surface-elevated);
   border: 1px solid var(--border-hairline);
-  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-radius: 1.25rem;
@@ -93,28 +96,43 @@ html.dark body {
 }
 
 html.dark .bento-card {
-  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 .bento-card-interactive:hover {
-  border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border-hairline));
-  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, var(--border-hairline));
+  transform: translateY(-2px);
+}
+
+/* Signature Lavender-to-Violet Gradient Card (from Reference UI) */
+.quran-gradient-card {
+  background-image: var(--gradient-brand);
+  color: #ffffff;
+  border-radius: 1.5rem;
+  box-shadow: 0 14px 32px -8px rgba(144, 85, 255, 0.45);
+}
+
+.twilight-hero-card {
+  background-image: var(--gradient-twilight);
+  color: #ffffff;
+  border-radius: 1.5rem;
+  box-shadow: 0 14px 32px -8px rgba(36, 18, 86, 0.55);
 }
 
 .hero-surface {
   background-image: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--accent-primary) 8%, var(--bg-surface-elevated)) 0%,
+    color-mix(in srgb, var(--accent-primary) 12%, var(--bg-surface-elevated)) 0%,
     var(--bg-surface-elevated) 58%,
-    color-mix(in srgb, var(--accent-gold) 5%, var(--bg-surface-elevated)) 100%
+    color-mix(in srgb, var(--accent-secondary) 8%, var(--bg-surface-elevated)) 100%
   );
 }
 
 .btn-primary {
-  background-color: var(--accent-primary);
+  background-image: var(--gradient-brand);
   color: #ffffff;
   transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-primary) 28%, transparent);
+  box-shadow: 0 4px 14px rgba(144, 85, 255, 0.35);
 }
 
 .btn-primary:hover {

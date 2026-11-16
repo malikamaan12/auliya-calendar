@@ -13,7 +13,7 @@ import {
   ArrowRight,
   Search,
   Bookmark,
-  Volume2,
+  Share2,
   ListMusic,
   Loader2,
   AlertCircle,
@@ -21,6 +21,8 @@ import {
   ChevronRight,
   SlidersHorizontal,
   AlignJustify,
+  SkipBack,
+  SkipForward,
   X,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
@@ -35,7 +37,6 @@ import {
   getEveryAyahUrl,
   toArabicIndicDigits,
 } from "@/data/quran";
-import { sha256Hex } from "@/lib/crypto-integrity";
 
 interface CompactAyah {
   n: number;
@@ -87,17 +88,6 @@ interface DisplayAyah {
 
 const TOTAL_MUSHAF_PAGES = 604;
 const BISMILLAH_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
-
-const QUICK_SUNNAH_SURAHS = [
-  { num: 1, page: 1, label: "Al-Fatihah" },
-  { num: 18, page: 293, label: "Al-Kahf" },
-  { num: 36, page: 440, label: "Yaseen" },
-  { num: 55, page: 531, label: "Ar-Rahman" },
-  { num: 56, page: 534, label: "Al-Waqiah" },
-  { num: 67, page: 562, label: "Al-Mulk" },
-  { num: 32, page: 415, label: "As-Sajdah" },
-  { num: 96, page: 597, label: "Al-Alaq" },
-];
 
 const CURATED_BY_ID = new Map<string, QuranAyah>(QURAN_AYAHS.map((a) => [a.id, a]));
 
@@ -207,15 +197,16 @@ export default function QuranPage() {
   const [loadingCorpus, setLoadingCorpus] = useState(true);
   const [corpusError, setCorpusError] = useState<string | null>(null);
 
-  // 1-Page-Per-Screen Default State
+  // View State: 1-Page Mushaf OR Detail Surah (Reference UI Card + Verse List)
   const [viewMode, setViewMode] = useState<"mushaf" | "surah" | "highlights">("mushaf");
   const [showMushafTarjuma, setShowMushafTarjuma] = useState(false);
   const [currentPage, setCurrentPage] = useState<number>(initialSurahMeta.startPage || 1);
   const [selectedSurah, setSelectedSurah] = useState<number>(initialRef.surahNum || 1);
   const [selectedAyahId, setSelectedAyahId] = useState<string>(lastQuranRef || "1:1");
   const [pageInput, setPageInput] = useState<string>(String(initialSurahMeta.startPage || 1));
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Drawers / Modals for mobile-friendly single-screen focus
+  // Drawers / Modals
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [sajdaDrawerOpen, setSajdaDrawerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -238,11 +229,31 @@ export default function QuranPage() {
   const [loopAyah, setLoopAyah] = useState(false);
   const [autoAdvance, setAutoAdvance] = useState(true);
   const [sleepSecondsLeft, setSleepSecondsLeft] = useState<number | null>(null);
-  const [verifiedHashes, setVerifiedHashes] = useState<Record<string, string>>({});
 
-  // Touch swipe tracking for mobile page turning
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Support URL query params (?surah=X&page=Y) from the Dashboard Surah/Para/Sajda tabs
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const sParam = Number(params.get("surah"));
+    const pParam = Number(params.get("page"));
+    Promise.resolve().then(() => {
+      if (Number.isFinite(sParam) && sParam >= 1 && sParam <= 114) {
+        setSelectedSurah(sParam);
+        const meta = SURAH_LIST.find((s) => s.number === sParam);
+        if (meta && !pParam) {
+          setCurrentPage(meta.startPage);
+          setPageInput(String(meta.startPage));
+        }
+      }
+      if (Number.isFinite(pParam) && pParam >= 1 && pParam <= TOTAL_MUSHAF_PAGES) {
+        setCurrentPage(pParam);
+        setPageInput(String(pParam));
+      }
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -289,7 +300,6 @@ export default function QuranPage() {
     return { pagesMap: pMap, surahMap: sMap, ayahByRef: rMap };
   }, [quranData]);
 
-  // Strictly 1 Page Per Screen
   const clampedPage = Math.max(1, Math.min(TOTAL_MUSHAF_PAGES, currentPage));
   const currentPageAyahs = useMemo(() => pagesMap.get(clampedPage) ?? [], [pagesMap, clampedPage]);
 
@@ -337,24 +347,15 @@ export default function QuranPage() {
     return SURAH_LIST.find((s) => s.number === selectedSurah) ?? SURAH_LIST[0];
   }, [viewMode, currentPageAyahs, selectedSurah]);
 
+  const nextSurahMeta = useMemo(
+    () => SURAH_LIST.find((s) => s.number === Math.min(114, currentSurahMeta.number + 1)),
+    [currentSurahMeta.number]
+  );
+
   const currentJuzNum = useMemo(() => {
     if (currentPageAyahs.length > 0) return currentPageAyahs[0].juz;
     return currentSurahMeta.juz || 1;
   }, [currentPageAyahs, currentSurahMeta]);
-
-  useEffect(() => {
-    const slice = activeListAyahs.slice(0, 40);
-    if (slice.length === 0) return;
-    let cancelled = false;
-    Promise.all(
-      slice.map(async (a) => [a.id, await sha256Hex(`${a.id}|${a.kanzulImanUrdu}`)] as const)
-    ).then((entries) => {
-      if (!cancelled) setVerifiedHashes(Object.fromEntries(entries));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeListAyahs]);
 
   useEffect(() => {
     if (!audioRef.current) return;
@@ -401,7 +402,6 @@ export default function QuranPage() {
     [clampedPage, goToPage]
   );
 
-  // Keyboard navigation (Left/Right arrows flip 1 Mushaf page at a time)
   useEffect(() => {
     if (viewMode !== "mushaf") return;
     const onKey = (e: KeyboardEvent) => {
@@ -466,6 +466,28 @@ export default function QuranPage() {
       return;
     }
     playAyah(ayah);
+  };
+
+  const stepAudioVerse = (delta: number) => {
+    const list = activeListAyahs;
+    if (list.length === 0) return;
+    const currentId = playingId || selectedAyahId;
+    const idx = list.findIndex((a) => a.id === currentId);
+    const nextIdx = Math.max(0, Math.min(list.length - 1, (idx === -1 ? 0 : idx) + delta));
+    const target = list[nextIdx];
+    if (target) {
+      playAyah(target);
+      document.getElementById(`ayah-${target.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
+  const handleShareAyah = (ayah: DisplayAyah) => {
+    const text = `${ayah.arabicUthmani}\n\n${ayah.kanzulImanUrdu}\n${ayah.kanzulImanEnglish}\n— Holy Quran (${ayah.surahName} ${ayah.id}, Kanzul Iman)`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+    setCopiedId(ayah.id);
+    setTimeout(() => setCopiedId(null), 1800);
   };
 
   const handleAudioEnded = () => {
@@ -545,327 +567,284 @@ export default function QuranPage() {
   }, [currentPageAyahs]);
 
   const mushafSheetNode = (
+    <div
+      key={clampedPage}
+      onTouchStart={(e) => {
+        setTouchStartX(e.touches[0]?.clientX ?? null);
+      }}
+      onTouchEnd={(e) => {
+        if (touchStartX === null) return;
+        const endX = e.changedTouches[0]?.clientX ?? touchStartX;
+        const diff = endX - touchStartX;
+        setTouchStartX(null);
+        if (Math.abs(diff) > 65) {
+          if (diff > 0) stepPage(1);
+          else stepPage(-1);
+        }
+      }}
+      className="relative w-full max-w-3xl mx-auto flex flex-col justify-between rounded-3xl p-4 sm:p-7 md:p-8 select-text transition-all"
+      style={{
+        background:
+          "radial-gradient(circle at 50% 12%, color-mix(in srgb, var(--accent-primary) 12%, var(--bg-surface)), var(--bg-surface) 75%)",
+        border: "1.5px solid color-mix(in srgb, var(--accent-primary) 45%, var(--border-hairline))",
+        boxShadow: "0 18px 42px -10px rgba(4, 12, 35, 0.55)",
+        minHeight: isOpeningPage ? "520px" : "640px",
+      }}
+    >
+      {/* Inner Frame */}
       <div
-        key={clampedPage}
-        onTouchStart={(e) => {
-          setTouchStartX(e.touches[0]?.clientX ?? null);
-        }}
-        onTouchEnd={(e) => {
-          if (touchStartX === null) return;
-          const endX = e.changedTouches[0]?.clientX ?? touchStartX;
-          const diff = endX - touchStartX;
-          setTouchStartX(null);
-          // Swipe right-to-left or left-to-right to turn Mushaf page
-          if (Math.abs(diff) > 65) {
-            if (diff > 0) stepPage(1);
-            else stepPage(-1);
-          }
-        }}
-        className="relative w-full max-w-3xl mx-auto flex flex-col justify-between rounded-2xl p-4 sm:p-7 md:p-8 select-text transition-all"
+        className="pointer-events-none absolute inset-2.5 sm:inset-3.5 rounded-2xl"
         style={{
-          background:
-            "radial-gradient(circle at 50% 15%, color-mix(in srgb, var(--accent-gold) 8%, var(--bg-surface)), var(--bg-surface) 75%)",
-          border: "2px solid color-mix(in srgb, var(--accent-gold) 48%, var(--border-hairline))",
-          boxShadow: "0 14px 36px -10px rgba(0,0,0,0.32)",
-          minHeight: isOpeningPage ? "520px" : "640px",
+          border: "1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border-hairline))",
         }}
+      />
+
+      {/* Top Running Mushaf Header */}
+      <header
+        dir="rtl"
+        className="relative z-10 flex items-center justify-between gap-2 pb-2.5 mb-3 border-b text-xs"
+        style={{ borderColor: "var(--border-hairline)" }}
       >
-        {/* Inner Gilded Mushaf Frame */}
-        <div
-          className="pointer-events-none absolute inset-2 sm:inset-3 rounded-xl"
-          style={{
-            border: "1px solid color-mix(in srgb, var(--accent-gold) 32%, var(--border-hairline))",
-          }}
-        />
+        <div className="flex items-center gap-1.5 font-semibold" style={{ color: "var(--accent-primary)" }}>
+          <span className="font-arabic text-base sm:text-lg">الجزء {toArabicIndicDigits(pageJuzNum)}</span>
+          {pageJuzMeta && <span className="font-arabic text-xs sm:text-sm opacity-80">({pageJuzMeta.arabicTitle})</span>}
+        </div>
 
-        {/* Corner Arabesque Ornaments */}
-        <span
-          className="pointer-events-none absolute top-3.5 left-3.5 w-3 h-3 rotate-45"
-          style={{ borderTop: "2px solid var(--accent-gold)", borderLeft: "2px solid var(--accent-gold)" }}
-        />
-        <span
-          className="pointer-events-none absolute top-3.5 right-3.5 w-3 h-3 rotate-45"
-          style={{ borderTop: "2px solid var(--accent-gold)", borderRight: "2px solid var(--accent-gold)" }}
-        />
-        <span
-          className="pointer-events-none absolute bottom-3.5 left-3.5 w-3 h-3 rotate-45"
-          style={{ borderBottom: "2px solid var(--accent-gold)", borderLeft: "2px solid var(--accent-gold)" }}
-        />
-        <span
-          className="pointer-events-none absolute bottom-3.5 right-3.5 w-3 h-3 rotate-45"
-          style={{ borderBottom: "2px solid var(--accent-gold)", borderRight: "2px solid var(--accent-gold)" }}
-        />
-
-        {/* Top Running Mushaf Header */}
-        <header
-          dir="rtl"
-          className="relative z-10 flex items-center justify-between gap-2 pb-2.5 mb-3 border-b text-xs"
-          style={{ borderColor: "color-mix(in srgb, var(--accent-gold) 30%, var(--border-hairline))" }}
-        >
-          <div className="flex items-center gap-1.5 font-semibold" style={{ color: "var(--accent-gold)" }}>
-            <span className="font-arabic text-base sm:text-lg">الجزء {toArabicIndicDigits(pageJuzNum)}</span>
-            {pageJuzMeta && <span className="font-arabic text-xs sm:text-sm opacity-80">({pageJuzMeta.arabicTitle})</span>}
-          </div>
-
-          <div className="flex items-center gap-2 text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
-            <span>Hizb {pageHizbNum}</span>
-            {pageHasSajda && (
-              <span
-                className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
-              >
-                ۩ سجدہ تلاوت
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5 font-semibold" style={{ color: "var(--accent-primary)" }}>
-            <span className="font-arabic text-base sm:text-lg">{firstPageAyah?.surahArabic}</span>
-            <span className="hidden xs:inline text-[11px] opacity-80">({firstPageAyah?.surahName})</span>
-          </div>
-        </header>
-
-        {/* Mushaf Page Body */}
-        <div
-          className={`relative z-10 flex-1 flex flex-col ${
-            isOpeningPage ? "justify-center py-4" : "justify-start"
-          } space-y-4`}
-        >
-          {pageSurahBlocks.map((block) => {
-            const startsOnThisPage = block.ayahs[0]?.ayahNum === 1;
-            const showBismillahBanner = startsOnThisPage && block.surahNum !== 1 && block.surahNum !== 9;
-            const surahInfo = SURAH_LIST.find((s) => s.number === block.surahNum);
-
-            return (
-              <div key={`${clampedPage}-surah-${block.surahNum}`} className="space-y-3">
-                {startsOnThisPage && (
-                  <div
-                    className="relative my-1.5 py-2.5 px-3 sm:px-4 rounded-xl text-center overflow-hidden"
-                    style={{
-                      background:
-                        "linear-gradient(90deg, color-mix(in srgb, var(--accent-gold) 16%, transparent), color-mix(in srgb, var(--accent-primary) 18%, var(--bg-muted)), color-mix(in srgb, var(--accent-gold) 16%, transparent))",
-                      border: "1.5px solid color-mix(in srgb, var(--accent-gold) 55%, var(--border-hairline))",
-                    }}
-                  >
-                    <div
-                      className="flex items-center justify-between text-[11px] font-semibold"
-                      style={{ color: "var(--accent-gold)" }}
-                    >
-                      <span>
-                        Surah {block.surahNum}: {block.surahName}
-                      </span>
-                      <span className="font-arabic text-xl sm:text-2xl" style={{ color: "var(--text-primary)" }}>
-                        {block.surahArabic}
-                      </span>
-                      <span>
-                        {surahInfo?.numberOfAyahs} Ayahs
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {showBismillahBanner && (
-                  <div
-                    dir="rtl"
-                    className="font-arabic text-center text-2xl sm:text-3xl py-1"
-                    style={{ color: "var(--accent-gold)" }}
-                  >
-                    {BISMILLAH_TEXT}
-                  </div>
-                )}
-
-                {/* Continuous Mushaf Arabic Lines */}
-                <div
-                  dir="rtl"
-                  className={`font-arabic text-right ${
-                    isOpeningPage
-                      ? "text-center text-2xl sm:text-4xl leading-[2.4] px-2 sm:px-6"
-                      : "text-xl sm:text-[26px] md:text-[28px] leading-[2.3]"
-                  }`}
-                  style={{ textAlign: isOpeningPage ? "center" : "justify" }}
-                >
-                  {block.ayahs.map((ayah) => {
-                    const isPlaying = playingId === ayah.id;
-                    const isSelected = selectedAyahId === ayah.id;
-                    const isBookmarked = lastQuranRef === ayah.id;
-
-                    return (
-                      <span
-                        key={ayah.id}
-                        id={`ayah-${ayah.id}`}
-                        onClick={() => {
-                          setSelectedAyahId(ayah.id);
-                          setInspectorOpen(true);
-                        }}
-                        title={`Tap to read Kanzul Iman (${ayah.id})`}
-                        className="inline rounded-lg px-1 py-0.5 cursor-pointer transition-colors"
-                        style={{
-                          backgroundColor: isPlaying
-                            ? "color-mix(in srgb, var(--accent-secondary) 22%, transparent)"
-                            : isSelected
-                            ? "color-mix(in srgb, var(--accent-primary) 16%, transparent)"
-                            : isBookmarked
-                            ? "color-mix(in srgb, var(--accent-gold) 16%, transparent)"
-                            : "transparent",
-                          boxShadow: isPlaying
-                            ? "0 0 0 1px var(--accent-secondary)"
-                            : isSelected
-                            ? "0 0 0 1px color-mix(in srgb, var(--accent-primary) 45%, transparent)"
-                            : undefined,
-                        }}
-                      >
-                        <span>
-                          {renderTajweedArabic(
-                            scriptMode === "indopak" ? ayah.arabicIndoPak : ayah.arabicUthmani,
-                            tajweedColor
-                          )}
-                        </span>
-
-                        {ayah.hanafiSajda && (
-                          <span
-                            className="inline-block mx-1 px-1.5 py-0.2 rounded text-xs sm:text-sm font-bold align-middle"
-                            style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
-                          >
-                            ۩ سجدہ
-                          </span>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedAyahId(ayah.id);
-                            togglePlay(ayah);
-                          }}
-                          className="inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-full text-xs sm:text-sm font-bold align-middle cursor-pointer transition-transform active:scale-95"
-                          style={{
-                            color: isPlaying ? "#ffffff" : "var(--accent-gold)",
-                            backgroundColor: isPlaying
-                              ? "var(--accent-secondary)"
-                              : "color-mix(in srgb, var(--accent-gold) 14%, transparent)",
-                            border: "1px solid color-mix(in srgb, var(--accent-gold) 45%, transparent)",
-                          }}
-                          title={`Play Ayah ${ayah.id}`}
-                        >
-                          <span>۝{toArabicIndicDigits(ayah.ayahNum)}</span>
-                        </button>{" "}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Optional Kanzul Iman Page Tarjuma (Hashiya) */}
-          {showMushafTarjuma && currentPageAyahs.length > 0 && (
-            <div
-              className="mt-4 pt-3 border-t space-y-2"
-              style={{ borderColor: "color-mix(in srgb, var(--accent-gold) 30%, var(--border-hairline))" }}
+        <div className="flex items-center gap-2 text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
+          <span>Hizb {pageHizbNum}</span>
+          {pageHasSajda && (
+            <span
+              className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+              style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
             >
+              ۩ سجدہ تلاوت
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 font-semibold" style={{ color: "var(--accent-primary)" }}>
+          <span className="font-arabic text-base sm:text-lg">{firstPageAyah?.surahArabic}</span>
+          <span className="hidden xs:inline text-[11px] opacity-80">({firstPageAyah?.surahName})</span>
+        </div>
+      </header>
+
+      {/* Mushaf Page Body */}
+      <div
+        className={`relative z-10 flex-1 flex flex-col ${
+          isOpeningPage ? "justify-center py-4" : "justify-start"
+        } space-y-4`}
+      >
+        {pageSurahBlocks.map((block) => {
+          const startsOnThisPage = block.ayahs[0]?.ayahNum === 1;
+          const showBismillahBanner = startsOnThisPage && block.surahNum !== 1 && block.surahNum !== 9;
+          const surahInfo = SURAH_LIST.find((s) => s.number === block.surahNum);
+
+          return (
+            <div key={`${clampedPage}-surah-${block.surahNum}`} className="space-y-3">
+              {/* Reference Image 1 Lavender-to-Violet Surah Header Card when a Surah begins on this page */}
+              {startsOnThisPage && (
+                <div className="quran-gradient-card relative my-2 p-4 sm:p-5 text-center overflow-hidden">
+                  <div className="relative z-10 space-y-1">
+                    <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white">
+                      {block.surahName}
+                    </h2>
+                    <p className="text-xs text-white/90">{surahInfo?.englishNameTranslation}</p>
+                    <div className="w-36 h-px bg-white/30 mx-auto my-2" />
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-white/90">
+                      {surahInfo?.revelationType} • {surahInfo?.numberOfAyahs} Verses
+                    </p>
+                    {showBismillahBanner && (
+                      <p dir="rtl" className="font-arabic text-2xl sm:text-3xl text-white pt-2">
+                        {BISMILLAH_TEXT}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Continuous Mushaf Arabic Lines */}
               <div
-                className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider"
-                style={{ color: "var(--accent-gold)" }}
+                dir="rtl"
+                className={`font-arabic text-right ${
+                  isOpeningPage
+                    ? "text-center text-2xl sm:text-4xl leading-[2.4] px-2 sm:px-6"
+                    : "text-xl sm:text-[26px] md:text-[28px] leading-[2.3]"
+                }`}
+                style={{ textAlign: isOpeningPage ? "center" : "justify" }}
               >
-                <span>Kanzul Iman Page Tarjuma ({tarjumaLang === "ur" ? "اردو" : "English"})</span>
-                <span>
-                  {firstPageAyah?.id} – {lastPageAyah?.id}
-                </span>
-              </div>
-              <div className="max-h-56 overflow-y-auto pr-1 space-y-2 text-xs">
-                {currentPageAyahs.map((ay) => {
-                  const isSelected = selectedAyahId === ay.id || playingId === ay.id;
-                  const tr = getTranslation(ay);
+                {block.ayahs.map((ayah) => {
+                  const isPlaying = playingId === ayah.id;
+                  const isSelected = selectedAyahId === ayah.id;
+                  const isBookmarked = lastQuranRef === ayah.id;
+
                   return (
-                    <div
-                      key={`tr-${ay.id}`}
+                    <span
+                      key={ayah.id}
+                      id={`ayah-${ayah.id}`}
                       onClick={() => {
-                        setSelectedAyahId(ay.id);
+                        setSelectedAyahId(ayah.id);
                         setInspectorOpen(true);
                       }}
-                      className="p-2.5 rounded-xl cursor-pointer transition-colors"
+                      title={`Tap to read Kanzul Iman (${ayah.id})`}
+                      className="inline rounded-lg px-1 py-0.5 cursor-pointer transition-colors"
                       style={{
-                        backgroundColor: isSelected ? "var(--accent-soft)" : "var(--bg-muted)",
-                        borderLeft: isSelected ? "3px solid var(--accent-primary)" : undefined,
+                        backgroundColor: isPlaying
+                          ? "color-mix(in srgb, var(--accent-primary) 24%, transparent)"
+                          : isSelected
+                          ? "color-mix(in srgb, var(--accent-primary) 16%, transparent)"
+                          : isBookmarked
+                          ? "color-mix(in srgb, var(--accent-gold) 16%, transparent)"
+                          : "transparent",
                       }}
                     >
-                      <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <span className="font-bold text-[11px]" style={{ color: "var(--accent-primary)" }}>
-                          {ay.surahName} {ay.id}
-                          {ay.hanafiSajda ? " • ۩ Wajib Hanafi Sajda" : ""}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            togglePlay(ay);
-                          }}
-                          className="text-[11px] font-semibold underline cursor-pointer"
-                          style={{ color: "var(--accent-secondary)" }}
+                      <span>
+                        {renderTajweedArabic(
+                          scriptMode === "indopak" ? ayah.arabicIndoPak : ayah.arabicUthmani,
+                          tajweedColor
+                        )}
+                      </span>
+
+                      {ayah.hanafiSajda && (
+                        <span
+                          className="inline-block mx-1 px-1.5 py-0.2 rounded text-xs sm:text-sm font-bold align-middle"
+                          style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
                         >
-                          {playingId === ay.id ? "Pause" : "Listen"}
-                        </button>
-                      </div>
-                      <p
-                        dir={tarjumaLang === "ur" ? "rtl" : "ltr"}
-                        className={`leading-relaxed ${
-                          tarjumaLang === "ur" ? "font-urdu text-right text-sm" : "text-xs"
-                        }`}
+                          ۩ سجدہ
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedAyahId(ayah.id);
+                          togglePlay(ayah);
+                        }}
+                        className="inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-full text-xs sm:text-sm font-bold align-middle cursor-pointer transition-transform active:scale-95"
+                        style={{
+                          color: isPlaying ? "#ffffff" : "var(--accent-primary)",
+                          backgroundImage: isPlaying ? "var(--gradient-brand)" : undefined,
+                          backgroundColor: isPlaying ? undefined : "var(--accent-soft)",
+                          border: "1px solid color-mix(in srgb, var(--accent-primary) 45%, transparent)",
+                        }}
+                        title={`Play Ayah ${ayah.id}`}
                       >
-                        {tr.text}
-                      </p>
-                    </div>
+                        <span>۝{toArabicIndicDigits(ayah.ayahNum)}</span>
+                      </button>{" "}
+                    </span>
                   );
                 })}
               </div>
             </div>
-          )}
-        </div>
+          );
+        })}
 
-        {/* Bottom Mushaf Page Medallion & Prev/Next Turners */}
-        <footer
-          className="relative z-10 pt-3 mt-4 border-t flex items-center justify-between gap-2 text-xs"
-          style={{ borderColor: "color-mix(in srgb, var(--accent-gold) 30%, var(--border-hairline))" }}
-        >
-          <button
-            type="button"
-            disabled={clampedPage >= TOTAL_MUSHAF_PAGES}
-            onClick={() => stepPage(1)}
-            className="px-3 py-1.5 rounded-xl font-semibold text-white inline-flex items-center gap-1 disabled:opacity-40 cursor-pointer min-h-[38px]"
-            style={{ backgroundColor: "var(--accent-primary)" }}
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Next Page</span>
-          </button>
-
+        {/* Optional Kanzul Iman Page Tarjuma */}
+        {showMushafTarjuma && currentPageAyahs.length > 0 && (
           <div
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full font-bold tabular-nums"
-            style={{
-              backgroundColor: "color-mix(in srgb, var(--accent-gold) 15%, var(--bg-muted))",
-              border: "1px solid color-mix(in srgb, var(--accent-gold) 45%, var(--border-hairline))",
-              color: "var(--accent-gold)",
-            }}
-          >
-            <span className="font-arabic text-base">{toArabicIndicDigits(clampedPage)}</span>
-            <span className="text-[11px] opacity-85">Page {clampedPage} / 604</span>
-          </div>
-
-          <button
-            type="button"
-            disabled={clampedPage <= 1}
-            onClick={() => stepPage(-1)}
-            className="px-3 py-1.5 rounded-xl border font-semibold inline-flex items-center gap-1 disabled:opacity-40 cursor-pointer min-h-[38px]"
+            className="mt-4 pt-3 border-t space-y-2"
             style={{ borderColor: "var(--border-hairline)" }}
           >
-            <span>Prev Page</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </footer>
+            <div
+              className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider"
+              style={{ color: "var(--accent-primary)" }}
+            >
+              <span>Kanzul Iman Page Tarjuma ({tarjumaLang === "ur" ? "اردو" : "English"})</span>
+              <span>
+                {firstPageAyah?.id} – {lastPageAyah?.id}
+              </span>
+            </div>
+            <div className="max-h-56 overflow-y-auto pr-1 space-y-2 text-xs">
+              {currentPageAyahs.map((ay) => {
+                const isSelected = selectedAyahId === ay.id || playingId === ay.id;
+                const tr = getTranslation(ay);
+                return (
+                  <div
+                    key={`tr-${ay.id}`}
+                    onClick={() => {
+                      setSelectedAyahId(ay.id);
+                      setInspectorOpen(true);
+                    }}
+                    className="p-2.5 rounded-xl cursor-pointer transition-colors"
+                    style={{
+                      backgroundColor: isSelected ? "var(--accent-soft)" : "var(--bg-muted)",
+                      borderLeft: isSelected ? "3px solid var(--accent-primary)" : undefined,
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <span className="font-bold text-[11px]" style={{ color: "var(--accent-primary)" }}>
+                        {ay.surahName} {ay.id}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePlay(ay);
+                        }}
+                        className="text-[11px] font-semibold underline cursor-pointer"
+                        style={{ color: "var(--accent-primary)" }}
+                      >
+                        {playingId === ay.id ? "Pause" : "Listen"}
+                      </button>
+                    </div>
+                    <p
+                      dir={tarjumaLang === "ur" ? "rtl" : "ltr"}
+                      className={`leading-relaxed ${
+                        tarjumaLang === "ur" ? "font-urdu text-right text-sm" : "text-xs"
+                      }`}
+                    >
+                      {tr.text}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Bottom Mushaf Page Medallion & Prev/Next Turners */}
+      <footer
+        className="relative z-10 pt-3 mt-4 border-t flex items-center justify-between gap-2 text-xs"
+        style={{ borderColor: "var(--border-hairline)" }}
+      >
+        <button
+          type="button"
+          disabled={clampedPage >= TOTAL_MUSHAF_PAGES}
+          onClick={() => stepPage(1)}
+          className="btn-primary px-3.5 py-1.5 rounded-full font-semibold inline-flex items-center gap-1 disabled:opacity-40 cursor-pointer min-h-[38px]"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span>Next Page</span>
+        </button>
+
+        <div
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full font-bold tabular-nums"
+          style={{
+            backgroundColor: "var(--accent-soft)",
+            color: "var(--accent-primary)",
+          }}
+        >
+          <span className="font-arabic text-base">{toArabicIndicDigits(clampedPage)}</span>
+          <span className="text-[11px]">Page {clampedPage} / 604</span>
+        </div>
+
+        <button
+          type="button"
+          disabled={clampedPage <= 1}
+          onClick={() => stepPage(-1)}
+          className="px-3.5 py-1.5 rounded-full border font-semibold inline-flex items-center gap-1 disabled:opacity-40 cursor-pointer min-h-[38px]"
+          style={{ borderColor: "var(--border-hairline)" }}
+        >
+          <span>Prev Page</span>
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </footer>
+    </div>
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-20">
       <audio
         ref={audioRef}
         onEnded={handleAudioEnded}
@@ -879,20 +858,19 @@ export default function QuranPage() {
         }}
       />
 
-      {/* Compact Responsive Mushaf Control Bar */}
-      <div className="bento-card p-3 sm:p-4 space-y-3">
-        {/* Top Row: Mode Switcher + Quick Actions */}
+      {/* Compact Responsive Mushaf & Surah Control Bar */}
+      <div className="bento-card p-3 sm:p-4 space-y-3 max-w-3xl mx-auto w-full">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div
-            className="inline-flex rounded-xl p-1 border"
+            className="inline-flex rounded-full p-1 border"
             style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
           >
             <button
               type="button"
               onClick={() => setViewMode("mushaf")}
-              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 transition-all"
               style={{
-                backgroundColor: viewMode === "mushaf" ? "var(--accent-primary)" : "transparent",
+                backgroundImage: viewMode === "mushaf" ? "var(--gradient-brand)" : undefined,
                 color: viewMode === "mushaf" ? "#ffffff" : "var(--text-muted)",
               }}
             >
@@ -902,21 +880,21 @@ export default function QuranPage() {
             <button
               type="button"
               onClick={() => setViewMode("surah")}
-              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 transition-all"
               style={{
-                backgroundColor: viewMode === "surah" ? "var(--accent-primary)" : "transparent",
+                backgroundImage: viewMode === "surah" ? "var(--gradient-brand)" : undefined,
                 color: viewMode === "surah" ? "#ffffff" : "var(--text-muted)",
               }}
             >
               <AlignJustify className="w-3.5 h-3.5" />
-              <span>Verse List</span>
+              <span>Detail Surah</span>
             </button>
             <button
               type="button"
               onClick={() => setViewMode("highlights")}
-              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 transition-all"
               style={{
-                backgroundColor: viewMode === "highlights" ? "var(--accent-primary)" : "transparent",
+                backgroundImage: viewMode === "highlights" ? "var(--gradient-brand)" : undefined,
                 color: viewMode === "highlights" ? "#ffffff" : "var(--text-muted)",
               }}
             >
@@ -926,34 +904,24 @@ export default function QuranPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
-            {currentPageAyahs.length > 0 && (
+            {viewMode === "mushaf" && (
               <button
                 type="button"
-                onClick={() => togglePlay(inspectedAyah ?? currentPageAyahs[0])}
-                className="px-3 py-1.5 rounded-xl font-semibold text-white inline-flex items-center gap-1.5 cursor-pointer min-h-[36px]"
-                style={{ backgroundColor: playingId ? "var(--accent-secondary)" : "var(--accent-primary)" }}
+                onClick={() => setShowMushafTarjuma(!showMushafTarjuma)}
+                className="px-3 py-1.5 rounded-full border font-semibold cursor-pointer min-h-[36px]"
+                style={{
+                  borderColor: showMushafTarjuma ? "var(--accent-primary)" : "var(--border-hairline)",
+                  color: showMushafTarjuma ? "var(--accent-primary)" : "var(--text-primary)",
+                }}
               >
-                {playingId ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                <span>{playingId ? `Pause (${playingId})` : `Recite p.${clampedPage}`}</span>
+                Tarjuma: {showMushafTarjuma ? "On" : "Off"}
               </button>
             )}
 
             <button
               type="button"
-              onClick={() => setShowMushafTarjuma(!showMushafTarjuma)}
-              className="px-2.5 py-1.5 rounded-xl border font-semibold cursor-pointer min-h-[36px]"
-              style={{
-                borderColor: showMushafTarjuma ? "var(--accent-gold)" : "var(--border-hairline)",
-                color: showMushafTarjuma ? "var(--accent-gold)" : "var(--text-primary)",
-              }}
-            >
-              Tarjuma: {showMushafTarjuma ? "On" : "Off"}
-            </button>
-
-            <button
-              type="button"
               onClick={() => setSajdaDrawerOpen(true)}
-              className="px-2.5 py-1.5 rounded-xl border font-semibold cursor-pointer min-h-[36px]"
+              className="px-3 py-1.5 rounded-full border font-semibold cursor-pointer min-h-[36px]"
               style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
             >
               ۩ 14 Sajdas ({sajdaCompleted.length}/14)
@@ -963,7 +931,7 @@ export default function QuranPage() {
               type="button"
               onClick={() => setSettingsOpen(!settingsOpen)}
               aria-label="Reading and Audio Settings"
-              className="p-2 rounded-xl border cursor-pointer min-h-[36px]"
+              className="p-2 rounded-full border cursor-pointer min-h-[36px]"
               style={{
                 borderColor: settingsOpen ? "var(--accent-primary)" : "var(--border-hairline)",
                 backgroundColor: settingsOpen ? "var(--accent-soft)" : "var(--bg-muted)",
@@ -974,9 +942,8 @@ export default function QuranPage() {
           </div>
         </div>
 
-        {/* Second Row: Surah + Para (Juz) + Page (1..604) */}
+        {/* Surah + Para (Juz) + Page (1..604) */}
         <div className="grid grid-cols-2 sm:grid-cols-12 gap-2">
-          {/* 114 Surah Selector */}
           <select
             aria-label="Select Surah"
             value={currentSurahMeta.number}
@@ -1001,7 +968,6 @@ export default function QuranPage() {
             ))}
           </select>
 
-          {/* 30 Juz / Para Selector */}
           <select
             aria-label="Select Para / Juz"
             value={currentJuzNum}
@@ -1026,7 +992,6 @@ export default function QuranPage() {
             ))}
           </select>
 
-          {/* Page Stepper (1..604) */}
           <div className="col-span-1 sm:col-span-3 flex items-center justify-end gap-1">
             <button
               type="button"
@@ -1078,45 +1043,7 @@ export default function QuranPage() {
           </div>
         </div>
 
-        {/* Quick Sunnah Surahs Strip */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-[11px]">
-          <span className="font-semibold shrink-0" style={{ color: "var(--text-muted)" }}>
-            Sunnah:
-          </span>
-          {QUICK_SUNNAH_SURAHS.map((qs) => (
-            <button
-              key={qs.num}
-              type="button"
-              onClick={() => {
-                setSelectedSurah(qs.num);
-                setCurrentPage(qs.page);
-                setPageInput(String(qs.page));
-                setSelectedAyahId(`${qs.num}:1`);
-              }}
-              className="px-2.5 py-1 rounded-full border font-semibold cursor-pointer whitespace-nowrap transition-colors"
-              style={{
-                borderColor: currentSurahMeta.number === qs.num ? "var(--accent-primary)" : "var(--border-hairline)",
-                backgroundColor: currentSurahMeta.number === qs.num ? "var(--accent-soft)" : "transparent",
-                color: currentSurahMeta.number === qs.num ? "var(--accent-primary)" : "var(--text-muted)",
-              }}
-            >
-              {qs.label}
-            </button>
-          ))}
-          {lastQuranRef && (
-            <button
-              type="button"
-              onClick={() => jumpToRef(lastQuranRef)}
-              className="ml-auto px-2.5 py-1 rounded-full border font-semibold cursor-pointer whitespace-nowrap inline-flex items-center gap-1"
-              style={{ borderColor: "var(--accent-gold)", color: "var(--accent-gold)" }}
-            >
-              <Bookmark className="w-3 h-3" />
-              <span>Resume {lastQuranRef}</span>
-            </button>
-          )}
-        </div>
-
-        {/* Collapsible Reading & Audio Settings Panel */}
+        {/* Collapsible Settings */}
         {settingsOpen && (
           <div
             className="pt-3 border-t flex flex-wrap items-center justify-between gap-2 text-xs"
@@ -1169,8 +1096,8 @@ export default function QuranPage() {
                 onClick={() => setAutoAdvance(!autoAdvance)}
                 className="px-2.5 py-1.5 rounded-xl border font-semibold inline-flex items-center gap-1 cursor-pointer"
                 style={{
-                  borderColor: autoAdvance && !loopAyah ? "var(--accent-secondary)" : "var(--border-hairline)",
-                  color: autoAdvance && !loopAyah ? "var(--accent-secondary)" : "var(--text-muted)",
+                  borderColor: autoAdvance && !loopAyah ? "var(--accent-primary)" : "var(--border-hairline)",
+                  color: autoAdvance && !loopAyah ? "var(--accent-primary)" : "var(--text-muted)",
                 }}
               >
                 <ListMusic className="w-3.5 h-3.5" />
@@ -1224,9 +1151,6 @@ export default function QuranPage() {
         <div className="bento-card p-12 text-center space-y-3 max-w-3xl mx-auto">
           <Loader2 className="w-7 h-7 animate-spin mx-auto" style={{ color: "var(--accent-primary)" }} />
           <p className="text-sm font-semibold">Opening 604-Page Mushaf (Kanzul Iman)…</p>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            Loading all 114 Surahs and 6,236 blessed verses.
-          </p>
         </div>
       )}
 
@@ -1236,219 +1160,311 @@ export default function QuranPage() {
         </div>
       )}
 
-      {/* MAIN VIEW: 1-PAGE-PER-SCREEN MUSHAF */}
+      {/* VIEW 1: 1-PAGE-PER-SCREEN MUSHAF */}
       {!loadingCorpus && viewMode === "mushaf" && mushafSheetNode}
 
-      {/* ALTERNATE VIEW: VERSE-BY-VERSE LIST / HIGHLIGHTS */}
+      {/* VIEW 2 & 3: DETAIL SURAH VIEW (Exact Reference Image 1 & 2 Right Screen Design) */}
       {!loadingCorpus && viewMode !== "mushaf" && (
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div className="max-w-3xl mx-auto space-y-5">
+          {/* Reference Image 1: Lavender-to-Violet Surah Header Card with Watermark Quran & Calligraphic Bismillah */}
+          <div className="quran-gradient-card relative p-6 sm:p-8 text-center overflow-hidden">
+            {/* Subtle Open Quran Watermark on Right */}
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 220 160"
+              className="pointer-events-none absolute -right-4 -bottom-6 w-56 h-44 opacity-20"
+            >
+              <path d="M42 93 Q76 75 110 97 L110 52 Q76 32 42 50 Z" fill="#FFFFFF" />
+              <path d="M178 93 Q144 75 110 97 L110 52 Q144 32 178 50 Z" fill="#FFFFFF" />
+              <path d="M65 145 L155 102 L162 110 L72 153 Z" fill="#FFFFFF" />
+              <path d="M155 145 L65 102 L58 110 L148 153 Z" fill="#FFFFFF" />
+            </svg>
+
+            <div className="relative z-10 space-y-1.5">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                {currentSurahMeta.englishName}
+              </h1>
+              <p className="text-xs sm:text-sm text-white/90">{currentSurahMeta.englishNameTranslation}</p>
+              <div className="w-44 h-px bg-white/35 mx-auto my-3" />
+              <p className="text-xs font-bold uppercase tracking-widest text-white/90">
+                {currentSurahMeta.revelationType} • {currentSurahMeta.numberOfAyahs} Verses • Page {currentSurahMeta.startPage}
+              </p>
+
+              {(viewMode === "highlights" || selectedSurah !== 9) && (
+                <p dir="rtl" className="font-arabic text-2xl sm:text-4xl text-white pt-4">
+                  {BISMILLAH_TEXT}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Search Filter Bar */}
           <div className="flex items-center justify-between gap-2">
             <div className="relative flex-1">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 opacity-50" />
+              <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 opacity-50" />
               <input
                 type="text"
                 value={ayahFilter}
                 onChange={(e) => setAyahFilter(e.target.value)}
                 placeholder="Filter ayah # or Kanzul Iman translation…"
-                className="w-full pl-8 pr-3 py-2 rounded-xl border text-xs bg-transparent outline-none"
+                className="w-full pl-9 pr-3 py-2 rounded-full border text-xs bg-transparent outline-none"
                 style={{ borderColor: "var(--border-hairline)" }}
               />
             </div>
             <button
               type="button"
               onClick={() => setShowTranslit(!showTranslit)}
-              className="px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer"
+              className="px-3.5 py-2 rounded-full border text-xs font-semibold cursor-pointer"
               style={{
-                borderColor: showTranslit ? "var(--accent-secondary)" : "var(--border-hairline)",
+                borderColor: showTranslit ? "var(--accent-primary)" : "var(--border-hairline)",
+                color: showTranslit ? "var(--accent-primary)" : "var(--text-muted)",
               }}
             >
               Transliteration
             </button>
           </div>
 
-          {activeListAyahs.map((ayah) => {
-            const isPlaying = playingId === ayah.id;
-            const isAudioLoading = audioLoadingId === ayah.id;
-            const isBookmarked = lastQuranRef === ayah.id;
-            const sajdaDone = sajdaCompleted.includes(ayah.id);
-            const sajdaDeferred = sajdaQueue.includes(ayah.id);
-            const translation = getTranslation(ayah);
+          {/* Reference Image 1 Verse Cards: Top Rounded Pill Bar with Purple Circle Badge Left + Share/Play/Bookmark Right */}
+          <div className="space-y-4">
+            {activeListAyahs.map((ayah) => {
+              const isPlaying = playingId === ayah.id;
+              const isAudioLoading = audioLoadingId === ayah.id;
+              const isBookmarked = lastQuranRef === ayah.id;
+              const sajdaDone = sajdaCompleted.includes(ayah.id);
+              const sajdaDeferred = sajdaQueue.includes(ayah.id);
+              const translation = getTranslation(ayah);
 
-            return (
-              <article
-                key={ayah.id}
-                id={`ayah-${ayah.id}`}
-                className="bento-card p-5 space-y-4 transition-colors"
-                style={{
-                  borderColor: isPlaying
-                    ? "var(--accent-secondary)"
-                    : isBookmarked
-                    ? "var(--accent-gold)"
-                    : undefined,
-                }}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className="px-2.5 py-1 rounded-lg text-xs font-bold tabular-nums"
-                      style={{ backgroundColor: "var(--bg-muted)" }}
-                    >
-                      {ayah.surahName} ({ayah.id}) • p.{ayah.page}
-                    </span>
-
-                    {ayah.hanafiSajda && (
-                      <span
-                        className="px-2.5 py-1 rounded-full text-[11px] font-bold"
-                        style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
-                      >
-                        ۩ Wajib Hanafi Sajda
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setViewMode("mushaf");
-                        goToPage(ayah.page);
-                        setSelectedAyahId(ayah.id);
-                      }}
-                      className="px-2.5 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer"
-                      style={{ borderColor: "var(--border-hairline)" }}
-                    >
-                      Open p.{ayah.page}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => logQuranAyah(ayah.id)}
-                      className="p-2 rounded-xl border text-xs font-semibold cursor-pointer"
-                      style={{
-                        borderColor: isBookmarked ? "var(--accent-gold)" : "var(--border-hairline)",
-                        color: isBookmarked ? "var(--accent-gold)" : "var(--text-muted)",
-                      }}
-                      title="Bookmark"
-                    >
-                      <Bookmark className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => togglePlay(ayah)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white cursor-pointer"
-                      style={{ backgroundColor: isPlaying ? "var(--accent-secondary)" : "var(--accent-primary)" }}
-                    >
-                      {isAudioLoading ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : isPlaying ? (
-                        <Pause className="w-3.5 h-3.5" />
-                      ) : (
-                        <Play className="w-3.5 h-3.5" />
-                      )}
-                      <span>{isAudioLoading ? "Loading" : isPlaying ? "Pause" : "Listen"}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <p dir="rtl" className="font-arabic text-2xl sm:text-3xl text-right leading-[2.2]">
-                  {renderTajweedArabic(
-                    scriptMode === "indopak" ? ayah.arabicIndoPak : ayah.arabicUthmani,
-                    tajweedColor
-                  )}{" "}
-                  <span style={{ color: "var(--accent-gold)" }}>۝{toArabicIndicDigits(ayah.ayahNum)}</span>
-                </p>
-
-                {showTranslit && ayah.transliteration && (
-                  <p className="text-xs italic" style={{ color: "var(--accent-secondary)" }}>
-                    {ayah.transliteration}
-                  </p>
-                )}
-
-                <p
-                  dir={tarjumaLang === "ur" ? "rtl" : "ltr"}
-                  className={`text-base leading-relaxed ${
-                    tarjumaLang === "ur" ? "font-urdu text-right text-lg" : ""
-                  }`}
+              return (
+                <article
+                  key={ayah.id}
+                  id={`ayah-${ayah.id}`}
+                  className="bento-card p-4 sm:p-5 space-y-4 transition-colors"
+                  style={{
+                    borderColor: isPlaying
+                      ? "var(--accent-primary)"
+                      : isBookmarked
+                      ? "var(--accent-gold)"
+                      : undefined,
+                  }}
                 >
-                  {translation.text}
-                </p>
-
-                {ayah.hanafiSajda && (
+                  {/* Reference Image 1 Top Action Pill Bar */}
                   <div
-                    className="p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-xs"
-                    style={{ borderColor: "var(--accent-gold)", backgroundColor: "var(--gold-soft)" }}
+                    className="px-3.5 py-2 rounded-2xl flex items-center justify-between gap-2"
+                    style={{ backgroundColor: "var(--bg-muted)" }}
                   >
-                    <span>
-                      {sajdaDone
-                        ? "Alhamdulillah — Sajda-e-Tilawat logged."
-                        : sajdaDeferred
-                        ? "Deferred to your Sajda Reminder Queue."
-                        : "Hanafi Wajib Sajda: Perform 1 Sajdah facing Qibla with Takbir."}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => logSajda(ayah.id, "now")}
-                        className="px-3 py-1 rounded-lg bg-emerald-600 text-white font-semibold cursor-pointer inline-flex items-center gap-1"
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="w-7 h-7 rounded-full inline-flex items-center justify-center text-xs font-bold text-white tabular-nums shrink-0"
+                        style={{ backgroundImage: "var(--gradient-brand)" }}
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>{sajdaDone ? "Logged" : "Log Sajda"}</span>
-                      </button>
-                      {!sajdaDone && (
-                        <button
-                          type="button"
-                          onClick={() => logSajda(ayah.id, "defer")}
-                          className="px-3 py-1 rounded-lg border font-semibold cursor-pointer inline-flex items-center gap-1"
-                          style={{ borderColor: "var(--border-hairline)" }}
+                        {ayah.ayahNum}
+                      </span>
+                      <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+                        {ayah.surahName} ({ayah.id}) • p.{ayah.page}
+                      </span>
+                      {ayah.hanafiSajda && (
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                          style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
                         >
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>Defer</span>
-                        </button>
+                          ۩ Sajda
+                        </span>
                       )}
                     </div>
-                  </div>
-                )}
 
-                <div
-                  className="pt-2 border-t flex flex-wrap items-center justify-between gap-2 text-xs"
-                  style={{ borderColor: "var(--border-hairline)" }}
-                >
-                  {ayah.khazainUlIrfanNote ? (
-                    <button
-                      type="button"
-                      onClick={() => setOpenTafsirId(openTafsirId === ayah.id ? null : ayah.id)}
-                      className="font-semibold cursor-pointer"
-                      style={{ color: "var(--accent-gold)" }}
-                    >
-                      {openTafsirId === ayah.id ? "Hide Khazain-ul-Irfan Note ▲" : "Read Khazain-ul-Irfan Note ▼"}
-                    </button>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 opacity-70">
-                      <Volume2 className="w-3.5 h-3.5" />
-                      <span>Juz {ayah.juz}</span>
-                    </span>
+                    {/* Share / Play / Bookmark Icons (Exact Reference Image 1 Right Action Icons) */}
+                    <div className="flex items-center gap-1.5" style={{ color: "var(--accent-primary)" }}>
+                      <button
+                        type="button"
+                        onClick={() => handleShareAyah(ayah)}
+                        className="p-1.5 rounded-lg hover:opacity-80 cursor-pointer"
+                        title="Copy & Share Verse"
+                      >
+                        {copiedId === ayah.id ? (
+                          <span className="text-[10px] font-bold">Copied</span>
+                        ) : (
+                          <Share2 className="w-4 h-4" />
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => togglePlay(ayah)}
+                        className="p-1.5 rounded-lg hover:opacity-80 cursor-pointer"
+                        title={isPlaying ? "Pause" : "Play Recitation"}
+                      >
+                        {isAudioLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : isPlaying ? (
+                          <Pause className="w-4 h-4" />
+                        ) : (
+                          <Play className="w-4 h-4" />
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => logQuranAyah(ayah.id)}
+                        className="p-1.5 rounded-lg hover:opacity-80 cursor-pointer"
+                        style={{ color: isBookmarked ? "var(--accent-gold)" : "var(--accent-primary)" }}
+                        title="Bookmark Verse"
+                      >
+                        <Bookmark className="w-4 h-4" fill={isBookmarked ? "currentColor" : "none"} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right-Aligned Arabic Script */}
+                  <p dir="rtl" className="font-arabic text-2xl sm:text-3xl text-right leading-[2.25] pt-1">
+                    {renderTajweedArabic(
+                      scriptMode === "indopak" ? ayah.arabicIndoPak : ayah.arabicUthmani,
+                      tajweedColor
+                    )}
+                  </p>
+
+                  {/* Purple Transliteration (Reference Image 2) */}
+                  {showTranslit && ayah.transliteration && (
+                    <p className="text-xs font-medium" style={{ color: "var(--accent-primary)" }}>
+                      {ayah.transliteration}
+                    </p>
                   )}
-                  <span className="font-mono text-[10px] opacity-60">
-                    SHA-256: {(verifiedHashes[ayah.id] || ayah.sha256).slice(0, 16)}…
-                  </span>
-                </div>
 
-                {ayah.khazainUlIrfanNote && openTafsirId === ayah.id && (
-                  <div
-                    className="p-3.5 rounded-xl text-xs leading-relaxed"
-                    style={{ backgroundColor: "var(--bg-muted)", color: "var(--text-muted)" }}
+                  {/* Kanzul Iman Translation */}
+                  <p
+                    dir={tarjumaLang === "ur" ? "rtl" : "ltr"}
+                    className={`text-sm sm:text-base leading-relaxed ${
+                      tarjumaLang === "ur" ? "font-urdu text-right text-lg" : ""
+                    }`}
+                    style={{ color: "var(--text-muted)" }}
                   >
-                    {ayah.khazainUlIrfanNote}
-                  </div>
-                )}
-              </article>
-            );
-          })}
+                    {translation.text}
+                  </p>
+
+                  {ayah.hanafiSajda && (
+                    <div
+                      className="p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-xs"
+                      style={{ borderColor: "var(--accent-gold)", backgroundColor: "var(--gold-soft)" }}
+                    >
+                      <span>
+                        {sajdaDone
+                          ? "Alhamdulillah — Sajda-e-Tilawat logged."
+                          : sajdaDeferred
+                          ? "Deferred to your Sajda Reminder Queue."
+                          : "Hanafi Wajib Sajda: Perform 1 Sajdah facing Qibla with Takbir."}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => logSajda(ayah.id, "now")}
+                          className="btn-primary px-3 py-1 rounded-lg font-semibold cursor-pointer inline-flex items-center gap-1"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>{sajdaDone ? "Logged" : "Log Sajda"}</span>
+                        </button>
+                        {!sajdaDone && (
+                          <button
+                            type="button"
+                            onClick={() => logSajda(ayah.id, "defer")}
+                            className="px-3 py-1 rounded-lg border font-semibold cursor-pointer inline-flex items-center gap-1"
+                            style={{ borderColor: "var(--border-hairline)" }}
+                          >
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Defer</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {ayah.khazainUlIrfanNote && (
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setOpenTafsirId(openTafsirId === ayah.id ? null : ayah.id)}
+                        className="text-xs font-semibold cursor-pointer"
+                        style={{ color: "var(--accent-primary)" }}
+                      >
+                        {openTafsirId === ayah.id ? "Hide Khazain-ul-Irfan Note ▲" : "Read Khazain-ul-Irfan Note ▼"}
+                      </button>
+                      {openTafsirId === ayah.id && (
+                        <div
+                          className="mt-2 p-3 rounded-xl text-xs leading-relaxed"
+                          style={{ backgroundColor: "var(--bg-muted)", color: "var(--text-muted)" }}
+                        >
+                          {ayah.khazainUlIrfanNote}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Selected Verse Kanzul Iman Bottom Sheet / Modal (Opened on tapping any verse on the Mushaf page) */}
+      {/* Floating Bottom Lavender-to-Violet Audio Player Pill (Exact Reference Image 2 Bottom Bar) */}
+      {!loadingCorpus && inspectedAyah && (
+        <div className="fixed bottom-3 inset-x-3 z-40 pointer-events-none flex justify-center">
+          <div className="pointer-events-auto quran-gradient-card w-full max-w-xl px-4 py-3 rounded-full flex items-center justify-between gap-3 shadow-2xl">
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-extrabold uppercase tracking-wide text-white truncate">
+                {currentSurahMeta.englishName} ({inspectedAyah.id})
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (nextSurahMeta) {
+                    setSelectedSurah(nextSurahMeta.number);
+                    goToPage(nextSurahMeta.startPage);
+                  }
+                }}
+                className="text-[11px] text-white/85 inline-flex items-center gap-1 hover:underline cursor-pointer truncate"
+              >
+                <span>
+                  {nextSurahMeta ? `Next surah ${nextSurahMeta.englishName}` : `Page ${clampedPage} of 604`}
+                </span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => stepAudioVerse(-1)}
+                className="p-2 rounded-full bg-white/15 hover:bg-white/25 text-white cursor-pointer"
+                aria-label="Previous Verse"
+              >
+                <SkipBack className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => togglePlay(inspectedAyah)}
+                className="w-10 h-10 rounded-full bg-white text-purple-700 flex items-center justify-center font-bold cursor-pointer shadow-md transition-transform active:scale-95"
+                aria-label={playingId ? "Pause Recitation" : "Play Recitation"}
+              >
+                {audioLoadingId ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : playingId ? (
+                  <Pause className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4 ml-0.5" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => stepAudioVerse(1)}
+                className="p-2 rounded-full bg-white/15 hover:bg-white/25 text-white cursor-pointer"
+                aria-label="Next Verse"
+              >
+                <SkipForward className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Verse Kanzul Iman Bottom Sheet */}
       {inspectorOpen && inspectedAyah && (
         <div
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 sm:p-4"
@@ -1460,7 +1476,7 @@ export default function QuranPage() {
           >
             <div className="flex items-center justify-between gap-2">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent-gold)" }}>
+                <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
                   Page {inspectedAyah.page} • Para {inspectedAyah.juz}
                 </div>
                 <h2 className="text-base font-bold">
@@ -1484,10 +1500,7 @@ export default function QuranPage() {
                 <button
                   type="button"
                   onClick={() => togglePlay(inspectedAyah)}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-1.5 cursor-pointer"
-                  style={{
-                    backgroundColor: playingId === inspectedAyah.id ? "var(--accent-secondary)" : "var(--accent-primary)",
-                  }}
+                  className="btn-primary px-3 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   {playingId === inspectedAyah.id ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                   <span>{playingId === inspectedAyah.id ? "Pause" : "Listen"}</span>
@@ -1510,7 +1523,7 @@ export default function QuranPage() {
               style={{ backgroundColor: "var(--bg-muted)" }}
             >
               {inspectedAyah.arabicUthmani}{" "}
-              <span style={{ color: "var(--accent-gold)" }}>۝{toArabicIndicDigits(inspectedAyah.ayahNum)}</span>
+              <span style={{ color: "var(--accent-primary)" }}>۝{toArabicIndicDigits(inspectedAyah.ayahNum)}</span>
             </p>
 
             <div className="space-y-3 text-xs">
@@ -1530,36 +1543,6 @@ export default function QuranPage() {
                 <p className="text-sm leading-relaxed">{inspectedAyah.kanzulImanEnglish}</p>
               </div>
             </div>
-
-            {inspectedAyah.hanafiSajda && (
-              <div
-                className="p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-xs"
-                style={{ borderColor: "var(--accent-gold)", backgroundColor: "var(--gold-soft)" }}
-              >
-                <span className="font-bold" style={{ color: "var(--accent-gold)" }}>
-                  ۩ Wajib Hanafi Sajda-e-Tilawat
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => logSajda(inspectedAyah.id, "now")}
-                    className="px-3 py-1 rounded-lg bg-emerald-600 text-white font-semibold cursor-pointer inline-flex items-center gap-1"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Log Sajda Now</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => logSajda(inspectedAyah.id, "defer")}
-                    className="px-3 py-1 rounded-lg border font-semibold cursor-pointer inline-flex items-center gap-1"
-                    style={{ borderColor: "var(--border-hairline)" }}
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>Defer</span>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -1576,7 +1559,7 @@ export default function QuranPage() {
           >
             <div className="flex items-center justify-between gap-2">
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent-gold)" }}>
+                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
                   Hanafi Fiqh (Bahar-e-Shariat)
                 </span>
                 <h2 className="text-base font-bold">
@@ -1605,7 +1588,7 @@ export default function QuranPage() {
                     <button
                       type="button"
                       onClick={() => logSajda(ref, "now")}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-semibold cursor-pointer"
+                      className="btn-primary px-2.5 py-1 rounded-lg font-semibold cursor-pointer"
                     >
                       Mark Done
                     </button>

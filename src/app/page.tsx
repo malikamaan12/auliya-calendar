@@ -1,43 +1,43 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Compass,
-  Flame,
   BookOpen,
   Trophy,
   Calculator,
-  AlertTriangle,
-  CheckCircle2,
   ArrowRight,
   Sparkles,
   Clock,
   Scale,
   ShieldCheck,
-  Check,
   MapPin,
+  Search,
+  ChevronRight,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
-import { t } from "@/lib/i18n";
-import { CITY_PRESETS, formatCountdown, formatTime, PrayerName } from "@/lib/prayer-engine";
+import { formatCountdown, formatTime } from "@/lib/prayer-engine";
 import { getEventsForHijri, getUpcomingEvents } from "@/lib/hijri";
 import { TASBIH_LITANIES } from "@/data/fiqh-hadith";
+import { HANAFI_SAJDA_ITEMS, JUZ_LIST, SURAH_LIST } from "@/data/quran";
+
+function parseRef(ref: string): { surahNum: number; ayahNum: number } {
+  const [s, a] = ref.split(":").map((n) => parseInt(n, 10));
+  return {
+    surahNum: Number.isFinite(s) && s >= 1 && s <= 114 ? s : 1,
+    ayahNum: Number.isFinite(a) && a >= 1 ? a : 1,
+  };
+}
 
 export default function DashboardPage() {
   const {
     now,
-    lang,
     city,
-    setCity,
     hijri,
-    hilalOffset,
-    setHilalOffset,
     schedule,
-    streakDays,
     salahToday,
-    logSalah,
     tasbihTotalToday,
     tasbihTarget,
     activeLitanyId,
@@ -48,6 +48,15 @@ export default function DashboardPage() {
     allAuliya,
     user,
   } = useApp();
+
+  const [activeTab, setActiveTab] = useState<"modules" | "surah" | "para" | "sajda">("modules");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const lastReadParsed = useMemo(() => parseRef(lastQuranRef || "1:1"), [lastQuranRef]);
+  const lastReadSurah = useMemo(
+    () => SURAH_LIST.find((s) => s.number === lastReadParsed.surahNum) ?? SURAH_LIST[0],
+    [lastReadParsed.surahNum]
+  );
 
   const todayEvents = getEventsForHijri(hijri.month, hijri.day);
   const upcomingEvents = getUpcomingEvents(hijri.month, hijri.day);
@@ -60,327 +69,451 @@ export default function DashboardPage() {
       href: "/quran",
       title: "Holy Quran Mushaf",
       subtitle: "604 Pages • 114 Surahs • Kanzul Iman",
-      badge: `Resume ${lastQuranRef}`,
-      meta: `${sajdaCompleted.length}/14 Hanafi Sajdas`,
+      badge: `Page ${lastReadSurah.startPage}`,
+      arabic: "القرآن الكريم",
       icon: BookOpen,
-      accent: "var(--accent-primary)",
-      bg: "var(--accent-soft)",
     },
     {
       href: "/prayer",
-      title: "Hanafi Prayer & Qibla",
-      subtitle: "Mithlayn Asr • Azan & Jamaat Table",
+      title: "Prayer & Qibla",
+      subtitle: `${schedule.nextPrayer.label} at ${formatTime(schedule.nextPrayer.jamaatTime)}`,
       badge: `${fardCompletedCount}/5 Logged`,
-      meta: `Qibla ${schedule.qiblaBearing}°`,
+      arabic: "الصلاة والقبلة",
       icon: Clock,
-      accent: "var(--accent-secondary)",
-      bg: "rgba(2, 132, 199, 0.12)",
     },
     {
       href: "/tasbih",
       title: "Tasbih & Litanies",
       subtitle: activeLitany.name,
       badge: `${tasbihTotalToday}/${tasbihTarget}`,
-      meta: "33 / 99 / 100 Haptic Beads",
+      arabic: "التسبيح والأوراد",
       icon: Sparkles,
-      accent: "var(--accent-gold)",
-      bg: "var(--gold-soft)",
     },
     {
       href: "/auliya",
-      title: "Auliya Urs & 360° Ziyarat",
+      title: "Auliya Urs & 360°",
       subtitle: nextEvent ? nextEvent.title : `${allAuliya.length} Sunni Saints`,
-      badge: todayEvents.length > 0 ? "Urs Today" : "Shrine Guide",
-      meta: "Ajmer • Baghdad • Bareilly",
+      badge: todayEvents.length > 0 ? "Urs Today" : "Ziyarat",
+      arabic: "أولياء الله",
       icon: Compass,
-      accent: "var(--accent-primary)",
-      bg: "var(--accent-soft)",
     },
     {
       href: "/quiz",
-      title: "Sahib-e-Ilm Hot Seat Quiz",
-      subtitle: "15-Tier KBC Challenge • 4 Lifelines",
+      title: "Sahib-e-Ilm Quiz",
+      subtitle: bestQuizTier > 0 ? `Best: Tier ${bestQuizTier}/15` : "15-Tier KBC Challenge",
       badge: `${ilmPoints.toLocaleString()} XP`,
-      meta: bestQuizTier > 0 ? `Best: Tier ${bestQuizTier}/15` : "Fastest Finger First",
+      arabic: "صاحب العلم",
       icon: Trophy,
-      accent: "var(--accent-gold)",
-      bg: "var(--gold-soft)",
     },
     {
       href: "/fiqh",
       title: "Hanafi Fiqh & Hadith",
       subtitle: "Bahar-e-Shariat • Fatawa Razawiyya",
-      badge: "Verified Rulings",
-      meta: "Taharah • Salah • Sawm • Aqeedah",
+      badge: "Rulings",
+      arabic: "الفقه الحنفي",
       icon: Scale,
-      accent: "var(--accent-secondary)",
-      bg: "rgba(2, 132, 199, 0.12)",
     },
     {
       href: "/zakat",
-      title: "Hanafi Zakat Calculator",
+      title: "Hanafi Zakat",
       subtitle: "Silver Nisab (612.36g / 52.5 Tola)",
       badge: "2.5% Fard",
-      meta: "Lunar Hawl Tracker",
+      arabic: "الزكاة",
       icon: Calculator,
-      accent: "var(--accent-primary)",
-      bg: "var(--accent-soft)",
     },
     {
       href: "/admin",
-      title: "Curator & Audit Studio",
-      subtitle: "Add Custom Auliya & Family Barsis",
-      badge: "Local Vault",
-      meta: "SHA-256 Integrity",
+      title: "Curator Studio",
+      subtitle: "Custom Auliya & Family Barsis",
+      badge: "SHA-256",
+      arabic: "الإدارة",
       icon: ShieldCheck,
-      accent: "var(--text-muted)",
-      bg: "var(--bg-muted)",
     },
   ];
 
+  const filteredSurahs = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return SURAH_LIST;
+    return SURAH_LIST.filter(
+      (s) =>
+        String(s.number).includes(q) ||
+        s.englishName.toLowerCase().includes(q) ||
+        s.englishNameTranslation.toLowerCase().includes(q) ||
+        s.name.includes(searchQuery.trim())
+    );
+  }, [searchQuery]);
+
   return (
-    <div className="flex-1 flex flex-col justify-between gap-4 sm:gap-5">
-      {/* 1. Compact Greeting + Hijri + City Row */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="space-y-5">
+      {/* 1. Reference UI Greeting Header ("Assalamualaikum" + Bold Name) */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-            Assalamu Alaikum{user ? `, ${user.name}` : ""}
-          </h1>
-          <p className="text-xs sm:text-sm" style={{ color: "var(--text-muted)" }}>
-            {hijri.weekday} • <strong>{hijri.formatted}</strong> • {city.name}
+          <p className="text-xs sm:text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+            Assalamualaikum
           </p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight mt-0.5">
+            {user ? user.name : "Sunni Companion"}
+          </h1>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          {/* Mobile City Selector */}
-          <div
-            className="sm:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-xl border"
-            style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
-          >
-            <MapPin className="w-3.5 h-3.5" style={{ color: "var(--accent-primary)" }} />
-            <select
-              aria-label="Select City"
-              value={city.id}
-              onChange={(e) => {
-                const found = CITY_PRESETS.find((c) => c.id === e.target.value);
-                if (found) setCity(found);
-              }}
-              className="bg-transparent outline-none font-medium max-w-[110px] truncate"
-            >
-              {CITY_PRESETS.map((c) => (
-                <option key={c.id} value={c.id} className="text-black">
-                  {c.name}
-                </option>
-              ))}
-            </select>
+        <div className="text-right text-xs" style={{ color: "var(--text-muted)" }}>
+          <div className="font-semibold" style={{ color: "var(--text-primary)" }}>
+            {hijri.formatted}
           </div>
-
-          {/* Hilal Offset Quick Pill */}
-          <div
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-xl border"
-            style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
-            title="Local Moon Sighting Offset"
-          >
-            <span className="text-[11px] opacity-75">Hilal:</span>
-            {([-1, 0, 1] as const).map((offset) => (
-              <button
-                key={offset}
-                type="button"
-                onClick={() => setHilalOffset(offset)}
-                className="px-1.5 py-0.5 rounded-lg text-[11px] font-bold cursor-pointer"
-                style={{
-                  backgroundColor: hilalOffset === offset ? "var(--accent-primary)" : "transparent",
-                  color: hilalOffset === offset ? "#ffffff" : "var(--text-muted)",
-                }}
-              >
-                {offset > 0 ? `+${offset}` : offset}
-              </button>
-            ))}
-          </div>
-
-          <span
-            className="px-2.5 py-1.5 rounded-xl font-semibold inline-flex items-center gap-1"
-            style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
-          >
-            <Flame className="w-3.5 h-3.5" />
-            <span>
-              {streakDays} {t(lang, "streakDays")}
-            </span>
-          </span>
+          <div>{hijri.weekday}</div>
         </div>
       </div>
 
-      {/* 2. Live Next Prayer & 5-Prayer Quick Tracker Hero Banner */}
-      <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }}
-        className="bento-card hero-surface p-4 sm:p-5 relative overflow-hidden"
-      >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 600 180"
-          preserveAspectRatio="xMidYMax slice"
-          className="pointer-events-none absolute inset-x-0 bottom-0 w-full h-36 opacity-[0.10] dark:opacity-[0.16]"
+      {/* 2. Top Dual Hero Cards (Reference Image 2 Twilight Prayer Card + Reference Image 1 & 2 "Last Read" Lavender Card) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Left: Twilight Mosque & Next Prayer Card (Exact style of Image 2 top card) */}
+        <Link
+          href="/prayer"
+          className="lg:col-span-6 twilight-hero-card p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between min-h-[168px] group transition-transform hover:scale-[1.01]"
         >
-          <path
-            d="M0 180 L0 152 L48 152 L48 124 L54 106 L60 124 L60 152 L110 152 L110 140 Q140 105 170 140 L170 152 L225 152 L225 132 Q265 78 305 132 L305 152 L345 152 L345 110 L351 90 L357 110 L357 152 L420 152 L420 138 Q445 110 470 138 L470 152 L535 152 L535 120 L541 102 L547 120 L547 152 L600 152 L600 180 Z"
-            fill="currentColor"
-          />
-        </svg>
+          {/* Glowing Moon & Clouds & Mosque Silhouette SVG */}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 500 200"
+            preserveAspectRatio="xMidYMax slice"
+            className="pointer-events-none absolute inset-0 w-full h-full opacity-35"
+          >
+            <defs>
+              <radialGradient id="moonGlow" cx="78%" cy="32%" r="28%">
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
+                <stop offset="45%" stopColor="#DF98FA" stopOpacity="0.45" />
+                <stop offset="100%" stopColor="#431B82" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            <circle cx="390" cy="64" r="56" fill="url(#moonGlow)" />
+            <circle cx="390" cy="64" r="24" fill="#FFFDF9" opacity="0.9" />
+            {/* Mosque Skyline Silhouette */}
+            <path
+              d="M0 200 L0 165 L45 165 L45 130 L50 112 L55 130 L55 165 L110 165 Q145 120 180 165 L235 165 L235 142 Q275 88 315 142 L315 165 L360 165 L360 118 L366 96 L372 118 L372 165 L430 165 Q455 135 480 165 L500 165 L500 200 Z"
+              fill="#090D24"
+            />
+          </svg>
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center justify-between sm:justify-start gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span
-                  className="text-[11px] font-semibold uppercase tracking-wider"
-                  style={{ color: "var(--accent-primary)" }}
-                >
-                  {t(lang, "nextPrayer")}
-                </span>
-                {schedule.activeMakruh ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/15 text-red-400">
-                    <AlertTriangle className="w-3 h-3" />
-                    {t(lang, "makruhWarning")}
-                  </span>
-                ) : (
-                  <span
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                    style={{ backgroundColor: "var(--accent-soft)", color: "var(--accent-primary)" }}
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                    {t(lang, "safeWindow")}
-                  </span>
-                )}
-              </div>
+          <div className="relative z-10 flex items-center justify-between gap-2 text-xs text-purple-200">
+            <span className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wider">
+              <Clock className="w-3.5 h-3.5" />
+              <span>{schedule.nextPrayer.label}</span>
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full bg-white/15 text-white font-mono text-[11px]">
+              in {formatCountdown(schedule.nextPrayer.jamaatTime, now)}
+            </span>
+          </div>
 
-              <div className="mt-1 flex items-baseline gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                  {schedule.nextPrayer.label}
-                </h2>
-                <span
-                  className="text-lg sm:text-xl font-mono font-bold tabular-nums"
-                  style={{ color: "var(--accent-secondary)" }}
-                >
-                  {formatCountdown(schedule.nextPrayer.jamaatTime, now)}
-                </span>
-              </div>
-
-              <div className="mt-1 text-xs flex items-center gap-3" style={{ color: "var(--text-muted)" }}>
-                <span>
-                  Azan: <strong style={{ color: "var(--text-primary)" }}>{formatTime(schedule.nextPrayer.azanTime)}</strong>
-                </span>
-                <span>•</span>
-                <span>
-                  Jamaat: <strong style={{ color: "var(--accent-primary)" }}>{formatTime(schedule.nextPrayer.jamaatTime)}</strong>
-                </span>
-              </div>
+          <div className="relative z-10 my-2">
+            <div className="text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums text-white">
+              {formatTime(schedule.nextPrayer.jamaatTime)}
+            </div>
+            <div className="mt-1 inline-flex items-center gap-1.5 text-xs text-purple-100/90">
+              <MapPin className="w-3.5 h-3.5" />
+              <span>
+                {city.name}, {city.country} • Azan {formatTime(schedule.nextPrayer.azanTime)}
+              </span>
             </div>
           </div>
+        </Link>
 
-          {/* 5 Daily Prayers 1-Tap Tracker */}
-          <div className="grid grid-cols-5 gap-1.5 sm:gap-2 lg:w-[440px]">
-            {(["fajr", "dhuhr", "asr", "maghrib", "isha"] as PrayerName[]).map((pKey) => {
-              const w = schedule.rows.find((pr) => pr.name === pKey)!;
-              const status = salahToday[pKey];
-              const isNext = schedule.nextPrayer.name === pKey;
-              const isLogged = status !== "none";
-              return (
-                <button
-                  key={pKey}
-                  type="button"
-                  onClick={() => logSalah(pKey, status === "none" ? "jamaat" : "none")}
-                  className="p-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 min-h-[58px]"
-                  style={{
-                    borderColor: isNext
-                      ? "var(--accent-primary)"
-                      : isLogged
-                      ? "rgba(16, 185, 129, 0.45)"
-                      : "var(--border-hairline)",
-                    backgroundColor: isLogged
-                      ? "var(--accent-soft)"
-                      : isNext
-                      ? "rgba(16, 185, 129, 0.08)"
-                      : "var(--bg-muted)",
-                  }}
-                >
-                  <div className="flex items-center gap-1 text-[11px] font-semibold">
-                    <span>{w.label.split(" ")[0]}</span>
-                    {isLogged && <Check className="w-3 h-3 text-emerald-500" />}
-                  </div>
-                  <div className="text-[11px] font-mono font-bold tabular-nums">
-                    {formatTime(w.jamaatTime)}
-                  </div>
-                </button>
-              );
-            })}
+        {/* Right: Signature Lavender-to-Violet "Last Read" Card with Open Mushaf on Rehal SVG (Exact style of Image 1 & 2) */}
+        <Link
+          href="/quran"
+          className="lg:col-span-6 quran-gradient-card p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between min-h-[168px] group transition-transform hover:scale-[1.01]"
+        >
+          {/* Decorative Open Quran on Rehal Stand SVG on the Right */}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 220 160"
+            className="pointer-events-none absolute -right-2 -bottom-3 w-44 sm:w-52 h-36 sm:h-40 opacity-95 transition-transform group-hover:scale-105"
+          >
+            {/* Sparkle stars */}
+            <circle cx="40" cy="28" r="2.5" fill="#FFF" opacity="0.8" />
+            <circle cx="185" cy="24" r="2" fill="#FFF" opacity="0.7" />
+            <circle cx="150" cy="16" r="3" fill="#F9B091" />
+            {/* Wooden Rehal (X-Stand) */}
+            <path d="M65 145 L155 102 L162 110 L72 153 Z" fill="#4C1D95" />
+            <path d="M155 145 L65 102 L58 110 L148 153 Z" fill="#3B0764" />
+            {/* Golden Book Covers */}
+            <path d="M38 98 Q74 82 110 102 L110 112 Q74 92 38 108 Z" fill="#F59E0B" />
+            <path d="M182 98 Q146 82 110 102 L110 112 Q146 92 182 108 Z" fill="#D97706" />
+            {/* White Open Mushaf Pages */}
+            <path d="M42 93 Q76 75 110 97 L110 52 Q76 32 42 50 Z" fill="#FFFFFF" />
+            <path d="M178 93 Q144 75 110 97 L110 52 Q144 32 178 50 Z" fill="#F3E8FF" />
+            {/* Arabic Script Lines on Pages */}
+            <path d="M54 60 Q76 50 98 62" stroke="#A855F7" strokeWidth="2" fill="none" strokeLinecap="round" />
+            <path d="M54 70 Q76 60 98 72" stroke="#A855F7" strokeWidth="2" fill="none" strokeLinecap="round" />
+            <path d="M54 80 Q76 70 98 82" stroke="#A855F7" strokeWidth="2" fill="none" strokeLinecap="round" />
+            <path d="M122 62 Q144 50 166 60" stroke="#9333EA" strokeWidth="2" fill="none" strokeLinecap="round" />
+            <path d="M122 72 Q144 60 166 70" stroke="#9333EA" strokeWidth="2" fill="none" strokeLinecap="round" />
+            <path d="M122 82 Q144 70 166 80" stroke="#9333EA" strokeWidth="2" fill="none" strokeLinecap="round" />
+          </svg>
+
+          <div className="relative z-10 inline-flex items-center gap-2 text-xs font-semibold text-white/95">
+            <BookOpen className="w-4 h-4" />
+            <span>Last Read</span>
           </div>
-        </div>
-      </motion.section>
 
-      {/* 3. Choose What You Want To Use — Responsive Single-Screen Module Grid */}
-      <section aria-label="Select a Companion Module" className="space-y-2.5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-            Select a Module to Open Full-Screen
-          </h2>
-          <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-            Tap any card to focus on that module
-          </span>
+          <div className="relative z-10 my-2 max-w-[62%]">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white truncate">
+              {lastReadSurah.englishName}
+            </h2>
+            <p className="text-xs text-white/85 mt-0.5">
+              Ayah No: {lastReadParsed.ayahNum} • Page {lastReadSurah.startPage}
+            </p>
+          </div>
+
+          <div className="relative z-10">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/20 backdrop-blur-xs text-white">
+              <span>Continue read</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </span>
+          </div>
+        </Link>
+      </div>
+
+      {/* 3. Reference UI Tab Bar ("Modules" | "Surah" | "Para" | "Sajda") */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-2" style={{ borderColor: "var(--border-hairline)" }}>
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {(
+            [
+              { id: "modules", label: "All Modules" },
+              { id: "surah", label: "Surah (114)" },
+              { id: "para", label: "Para / Juz (30)" },
+              { id: "sajda", label: `Sajda (${sajdaCompleted.length}/14)` },
+            ] as const
+          ).map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className="px-4 py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap cursor-pointer transition-all"
+                style={{
+                  backgroundImage: active ? "var(--gradient-brand)" : undefined,
+                  backgroundColor: active ? undefined : "var(--bg-muted)",
+                  color: active ? "#ffffff" : "var(--text-muted)",
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {activeTab === "surah" && (
+          <div className="relative sm:w-64">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 opacity-50" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search Surah name or number…"
+              className="w-full pl-8 pr-3 py-1.5 rounded-full border text-xs bg-transparent outline-none"
+              style={{ borderColor: "var(--border-hairline)" }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* TAB 1: ALL MODULES (Clean 1-Screen Launcher Grid) */}
+      {activeTab === "modules" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {moduleCards.map((mod, idx) => {
             const Icon = mod.icon;
             return (
               <motion.div
                 key={mod.href}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.03, duration: 0.22 }}
+                transition={{ delay: idx * 0.025, duration: 0.2 }}
               >
                 <Link
                   href={mod.href}
-                  className="bento-card bento-card-interactive h-full p-4 sm:p-5 flex flex-col justify-between gap-3 group"
+                  className="bento-card bento-card-interactive p-4 flex items-center justify-between gap-3 group"
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    {/* 8-Point Octagram Star Badge with Icon */}
                     <div
-                      className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
-                      style={{ backgroundColor: mod.bg, color: mod.accent }}
+                      className="relative w-11 h-11 flex items-center justify-center shrink-0"
+                      style={{ color: "var(--accent-primary)" }}
                     >
-                      <Icon className="w-5 h-5" />
+                      <svg viewBox="0 0 36 36" className="w-11 h-11" fill="none" stroke="currentColor" strokeWidth="1.6">
+                        <rect x="6" y="6" width="24" height="24" rx="3" />
+                        <rect x="6" y="6" width="24" height="24" rx="3" transform="rotate(45 18 18)" />
+                      </svg>
+                      <Icon className="w-4 h-4 absolute" />
                     </div>
+
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-sm sm:text-base truncate">{mod.title}</h3>
+                      <p className="text-[11px] truncate mt-0.5" style={{ color: "var(--text-muted)" }}>
+                        {mod.subtitle}
+                      </p>
+                      <span
+                        className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                        style={{ backgroundColor: "var(--accent-soft)", color: "var(--accent-primary)" }}
+                      >
+                        {mod.badge}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0 flex flex-col items-end gap-1">
                     <span
-                      className="px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-bold truncate max-w-[120px]"
-                      style={{ backgroundColor: mod.bg, color: mod.accent }}
+                      dir="rtl"
+                      className="font-arabic text-base sm:text-lg font-bold"
+                      style={{ color: "var(--accent-primary)" }}
                     >
-                      {mod.badge}
+                      {mod.arabic}
                     </span>
-                  </div>
-
-                  <div className="space-y-1">
-                    <h3 className="text-sm sm:text-base font-bold tracking-tight leading-snug">
-                      {mod.title}
-                    </h3>
-                    <p className="text-xs line-clamp-2 leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                      {mod.subtitle}
-                    </p>
-                  </div>
-
-                  <div
-                    className="pt-2.5 border-t flex items-center justify-between gap-2 text-[11px] font-semibold"
-                    style={{ borderColor: "var(--border-hairline)", color: mod.accent }}
-                  >
-                    <span className="truncate">{mod.meta}</span>
-                    <ArrowRight className="w-3.5 h-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
+                    <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </Link>
               </motion.div>
             );
           })}
         </div>
-      </section>
+      )}
+
+      {/* TAB 2: SURAH LIST (Exact Reference Image 1 & 2 List with 8-Point Star Number, MECCAN • X VERSES, and Purple Arabic Right Title) */}
+      {activeTab === "surah" && (
+        <div className="bento-card divide-y max-h-[420px] overflow-y-auto px-4" style={{ borderColor: "var(--border-hairline)" }}>
+          {filteredSurahs.map((s) => (
+            <Link
+              key={s.number}
+              href={`/quran?surah=${s.number}&page=${s.startPage}`}
+              className="py-3.5 flex items-center justify-between gap-3 hover:opacity-90 transition-opacity"
+              style={{ borderColor: "var(--border-hairline)" }}
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <span
+                  className="relative w-10 h-10 inline-flex items-center justify-center shrink-0"
+                  style={{ color: "var(--accent-primary)" }}
+                >
+                  <svg viewBox="0 0 36 36" className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <rect x="6" y="6" width="24" height="24" rx="2.5" />
+                    <rect x="6" y="6" width="24" height="24" rx="2.5" transform="rotate(45 18 18)" />
+                  </svg>
+                  <span className="absolute text-[11px] font-bold tabular-nums" style={{ color: "var(--text-primary)" }}>
+                    {s.number}
+                  </span>
+                </span>
+
+                <div className="min-w-0">
+                  <div className="font-bold text-sm sm:text-base truncate">{s.englishName}</div>
+                  <div className="text-[11px] uppercase tracking-wider font-medium" style={{ color: "var(--text-muted)" }}>
+                    {s.revelationType} • {s.numberOfAyahs} Verses • Page {s.startPage}
+                  </div>
+                </div>
+              </div>
+
+              <span
+                dir="rtl"
+                className="font-arabic text-xl sm:text-2xl font-bold shrink-0"
+                style={{ color: "var(--accent-primary)" }}
+              >
+                {s.name}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* TAB 3: PARA / JUZ LIST (1..30) */}
+      {activeTab === "para" && (
+        <div className="bento-card divide-y max-h-[420px] overflow-y-auto px-4" style={{ borderColor: "var(--border-hairline)" }}>
+          {JUZ_LIST.map((j) => (
+            <Link
+              key={j.juz}
+              href={`/quran?page=${j.startPage}`}
+              className="py-3.5 flex items-center justify-between gap-3 hover:opacity-90 transition-opacity"
+              style={{ borderColor: "var(--border-hairline)" }}
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <span
+                  className="relative w-10 h-10 inline-flex items-center justify-center shrink-0"
+                  style={{ color: "var(--accent-primary)" }}
+                >
+                  <svg viewBox="0 0 36 36" className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <rect x="6" y="6" width="24" height="24" rx="2.5" />
+                    <rect x="6" y="6" width="24" height="24" rx="2.5" transform="rotate(45 18 18)" />
+                  </svg>
+                  <span className="absolute text-[11px] font-bold tabular-nums" style={{ color: "var(--text-primary)" }}>
+                    {j.juz}
+                  </span>
+                </span>
+
+                <div>
+                  <div className="font-bold text-sm sm:text-base">Para {j.juz}</div>
+                  <div className="text-[11px] uppercase tracking-wider font-medium" style={{ color: "var(--text-muted)" }}>
+                    Starts at {j.surahName} ({j.surahNum}:{j.ayahNum}) • Page {j.startPage}
+                  </div>
+                </div>
+              </div>
+
+              <span
+                dir="rtl"
+                className="font-arabic text-xl sm:text-2xl font-bold shrink-0"
+                style={{ color: "var(--accent-primary)" }}
+              >
+                {j.arabicTitle}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* TAB 4: 14 HANAFI SAJDA VERSES */}
+      {activeTab === "sajda" && (
+        <div className="bento-card divide-y max-h-[420px] overflow-y-auto px-4" style={{ borderColor: "var(--border-hairline)" }}>
+          {HANAFI_SAJDA_ITEMS.map((s, idx) => {
+            const done = sajdaCompleted.includes(s.ref);
+            return (
+              <Link
+                key={s.ref}
+                href={`/quran?page=${s.page}`}
+                className="py-3.5 flex items-center justify-between gap-3 hover:opacity-90 transition-opacity"
+                style={{ borderColor: "var(--border-hairline)" }}
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <span
+                    className="relative w-10 h-10 inline-flex items-center justify-center shrink-0"
+                    style={{ color: "var(--accent-primary)" }}
+                  >
+                    <svg viewBox="0 0 36 36" className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1.6">
+                      <rect x="6" y="6" width="24" height="24" rx="2.5" />
+                      <rect x="6" y="6" width="24" height="24" rx="2.5" transform="rotate(45 18 18)" />
+                    </svg>
+                    <span className="absolute text-[11px] font-bold tabular-nums" style={{ color: "var(--text-primary)" }}>
+                      {idx + 1}
+                    </span>
+                  </span>
+
+                  <div>
+                    <div className="font-bold text-sm sm:text-base">{s.label}</div>
+                    <div className="text-[11px] uppercase tracking-wider font-medium" style={{ color: "var(--text-muted)" }}>
+                      Wajib Hanafi Sajda • Mushaf Page {s.page}
+                    </div>
+                  </div>
+                </div>
+
+                <span
+                  className="px-3 py-1 rounded-full text-xs font-bold"
+                  style={{
+                    backgroundColor: done ? "var(--accent-soft)" : "var(--bg-muted)",
+                    color: done ? "var(--accent-primary)" : "var(--text-muted)",
+                  }}
+                >
+                  {done ? "Completed" : `Page ${s.page}`}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
