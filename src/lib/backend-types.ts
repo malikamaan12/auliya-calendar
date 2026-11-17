@@ -115,6 +115,16 @@ export function hasPermission(role: UserRole | undefined | null, perm: Permissio
   return RBAC_ROLES[role]?.permissions.includes(perm) ?? false;
 }
 
+export interface UserProgressSnapshot {
+  streakDays?: number;
+  bestQuizTier?: number;
+  lastQuranRef?: string;
+  tasbihTotalToday?: number;
+  hawlHijriMonth?: number;
+  hawlHijriDay?: number;
+  updatedAt?: string;
+}
+
 export interface UserAccount {
   id: string;
   name: string;
@@ -125,6 +135,7 @@ export interface UserAccount {
   avatarColor: string;
   status: "active" | "suspended";
   xp: number;
+  progress?: UserProgressSnapshot;
   passwordSalt: string;
   passwordHash: string;
   createdAt: string;
@@ -144,6 +155,8 @@ export interface ManagedAuliyaRecord extends AuliyaProfile {
   createdByUserId: string;
   createdByName: string;
   verifiedByName?: string;
+  reviewNotes?: string;
+  reviewedAt?: string;
   updatedAt: string;
   featured?: boolean;
   era?: string;
@@ -169,6 +182,8 @@ export interface UrsEventRecord {
   recommendedWird: string;
   featured: boolean;
   status: "Draft" | "Scholarly Verification" | "Published";
+  reviewNotes?: string;
+  reviewedAt?: string;
   createdByUserId: string;
   createdByName: string;
   updatedAt: string;
@@ -339,6 +354,12 @@ export interface BackendDatabaseSnapshot {
   auditLogs: BackendAuditLog[];
 }
 
+export interface AuditChainReport {
+  valid: boolean;
+  checkedCount: number;
+  brokenAtId?: string;
+}
+
 export interface PublicBackendView {
   currentUser: PublicUserAccount | null;
   users?: PublicUserAccount[]; // Included for super_admin / editor
@@ -350,5 +371,5 @@ export interface PublicBackendView {
   gamificationConfig: GamificationConfig;
   platformSettings: PlatformSettings;
   auditLogs: BackendAuditLog[];
-  backendMode: "server-api" | "local-engine";
+  backendMode: "supabase" | "server-api" | "local-engine";
 }

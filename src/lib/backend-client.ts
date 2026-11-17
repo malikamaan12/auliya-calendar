@@ -14,6 +14,8 @@ import {
   opLoginUser,
   opLogoutSession,
   opRegisterUser,
+  opRestoreSnapshot,
+  opReviewSubmission,
   opSaveGamificationConfig,
   opSaveModules,
   opSavePlatformSettings,
@@ -24,8 +26,10 @@ import {
   opUpsertBarsi,
   opUpsertUrs,
   resolveSessionUser,
+  verifyAuditChain,
 } from "./backend-core";
 import {
+  AuditChainReport,
   BackendDatabaseSnapshot,
   BarsiIsalGiftLog,
   BarsiRecord,
@@ -36,9 +40,11 @@ import {
   PlatformSettings,
   PublicBackendView,
   UrsEventRecord,
+  UserProgressSnapshot,
   UserRole,
   ZakatBackendConfig,
 } from "./backend-types";
+import { isSupabaseConfigured, supabaseBackend } from "./supabase-rest";
 
 const LOCAL_DB_KEY = "auliya_modular_backend_db_v2";
 const SESSION_TOKEN_KEY = "auliya_auth_session_token_v1";
@@ -102,6 +108,7 @@ async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T | null> {
+  if (isSupabaseConfigured()) return null;
   if (detectedTransport === "local-engine") return null;
 
   const token = getStoredSessionToken();
@@ -122,7 +129,6 @@ async function apiRequest<T>(
 
     const contentType = res.headers.get("content-type") || "";
     if (!contentType.includes("application/json")) {
-      // Static hosting (e.g. GitHub Pages 404 HTML) -> switch cleanly to local-engine
       detectedTransport = "local-engine";
       return null;
     }
@@ -147,6 +153,13 @@ async function apiRequest<T>(
 
 export const backendClient = {
   async fetchState(): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      try {
+        return await supabaseBackend.fetchState();
+      } catch {
+        // Fall through gracefully if Supabase is temporarily unreachable
+      }
+    }
     const remote = await apiRequest<PublicBackendView>("/api/backend/state");
     if (remote) return remote;
 
@@ -161,7 +174,11 @@ export const backendClient = {
     password: string;
     city?: string;
     requestedRole?: "member" | "creator";
+    guestProgress?: UserProgressSnapshot;
   }): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.register(payload);
+    }
     const remote = await apiRequest<{ token: string; state: PublicBackendView }>("/api/auth", {
       method: "POST",
       body: JSON.stringify({ action: "register", ...payload }),
@@ -180,6 +197,9 @@ export const backendClient = {
   },
 
   async login(payload: { email: string; password: string }): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.login(payload);
+    }
     const remote = await apiRequest<{ token: string; state: PublicBackendView }>("/api/auth", {
       method: "POST",
       body: JSON.stringify({ action: "login", ...payload }),
@@ -216,6 +236,9 @@ export const backendClient = {
   },
 
   async logout(): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.logout();
+    }
     const token = getStoredSessionToken();
     await apiRequest<{ ok: boolean }>("/api/auth", {
       method: "POST",
@@ -237,7 +260,11 @@ export const backendClient = {
     title?: string;
     city?: string;
     xpDelta?: number;
+    progress?: UserProgressSnapshot;
   }): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.updateMyProfile(patch);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>("/api/auth", {
       method: "POST",
       body: JSON.stringify({ action: "update-profile", ...patch }),
@@ -259,6 +286,9 @@ export const backendClient = {
     status?: "active" | "suspended";
     title?: string;
   }): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.adminUpdateUser(payload);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>("/api/users", {
       method: "PATCH",
       body: JSON.stringify(payload),
@@ -275,6 +305,9 @@ export const backendClient = {
   async upsertAuliya(
     input: Partial<ManagedAuliyaRecord> & { name: string; urduName: string; city: string; country: string }
   ): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.upsertAuliya(input);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>("/api/auliya", {
       method: "POST",
       body: JSON.stringify(input),
@@ -289,6 +322,9 @@ export const backendClient = {
   },
 
   async deleteAuliya(id: string): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.deleteAuliya(id);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>(
       `/api/auliya?id=${encodeURIComponent(id)}`,
       { method: "DELETE" }
@@ -305,6 +341,9 @@ export const backendClient = {
   async upsertUrs(
     input: Partial<UrsEventRecord> & { title: string; month: number; day: number }
   ): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.upsertUrs(input);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>("/api/urs", {
       method: "POST",
       body: JSON.stringify(input),
@@ -319,6 +358,9 @@ export const backendClient = {
   },
 
   async deleteUrs(id: string): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.deleteUrs(id);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>(
       `/api/urs?id=${encodeURIComponent(id)}`,
       { method: "DELETE" }
@@ -332,9 +374,39 @@ export const backendClient = {
     return buildPublicView(db, actor, "local-engine");
   },
 
+  async reviewSubmission(payload: {
+    targetType: "auliya" | "urs";
+    id: string;
+    decision: "approve" | "request_changes";
+    reviewNotes?: string;
+  }): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.reviewSubmission(payload);
+    }
+    const endpoint = payload.targetType === "auliya" ? "/api/auliya" : "/api/urs";
+    const remote = await apiRequest<{ state: PublicBackendView }>(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify({
+        id: payload.id,
+        decision: payload.decision,
+        reviewNotes: payload.reviewNotes,
+      }),
+    });
+    if (remote) return remote.state;
+
+    const db = await getLocalDb();
+    const actor = resolveSessionUser(db, getStoredSessionToken());
+    await opReviewSubmission(db, actor, payload);
+    saveLocalDb(db);
+    return buildPublicView(db, actor, "local-engine");
+  },
+
   async upsertBarsi(
     input: Partial<BarsiRecord> & { personName: string; hijriMonth: number; hijriDay: number }
   ): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.upsertBarsi(input);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>("/api/barsi", {
       method: "POST",
       body: JSON.stringify({ action: "upsert", ...input }),
@@ -354,6 +426,9 @@ export const backendClient = {
     giftType: BarsiIsalGiftLog["giftType"];
     count?: number;
   }): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.logBarsiGift(payload);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>("/api/barsi", {
       method: "POST",
       body: JSON.stringify({ action: "gift", ...payload }),
@@ -372,6 +447,9 @@ export const backendClient = {
     paraNumber: number;
     readerName?: string;
   }): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.toggleBarsiPara(payload);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>("/api/barsi", {
       method: "POST",
       body: JSON.stringify({ action: "toggle-para", ...payload }),
@@ -386,6 +464,9 @@ export const backendClient = {
   },
 
   async deleteBarsi(id: string): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.deleteBarsi(id);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>(
       `/api/barsi?id=${encodeURIComponent(id)}`,
       { method: "DELETE" }
@@ -400,6 +481,9 @@ export const backendClient = {
   },
 
   async saveModules(modules: ModuleConfigRecord[]): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.saveConfigKey("modules", modules);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>("/api/modules", {
       method: "PUT",
       body: JSON.stringify({ target: "modules", modules }),
@@ -414,6 +498,9 @@ export const backendClient = {
   },
 
   async saveZakatConfig(zakatConfig: ZakatBackendConfig): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.saveConfigKey("zakat", zakatConfig);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>("/api/modules", {
       method: "PUT",
       body: JSON.stringify({ target: "zakat", zakatConfig }),
@@ -428,6 +515,9 @@ export const backendClient = {
   },
 
   async saveGamificationConfig(gamificationConfig: GamificationConfig): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      return supabaseBackend.saveConfigKey("gamification", gamificationConfig);
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>("/api/modules", {
       method: "PUT",
       body: JSON.stringify({ target: "gamification", gamificationConfig }),
@@ -442,6 +532,14 @@ export const backendClient = {
   },
 
   async savePlatformSettings(settings: Partial<PlatformSettings>): Promise<PublicBackendView> {
+    if (isSupabaseConfigured()) {
+      const curr = await supabaseBackend.fetchState();
+      return supabaseBackend.saveConfigKey("settings", {
+        ...curr.platformSettings,
+        ...settings,
+        updatedAt: new Date().toISOString(),
+      });
+    }
     const remote = await apiRequest<{ state: PublicBackendView }>("/api/modules", {
       method: "PUT",
       body: JSON.stringify({ target: "settings", settings }),
@@ -453,6 +551,20 @@ export const backendClient = {
     await opSavePlatformSettings(db, actor, settings);
     saveLocalDb(db);
     return buildPublicView(db, actor, "local-engine");
+  },
+
+  async verifyAuditChain(): Promise<AuditChainReport> {
+    if (isSupabaseConfigured()) {
+      const view = await supabaseBackend.fetchState();
+      return verifyAuditChain(view.auditLogs);
+    }
+    const remote = await apiRequest<{ report: AuditChainReport }>(
+      "/api/backend/state?verifyAudit=1"
+    );
+    if (remote?.report) return remote.report;
+
+    const db = await getLocalDb();
+    return verifyAuditChain(db.auditLogs);
   },
 
   async exportSnapshotJson(): Promise<string> {
@@ -470,6 +582,26 @@ export const backendClient = {
     return JSON.stringify(db, null, 2);
   },
 
+  async restoreSnapshotJson(rawJson: string): Promise<PublicBackendView> {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawJson);
+    } catch {
+      throw new BackendError("Invalid JSON file. Please select a valid snapshot JSON.", 400);
+    }
+    const remote = await apiRequest<{ state: PublicBackendView }>("/api/backend/state", {
+      method: "PUT",
+      body: JSON.stringify({ action: "restore", snapshot: parsed }),
+    });
+    if (remote) return remote.state;
+
+    const db = await getLocalDb();
+    const actor = resolveSessionUser(db, getStoredSessionToken());
+    const restored = await opRestoreSnapshot(actor, parsed);
+    saveLocalDb(restored);
+    return buildPublicView(restored, actor, "local-engine");
+  },
+
   async resetDatabaseToDefaults(): Promise<PublicBackendView> {
     const remote = await apiRequest<{ state: PublicBackendView }>("/api/backend/state", {
       method: "PUT",
@@ -484,7 +616,6 @@ export const backendClient = {
     }
     const fresh = await createInitialBackendSnapshot();
     await appendAuditLog(fresh, actor, "DATABASE_RESET_TO_DEFAULTS", "Super Admin reset");
-    // Re-issue session for super_admin
     const { token } = await opDemoSwitchRole(fresh, "super_admin");
     setStoredSessionToken(token);
     saveLocalDb(fresh);

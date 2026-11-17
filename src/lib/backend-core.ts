@@ -1,6 +1,7 @@
 import { AULIYA_DATA } from "@/data/auliya";
 import { HIJRI_MONTHS } from "./hijri";
 import {
+  AuditChainReport,
   AuthSessionRecord,
   BackendAuditLog,
   BackendDatabaseSnapshot,
@@ -18,9 +19,20 @@ import {
   SpiritualRankConfig,
   UrsEventRecord,
   UserAccount,
+  UserProgressSnapshot,
   UserRole,
   ZakatBackendConfig,
 } from "./backend-types";
+import {
+  AdminUpdateUserSchema,
+  AuliyaUpsertSchema,
+  BarsiUpsertSchema,
+  LoginSchema,
+  RegisterSchema,
+  ReviewSubmissionSchema,
+  SnapshotRestoreSchema,
+  UrsUpsertSchema,
+} from "./backend-validation";
 
 export class BackendError extends Error {
   status: number;
@@ -62,8 +74,51 @@ export function randomToken(prefix = "tok"): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
 }
 
+const PBKDF2_ITERATIONS = 100_000;
+
 export async function hashPasswordWithSalt(password: string, salt: string): Promise<string> {
+  if (typeof globalThis.crypto !== "undefined" && globalThis.crypto.subtle) {
+    try {
+      const enc = new TextEncoder();
+      const keyMaterial = await globalThis.crypto.subtle.importKey(
+        "raw",
+        enc.encode(password),
+        "PBKDF2",
+        false,
+        ["deriveBits"]
+      );
+      const bits = await globalThis.crypto.subtle.deriveBits(
+        {
+          name: "PBKDF2",
+          salt: enc.encode(`auliya-sanctuary-v2:${salt}`),
+          iterations: PBKDF2_ITERATIONS,
+          hash: "SHA-256",
+        },
+        keyMaterial,
+        256
+      );
+      const hex = Array.from(new Uint8Array(bits))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      return `pbkdf2$${PBKDF2_ITERATIONS}$${hex}`;
+    } catch {
+      // Fall through to salted SHA-256 if PBKDF2 is unavailable
+    }
+  }
   return sha256Hex(`auliya-sanctuary-v1:${salt}:${password}`);
+}
+
+export async function verifyPasswordWithSalt(
+  password: string,
+  salt: string,
+  storedHash: string
+): Promise<boolean> {
+  if (storedHash.startsWith("pbkdf2$")) {
+    const candidate = await hashPasswordWithSalt(password, salt);
+    return candidate === storedHash;
+  }
+  const legacy = await sha256Hex(`auliya-sanctuary-v1:${salt}:${password}`);
+  return legacy === storedHash;
 }
 
 export function stripSecretFields(u: UserAccount): PublicUserAccount {
@@ -98,6 +153,24 @@ export async function appendAuditLog(
   };
   db.auditLogs = [entry, ...db.auditLogs].slice(0, 150);
   return entry;
+}
+
+export async function verifyAuditChain(logs: BackendAuditLog[]): Promise<AuditChainReport> {
+  if (!logs.length) return { valid: true, checkedCount: 0 };
+  // logs are stored newest-first
+  for (let i = 0; i < logs.length; i++) {
+    const entry = logs[i];
+    const expectedHash = await sha256Hex(
+      `${entry.prevHash}|${entry.timestamp}|${entry.actorId}|${entry.action}|${entry.target}`
+    );
+    if (expectedHash !== entry.hash) {
+      return { valid: false, checkedCount: i + 1, brokenAtId: entry.id };
+    }
+    if (i < logs.length - 1 && entry.prevHash !== logs[i + 1].hash) {
+      return { valid: false, checkedCount: i + 1, brokenAtId: entry.id };
+    }
+  }
+  return { valid: true, checkedCount: logs.length };
 }
 
 const DEFAULT_MODULES: ModuleConfigRecord[] = [
@@ -807,7 +880,7 @@ export function resolveSessionUser(
 export function buildPublicView(
   db: BackendDatabaseSnapshot,
   currentUser: UserAccount | null,
-  backendMode: "server-api" | "local-engine"
+  backendMode: PublicBackendView["backendMode"]
 ): PublicBackendView {
   const canSeeAllDrafts =
     currentUser &&
@@ -876,18 +949,19 @@ export async function opRegisterUser(
     password: string;
     city?: string;
     requestedRole?: "member" | "creator";
+    guestProgress?: UserProgressSnapshot;
   }
 ): Promise<{ user: PublicUserAccount; token: string }> {
   if (!db.platformSettings.allowSelfRegistration) {
     throw new BackendError("Self-registration is currently closed by the administrator.", 403);
   }
-  const name = payload.name.trim();
-  const email = payload.email.trim().toLowerCase();
-  const password = payload.password;
-
-  if (name.length < 2) throw new BackendError("Name must be at least 2 characters.");
-  if (!email.includes("@") || email.length < 5) throw new BackendError("Valid email is required.");
-  if (password.length < 6) throw new BackendError("Password must be at least 6 characters.");
+  const parsed = RegisterSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new BackendError(parsed.error.issues[0]?.message || "Invalid registration details.", 400);
+  }
+  const name = parsed.data.name;
+  const email = parsed.data.email.toLowerCase();
+  const password = parsed.data.password;
 
   if (db.users.some((u) => u.email.toLowerCase() === email)) {
     throw new BackendError("An account with this email already exists. Please sign in instead.", 409);
@@ -896,7 +970,7 @@ export async function opRegisterUser(
   const salt = randomToken("salt");
   const passwordHash = await hashPasswordWithSalt(password, salt);
   const nowIso = new Date().toISOString();
-  const role: UserRole = payload.requestedRole === "creator" ? "creator" : "member";
+  const role: UserRole = parsed.data.requestedRole === "creator" ? "creator" : "member";
 
   const colors = ["#A855F7", "#10B981", "#38BDF8", "#F59E0B", "#EC4899"];
   const newUser: UserAccount = {
@@ -905,10 +979,13 @@ export async function opRegisterUser(
     email,
     role,
     title: role === "creator" ? "Community Archive Creator" : "Sanctuary Member",
-    city: payload.city?.trim() || "Global",
+    city: parsed.data.city || "Global",
     avatarColor: colors[db.users.length % colors.length],
     status: "active",
     xp: 100, // Welcome Barakah XP bonus
+    progress: payload.guestProgress
+      ? { ...payload.guestProgress, updatedAt: nowIso }
+      : undefined,
     passwordSalt: salt,
     passwordHash,
     createdAt: nowIso,
@@ -925,7 +1002,11 @@ export async function opLoginUser(
   db: BackendDatabaseSnapshot,
   payload: { email: string; password: string }
 ): Promise<{ user: PublicUserAccount; token: string }> {
-  const email = payload.email.trim().toLowerCase();
+  const parsed = LoginSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new BackendError(parsed.error.issues[0]?.message || "Invalid email or password.", 400);
+  }
+  const email = parsed.data.email.toLowerCase();
   const user = db.users.find((u) => u.email.toLowerCase() === email);
   if (!user) {
     throw new BackendError("Invalid email or password.", 401);
@@ -933,9 +1014,13 @@ export async function opLoginUser(
   if (user.status !== "active") {
     throw new BackendError("This account has been suspended by an administrator.", 403);
   }
-  const candidateHash = await hashPasswordWithSalt(payload.password, user.passwordSalt);
-  if (candidateHash !== user.passwordHash) {
+  const ok = await verifyPasswordWithSalt(parsed.data.password, user.passwordSalt, user.passwordHash);
+  if (!ok) {
     throw new BackendError("Invalid email or password.", 401);
+  }
+  // Transparently upgrade legacy SHA-256 hashes to PBKDF2-SHA256 on successful login
+  if (!user.passwordHash.startsWith("pbkdf2$")) {
+    user.passwordHash = await hashPasswordWithSalt(parsed.data.password, user.passwordSalt);
   }
   const sess = createSessionForUser(db, user);
   await appendAuditLog(db, user, "USER_LOGIN", `${user.email} (${user.role})`);
@@ -963,13 +1048,31 @@ export async function opLogoutSession(db: BackendDatabaseSnapshot, token?: strin
 export async function opUpdateUserProfile(
   db: BackendDatabaseSnapshot,
   actor: UserAccount,
-  patch: { name?: string; title?: string; city?: string; xpDelta?: number }
+  patch: {
+    name?: string;
+    title?: string;
+    city?: string;
+    xpDelta?: number;
+    progress?: UserProgressSnapshot;
+  }
 ): Promise<PublicUserAccount> {
   if (patch.name && patch.name.trim().length >= 2) actor.name = patch.name.trim();
   if (patch.title !== undefined) actor.title = patch.title.trim().slice(0, 60);
   if (patch.city !== undefined) actor.city = patch.city.trim().slice(0, 50);
   if (typeof patch.xpDelta === "number" && Number.isFinite(patch.xpDelta)) {
     actor.xp = Math.max(0, actor.xp + Math.round(patch.xpDelta));
+  }
+  if (patch.progress) {
+    const prev = actor.progress || {};
+    actor.progress = {
+      streakDays: Math.max(prev.streakDays ?? 0, patch.progress.streakDays ?? 0),
+      bestQuizTier: Math.max(prev.bestQuizTier ?? 0, patch.progress.bestQuizTier ?? 0),
+      lastQuranRef: patch.progress.lastQuranRef || prev.lastQuranRef,
+      tasbihTotalToday: Math.max(prev.tasbihTotalToday ?? 0, patch.progress.tasbihTotalToday ?? 0),
+      hawlHijriMonth: patch.progress.hawlHijriMonth ?? prev.hawlHijriMonth,
+      hawlHijriDay: patch.progress.hawlHijriDay ?? prev.hawlHijriDay,
+      updatedAt: new Date().toISOString(),
+    };
   }
   return stripSecretFields(actor);
 }
@@ -982,12 +1085,16 @@ export async function opAdminUpdateUser(
   if (!actor || !hasPermission(actor.role, "users:manage")) {
     throw new BackendError("Super Admin permission (users:manage) required.", 403);
   }
-  const target = db.users.find((u) => u.id === payload.targetUserId);
+  const parsed = AdminUpdateUserSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new BackendError(parsed.error.issues[0]?.message || "Invalid user update payload.", 400);
+  }
+  const target = db.users.find((u) => u.id === parsed.data.targetUserId);
   if (!target) throw new BackendError("Target user not found.", 404);
 
-  if (payload.role) target.role = payload.role;
-  if (payload.status) target.status = payload.status;
-  if (payload.title !== undefined) target.title = payload.title.trim();
+  if (parsed.data.role) target.role = parsed.data.role;
+  if (parsed.data.status) target.status = parsed.data.status;
+  if (parsed.data.title !== undefined) target.title = parsed.data.title.trim();
 
   await appendAuditLog(
     db,
@@ -1008,6 +1115,10 @@ export async function opUpsertAuliya(
       "Creator, Editor, or Super Admin role is required to add or edit Auliya records.",
       403
     );
+  }
+  const parsed = AuliyaUpsertSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new BackendError(parsed.error.issues[0]?.message || "Invalid Auliya profile fields.", 400);
   }
 
   const slug = (input.id || input.slug || input.name)
@@ -1134,6 +1245,10 @@ export async function opUpsertUrs(
   if (!actor || !hasPermission(actor.role, "urs:create")) {
     throw new BackendError("Creator, Editor, or Super Admin role required to manage Urs events.", 403);
   }
+  const parsed = UrsUpsertSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new BackendError(parsed.error.issues[0]?.message || "Invalid Urs event fields.", 400);
+  }
 
   const id =
     input.id ||
@@ -1221,6 +1336,10 @@ export async function opUpsertBarsi(
   actor: UserAccount | null,
   input: Partial<BarsiRecord> & { personName: string; hijriMonth: number; hijriDay: number }
 ): Promise<BarsiRecord> {
+  const parsed = BarsiUpsertSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new BackendError(parsed.error.issues[0]?.message || "Invalid Barsi record fields.", 400);
+  }
   const ownerId = actor?.id || "guest_local";
   const ownerName = actor?.name || "Family Sanctuary Guest";
   const id = input.id || randomToken("barsi");
@@ -1426,3 +1545,87 @@ export function assertHasPermission(actor: UserAccount | null, perm: PermissionK
   }
   return actor;
 }
+
+export async function opReviewSubmission(
+  db: BackendDatabaseSnapshot,
+  actor: UserAccount | null,
+  payload: {
+    targetType: "auliya" | "urs";
+    id: string;
+    decision: "approve" | "request_changes";
+    reviewNotes?: string;
+  }
+): Promise<ManagedAuliyaRecord | UrsEventRecord> {
+  const parsed = ReviewSubmissionSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new BackendError(parsed.error.issues[0]?.message || "Invalid review payload.", 400);
+  }
+  const { targetType, id, decision, reviewNotes } = parsed.data;
+  const nowIso = new Date().toISOString();
+
+  if (targetType === "auliya") {
+    assertHasPermission(actor, "auliya:publish");
+    const idx = db.auliyaRecords.findIndex((a) => a.id === id);
+    if (idx < 0) throw new BackendError("Auliya record not found.", 404);
+    const existing = db.auliyaRecords[idx];
+    const updated: ManagedAuliyaRecord = {
+      ...existing,
+      status: decision === "approve" ? "Published" : "Draft",
+      verifiedByName: decision === "approve" ? actor?.name : existing.verifiedByName,
+      reviewNotes: reviewNotes || (decision === "approve" ? "Approved by Scholarly Editor" : "Revisions requested"),
+      reviewedAt: nowIso,
+      updatedAt: nowIso,
+    };
+    db.auliyaRecords[idx] = updated;
+    await appendAuditLog(
+      db,
+      actor,
+      decision === "approve" ? "AULIYA_SCHOLAR_APPROVED" : "AULIYA_CHANGES_REQUESTED",
+      `${updated.name}${reviewNotes ? ` — ${reviewNotes}` : ""}`
+    );
+    return updated;
+  }
+
+  assertHasPermission(actor, "urs:publish");
+  const idx = db.ursEvents.findIndex((u) => u.id === id);
+  if (idx < 0) throw new BackendError("Urs event not found.", 404);
+  const existing = db.ursEvents[idx];
+  const updated: UrsEventRecord = {
+    ...existing,
+    status: decision === "approve" ? "Published" : "Draft",
+    reviewNotes: reviewNotes || (decision === "approve" ? "Approved by Scholarly Editor" : "Revisions requested"),
+    reviewedAt: nowIso,
+    updatedAt: nowIso,
+  };
+  db.ursEvents[idx] = updated;
+  await appendAuditLog(
+    db,
+    actor,
+    decision === "approve" ? "URS_SCHOLAR_APPROVED" : "URS_CHANGES_REQUESTED",
+    `${updated.title}${reviewNotes ? ` — ${reviewNotes}` : ""}`
+  );
+  return updated;
+}
+
+export async function opRestoreSnapshot(
+  actor: UserAccount | null,
+  rawSnapshot: unknown
+): Promise<BackendDatabaseSnapshot> {
+  assertHasPermission(actor, "db:snapshot");
+  const parsed = SnapshotRestoreSchema.safeParse(rawSnapshot);
+  if (!parsed.success) {
+    throw new BackendError(
+      `Invalid database snapshot: ${parsed.error.issues[0]?.message || "schema mismatch"}`,
+      400
+    );
+  }
+  const restored = rawSnapshot as BackendDatabaseSnapshot;
+  await appendAuditLog(
+    restored,
+    actor,
+    "DATABASE_SNAPSHOT_RESTORED",
+    `${restored.auliyaRecords.length} Auliya, ${restored.ursEvents.length} Urs, ${restored.users.length} Users`
+  );
+  return restored;
+}
+

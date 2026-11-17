@@ -57,12 +57,18 @@ import {
   Trash2,
   Trophy,
   Unlock,
+  Upload,
   UserCheck,
   UserPlus,
   Users,
   X,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
+import {
+  getSupabaseConfig,
+  setSupabaseRuntimeConfig,
+  testSupabaseConnection,
+} from "@/lib/supabase-rest";
 import {
   DailyQuestConfig,
   GamificationConfig,
@@ -790,12 +796,15 @@ function AdminControlCenterInner() {
     cmsDeleteAuliya,
     cmsUpsertUrs,
     cmsDeleteUrs,
+    cmsReviewSubmission,
     cmsSaveModules,
     cmsSaveZakatConfig,
     cmsSaveGamificationConfig,
     cmsSavePlatformSettings,
     cmsAdminUpdateUser,
+    cmsVerifyAuditChain,
     cmsExportSnapshot,
+    cmsRestoreSnapshot,
     cmsResetDatabase,
     currentRank,
   } = useApp();
@@ -1549,6 +1558,118 @@ function AdminControlCenterInner() {
     } finally {
       setBusyAction(null);
     }
+  };
+
+  const [reviewNotesMap, setReviewNotesMap] = useState<Record<string, string>>({});
+  const [auditVerifyStatus, setAuditVerifyStatus] = useState<{
+    valid: boolean;
+    checkedCount: number;
+    brokenAtId?: string;
+  } | null>(null);
+  const existingSb = useMemo(() => getSupabaseConfig(), []);
+  const [sbUrl, setSbUrl] = useState(() => existingSb?.url || "");
+  const [sbAnonKey, setSbAnonKey] = useState(() => existingSb?.anonKey || "");
+  const [sbTestResult, setSbTestResult] = useState<string | null>(null);
+
+  const pendingAuliya = useMemo(
+    () => backend.auliyaRecords.filter((a) => a.status !== "Published"),
+    [backend.auliyaRecords]
+  );
+  const pendingUrs = useMemo(
+    () => backend.ursEvents.filter((u) => u.status !== "Published"),
+    [backend.ursEvents]
+  );
+
+  const handleReviewSubmission = async (
+    targetType: "auliya" | "urs",
+    id: string,
+    decision: "approve" | "request_changes"
+  ) => {
+    setBusyAction(`review-${targetType}-${id}`);
+    try {
+      const notes = reviewNotesMap[`${targetType}:${id}`]?.trim();
+      await cmsReviewSubmission({ targetType, id, decision, reviewNotes: notes || undefined });
+      notify(
+        "success",
+        decision === "approve"
+          ? "Submission approved and published to the live directory."
+          : "Returned to Draft with editorial review notes."
+      );
+    } catch (err) {
+      notify("error", extractErrorMessage(err, "Review action failed."));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleVerifyAuditChain = async () => {
+    setBusyAction("verify-audit");
+    try {
+      const report = await cmsVerifyAuditChain();
+      setAuditVerifyStatus(report);
+      notify(
+        report.valid ? "success" : "error",
+        report.valid
+          ? `Cryptographic SHA-256 chain verified across ${report.checkedCount} audit entries.`
+          : `Hash mismatch detected at entry ${report.brokenAtId || "unknown"}.`
+      );
+    } catch (err) {
+      notify("error", extractErrorMessage(err, "Could not verify audit chain."));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleRestoreSnapshotFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusyAction("restore-db");
+    try {
+      const text = await file.text();
+      await cmsRestoreSnapshot(text);
+      setModulesDraft(null);
+      setSettingsDraft(null);
+      setZakatDraft(null);
+      setGamificationDraft(null);
+      notify("success", `Database snapshot restored cleanly from ${file.name}.`);
+    } catch (err) {
+      notify("error", extractErrorMessage(err, "Failed to restore snapshot JSON."));
+    } finally {
+      e.target.value = "";
+      setBusyAction(null);
+    }
+  };
+
+  const handleConnectSupabase = async () => {
+    if (!sbUrl.trim() || !sbAnonKey.trim()) {
+      notify("error", "Enter both Supabase Project URL and Anon Key.");
+      return;
+    }
+    setBusyAction("sb-connect");
+    try {
+      const test = await testSupabaseConnection(sbUrl, sbAnonKey);
+      setSbTestResult(test.message);
+      if (!test.ok) {
+        notify("error", test.message);
+        return;
+      }
+      setSupabaseRuntimeConfig({ url: sbUrl.trim(), anonKey: sbAnonKey.trim() });
+      await refreshBackend();
+      notify("success", "Connected to Supabase PostgreSQL + Auth + RLS.");
+    } catch (err) {
+      notify("error", extractErrorMessage(err, "Supabase connection failed."));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleDisconnectSupabase = async () => {
+    setSupabaseRuntimeConfig(null);
+    setSbUrl("");
+    setSbAnonKey("");
+    setSbTestResult(null);
+    await refreshBackend();
+    notify("info", "Disconnected runtime Supabase connector; using Server/Local Engine.");
   };
 
   const filteredUsers = useMemo(() => {
@@ -2464,8 +2585,116 @@ function AdminControlCenterInner() {
                 )}
               </section>
 
-              {/* Right 7 Cols: Contributor Role Permissions Table */}
-              <section className="lg:col-span-7 bento-card p-5 sm:p-6 space-y-4 overflow-hidden">
+              {/* Right 7 Cols: Scholarly Review Queue + Contributor Role Permissions Table */}
+              <section className="lg:col-span-7 space-y-5 overflow-hidden">
+                {(canPublishAuliya || canPublishUrs) && (pendingAuliya.length > 0 || pendingUrs.length > 0) && (
+                  <div className="bento-card p-5 sm:p-6 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4" style={{ color: "var(--accent-emerald)" }} />
+                          <span>{ui.statusVerification} ({pendingAuliya.length + pendingUrs.length})</span>
+                        </h2>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                          Review Creator submissions before publishing to the live directory
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="divide-y" style={{ borderColor: "var(--border-hairline)" }}>
+                      {pendingAuliya.map((item) => (
+                        <div key={`rev-a-${item.id}`} className="py-3.5 first:pt-0 last:pb-0 space-y-2 text-xs">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <span className="font-bold text-sm">{item.name}</span>{" "}
+                              <span className="font-urdu" style={{ color: "var(--text-secondary)" }}>({item.urduName})</span>
+                              <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                                {item.city}, {item.country} • {item.createdByName}
+                              </div>
+                            </div>
+                            <StatusPill status={item.status} ui={ui} />
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <input
+                              type="text"
+                              value={reviewNotesMap[`auliya:${item.id}`] || ""}
+                              onChange={(e) =>
+                                setReviewNotesMap((prev) => ({ ...prev, [`auliya:${item.id}`]: e.target.value }))
+                              }
+                              placeholder="Editorial review note (optional)…"
+                              className="flex-1 min-w-[180px] px-3 py-1.5 rounded-xl border bg-transparent text-xs"
+                              style={{ borderColor: "var(--border-hairline)" }}
+                            />
+                            <button
+                              type="button"
+                              disabled={busyAction === `review-auliya-${item.id}`}
+                              onClick={() => handleReviewSubmission("auliya", item.id, "approve")}
+                              className="btn-primary px-3 py-1.5 rounded-xl font-semibold inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>{ui.approvePublish}</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busyAction === `review-auliya-${item.id}`}
+                              onClick={() => handleReviewSubmission("auliya", item.id, "request_changes")}
+                              className="px-3 py-1.5 rounded-xl border font-semibold cursor-pointer"
+                              style={{ borderColor: "var(--border-hairline)" }}
+                            >
+                              {ui.statusDraft}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {pendingUrs.map((ev) => (
+                        <div key={`rev-u-${ev.id}`} className="py-3.5 first:pt-0 last:pb-0 space-y-2 text-xs">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <span className="font-bold text-sm">{ev.title}</span>
+                              <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                                {ev.day} {formatLocalizedHijriMonth(lang, ev.month, HIJRI_MONTHS[ev.month - 1] || "")} • {ev.createdByName}
+                              </div>
+                            </div>
+                            <StatusPill status={ev.status} ui={ui} />
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <input
+                              type="text"
+                              value={reviewNotesMap[`urs:${ev.id}`] || ""}
+                              onChange={(e) =>
+                                setReviewNotesMap((prev) => ({ ...prev, [`urs:${ev.id}`]: e.target.value }))
+                              }
+                              placeholder="Editorial review note (optional)…"
+                              className="flex-1 min-w-[180px] px-3 py-1.5 rounded-xl border bg-transparent text-xs"
+                              style={{ borderColor: "var(--border-hairline)" }}
+                            />
+                            <button
+                              type="button"
+                              disabled={busyAction === `review-urs-${ev.id}`}
+                              onClick={() => handleReviewSubmission("urs", ev.id, "approve")}
+                              className="btn-primary px-3 py-1.5 rounded-xl font-semibold inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>{ui.approvePublish}</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busyAction === `review-urs-${ev.id}`}
+                              onClick={() => handleReviewSubmission("urs", ev.id, "request_changes")}
+                              className="px-3 py-1.5 rounded-xl border font-semibold cursor-pointer"
+                              style={{ borderColor: "var(--border-hairline)" }}
+                            >
+                              {ui.statusDraft}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="bento-card p-5 sm:p-6 space-y-4 overflow-hidden">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
@@ -2562,6 +2791,7 @@ function AdminControlCenterInner() {
                       ))}
                     </tbody>
                   </table>
+                </div>
                 </div>
               </section>
             </div>
@@ -5355,16 +5585,34 @@ function AdminControlCenterInner() {
                   </p>
                 </div>
 
-                <span
-                  className={`badge-pill ${
-                    auditChainIntact ? "badge-emerald" : "badge-crimson"
-                  }`}
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  {auditChainIntact
-                    ? "SHA-256 Chain Verified"
-                    : "Hash Link Mismatch"}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={busyAction === "verify-audit"}
+                    onClick={handleVerifyAuditChain}
+                    className="px-3 py-1 rounded-full border text-[11px] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                    style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-elevated)" }}
+                  >
+                    <RefreshCw className={`w-3 h-3 ${busyAction === "verify-audit" ? "animate-spin" : ""}`} />
+                    <span>Verify SHA-256 Chain</span>
+                  </button>
+                  <span
+                    className={`badge-pill ${
+                      (auditVerifyStatus ? auditVerifyStatus.valid : auditChainIntact)
+                        ? "badge-emerald"
+                        : "badge-crimson"
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    {auditVerifyStatus
+                      ? auditVerifyStatus.valid
+                        ? `Verified (${auditVerifyStatus.checkedCount})`
+                        : "Hash Link Mismatch"
+                      : auditChainIntact
+                      ? "SHA-256 Chain Intact"
+                      : "Hash Link Mismatch"}
+                  </span>
+                </div>
               </div>
 
               <div className="relative text-xs">
@@ -5500,19 +5748,40 @@ function AdminControlCenterInner() {
                 )}
 
                 {/* Export Full Backend JSON Snapshot */}
-                <button
-                  type="button"
-                  disabled={!canSnapshotDb || busyAction === "export-db"}
-                  onClick={handleExportSnapshot}
-                  className="btn-primary w-full py-3 px-4 rounded-xl font-bold inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-45"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>
-                    {busyAction === "export-db"
-                      ? `${tp(lang, "Loading")}…`
-                      : ui.exportSnapshot}
-                  </span>
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={!canSnapshotDb || busyAction === "export-db"}
+                    onClick={handleExportSnapshot}
+                    className="btn-primary py-3 px-4 rounded-xl font-bold inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-45"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>
+                      {busyAction === "export-db"
+                        ? `${tp(lang, "Loading")}…`
+                        : ui.exportSnapshot}
+                    </span>
+                  </button>
+                  <label
+                    className={`py-3 px-4 rounded-xl border font-bold inline-flex items-center justify-center gap-2 ${
+                      canSnapshotDb ? "cursor-pointer" : "opacity-45 pointer-events-none"
+                    }`}
+                    style={{
+                      borderColor: "var(--border-hairline)",
+                      backgroundColor: "var(--bg-elevated)",
+                    }}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>{busyAction === "restore-db" ? `${tp(lang, "Loading")}…` : "Restore JSON"}</span>
+                    <input
+                      type="file"
+                      accept="application/json,.json"
+                      disabled={!canSnapshotDb || busyAction === "restore-db"}
+                      onChange={handleRestoreSnapshotFile}
+                      className="sr-only"
+                    />
+                  </label>
+                </div>
 
                 {exportedJson && (
                   <div
@@ -5638,7 +5907,11 @@ function AdminControlCenterInner() {
                   </div>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/15 text-[10px] font-semibold">
                     <Server className="w-3 h-3" />
-                    {backend.backendMode === "server-api" ? "REST API" : "Local Engine"}
+                    {backend.backendMode === "supabase"
+                      ? "Supabase Cloud"
+                      : backend.backendMode === "server-api"
+                      ? "REST API"
+                      : "Local Engine"}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
@@ -5674,6 +5947,115 @@ function AdminControlCenterInner() {
                       {backend.zakatConfig.currencies.length}
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Supabase Cloud Backend Connector */}
+              <div className="bento-card p-5 space-y-3 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-bold text-sm flex items-center gap-2">
+                    <Database className="w-4 h-4 text-[var(--accent-primary)]" />
+                    <span>Supabase Cloud Backend</span>
+                  </div>
+                  <span
+                    className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    style={{
+                      backgroundColor:
+                        backend.backendMode === "supabase"
+                          ? "rgba(16,185,129,0.16)"
+                          : "var(--bg-subtle)",
+                      color:
+                        backend.backendMode === "supabase"
+                          ? "#10B981"
+                          : "var(--text-muted)",
+                    }}
+                  >
+                    {backend.backendMode === "supabase" ? "Connected" : "Optional"}
+                  </span>
+                </div>
+                <p style={{ color: "var(--text-muted)" }}>
+                  Connect a PostgreSQL + RLS Supabase project (run{" "}
+                  <code className="text-[10px] px-1 py-0.5 rounded bg-black/10 dark:bg-white/10">
+                    supabase/migrations/001_initial_schema.sql
+                  </code>{" "}
+                  first) for live multi-device sync even on static GitHub Pages.
+                </p>
+                <div className="space-y-2">
+                  <div>
+                    <label
+                      className="block text-[10px] font-semibold uppercase tracking-wider mb-1"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      Project URL
+                    </label>
+                    <input
+                      type="url"
+                      value={sbUrl}
+                      onChange={(e) => setSbUrl(e.target.value)}
+                      placeholder="https://your-project.supabase.co"
+                      className="w-full px-3 py-2 rounded-xl border text-xs outline-none"
+                      style={{
+                        borderColor: "var(--border-hairline)",
+                        backgroundColor: "var(--bg-subtle)",
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className="block text-[10px] font-semibold uppercase tracking-wider mb-1"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      Anon Public Key
+                    </label>
+                    <input
+                      type="password"
+                      value={sbAnonKey}
+                      onChange={(e) => setSbAnonKey(e.target.value)}
+                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      className="w-full px-3 py-2 rounded-xl border text-xs outline-none"
+                      style={{
+                        borderColor: "var(--border-hairline)",
+                        backgroundColor: "var(--bg-subtle)",
+                      }}
+                    />
+                  </div>
+                </div>
+                {sbTestResult && (
+                  <div
+                    className="p-2.5 rounded-xl border text-[11px]"
+                    style={{
+                      borderColor: "var(--border-hairline)",
+                      backgroundColor: "var(--bg-subtle)",
+                    }}
+                  >
+                    {sbTestResult}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={busyAction === "supabase-connect"}
+                    onClick={handleConnectSupabase}
+                    className="flex-1 py-2 px-3 rounded-xl font-bold text-white cursor-pointer disabled:opacity-60"
+                    style={{ backgroundColor: "var(--accent-primary)" }}
+                  >
+                    {busyAction === "supabase-connect"
+                      ? `${tp(lang, "Loading")}…`
+                      : "Test & Connect"}
+                  </button>
+                  {backend.backendMode === "supabase" && (
+                    <button
+                      type="button"
+                      onClick={handleDisconnectSupabase}
+                      className="py-2 px-3 rounded-xl border font-semibold cursor-pointer"
+                      style={{
+                        borderColor: "var(--border-hairline)",
+                        backgroundColor: "var(--bg-subtle)",
+                      }}
+                    >
+                      Disconnect
+                    </button>
+                  )}
                 </div>
               </div>
             </aside>

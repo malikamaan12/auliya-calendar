@@ -32,6 +32,7 @@ import { getHijriDate, HijriDateInfo, IslamicEvent, SACRED_EVENTS } from "./hijr
 import { AULIYA_DATA, AuliyaProfile } from "@/data/auliya";
 import { backendClient } from "./backend-client";
 import {
+  AuditChainReport,
   BarsiIsalGiftLog,
   BarsiRecord,
   GamificationConfig,
@@ -339,6 +340,12 @@ interface AppContextValue extends PersistedState {
   cmsDeleteAuliya: (id: string) => Promise<void>;
   cmsUpsertUrs: (input: Partial<UrsEventRecord> & { title: string; month: number; day: number }) => Promise<void>;
   cmsDeleteUrs: (id: string) => Promise<void>;
+  cmsReviewSubmission: (p: {
+    targetType: "auliya" | "urs";
+    id: string;
+    decision: "approve" | "request_changes";
+    reviewNotes?: string;
+  }) => Promise<void>;
   cmsUpsertBarsi: (
     input: Partial<BarsiRecord> & { personName: string; hijriMonth: number; hijriDay: number }
   ) => Promise<void>;
@@ -360,7 +367,9 @@ interface AppContextValue extends PersistedState {
     status?: "active" | "suspended";
     title?: string;
   }) => Promise<void>;
+  cmsVerifyAuditChain: () => Promise<AuditChainReport>;
   cmsExportSnapshot: () => Promise<string>;
+  cmsRestoreSnapshot: (rawJson: string) => Promise<void>;
   cmsResetDatabase: () => Promise<void>;
 
   // Gamification & Spiritual Rank
@@ -805,13 +814,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dynamicCalendarEvents,
     refreshBackend,
     registerAccount: async (p) => {
-      const view = await backendClient.register(p);
+      const view = await backendClient.register({
+        ...p,
+        guestProgress: {
+          streakDays: state.streakDays,
+          bestQuizTier: state.bestQuizTier,
+          lastQuranRef: state.lastQuranRef,
+          tasbihTotalToday: state.tasbihTotalToday,
+          hawlHijriMonth: state.hawlHijriMonth,
+          hawlHijriDay: state.hawlHijriDay,
+        },
+      });
       setBackend(view);
       awardXp(100, "Account Created — Welcome Bonus!");
     },
     loginAccount: async (p) => {
       const view = await backendClient.login(p);
       setBackend(view);
+      const remoteProg = view.currentUser?.progress;
+      if (remoteProg) {
+        setState((s) => ({
+          ...s,
+          streakDays: Math.max(s.streakDays, remoteProg.streakDays ?? 0),
+          bestQuizTier: Math.max(s.bestQuizTier, remoteProg.bestQuizTier ?? 0),
+          lastQuranRef: remoteProg.lastQuranRef || s.lastQuranRef,
+          tasbihTotalToday: Math.max(s.tasbihTotalToday, remoteProg.tasbihTotalToday ?? 0),
+          hawlHijriMonth: remoteProg.hawlHijriMonth ?? s.hawlHijriMonth,
+          hawlHijriDay: remoteProg.hawlHijriDay ?? s.hawlHijriDay,
+        }));
+      }
     },
     switchDemoRole: async (role) => {
       const view = await backendClient.demoSwitchRole(role);
@@ -843,6 +874,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     },
     cmsDeleteUrs: async (id) => {
       const view = await backendClient.deleteUrs(id);
+      setBackend(view);
+    },
+    cmsReviewSubmission: async (p) => {
+      const view = await backendClient.reviewSubmission(p);
       setBackend(view);
     },
     cmsUpsertBarsi: async (input) => {
@@ -885,7 +920,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const view = await backendClient.adminUpdateUser(p);
       setBackend(view);
     },
+    cmsVerifyAuditChain: () => backendClient.verifyAuditChain(),
     cmsExportSnapshot: () => backendClient.exportSnapshotJson(),
+    cmsRestoreSnapshot: async (rawJson) => {
+      const view = await backendClient.restoreSnapshotJson(rawJson);
+      setBackend(view);
+    },
     cmsResetDatabase: async () => {
       const view = await backendClient.resetDatabaseToDefaults();
       setBackend(view);

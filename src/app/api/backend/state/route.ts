@@ -5,7 +5,9 @@ import {
   buildPublicView,
   createInitialBackendSnapshot,
   opDemoSwitchRole,
+  opRestoreSnapshot,
   resolveSessionUser,
+  verifyAuditChain,
 } from "@/lib/backend-core";
 import {
   getRequestContext,
@@ -20,6 +22,11 @@ export async function GET(req: Request) {
     if (url.searchParams.get("export") === "1") {
       assertHasPermission(actor, "db:snapshot");
       return NextResponse.json({ snapshot: db });
+    }
+    if (url.searchParams.get("verifyAudit") === "1") {
+      assertHasPermission(actor, "audit:view");
+      const report = await verifyAuditChain(db.auditLogs);
+      return NextResponse.json({ report });
     }
     return NextResponse.json(buildPublicView(db, actor, "server-api"));
   } catch (err) {
@@ -41,6 +48,13 @@ export async function PUT(req: Request) {
       return NextResponse.json({
         token,
         state: buildPublicView(fresh, nextActor, "server-api"),
+      });
+    }
+    if (body?.action === "restore") {
+      const restored = await opRestoreSnapshot(verified, body.snapshot);
+      await persistServerDatabase(restored);
+      return NextResponse.json({
+        state: buildPublicView(restored, verified, "server-api"),
       });
     }
     return NextResponse.json({ error: "Unsupported snapshot action" }, { status: 400 });

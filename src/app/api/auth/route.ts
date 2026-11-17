@@ -37,6 +37,7 @@ export async function POST(req: Request) {
         password: String(body.password || ""),
         city: body.city ? String(body.city) : undefined,
         requestedRole: body.requestedRole === "creator" ? "creator" : "member",
+        guestProgress: body.guestProgress,
       });
       await persistServerDatabase(db);
       const nextActor = resolveSessionUser(db, res.token);
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
         title: body.title,
         city: body.city,
         xpDelta: body.xpDelta,
+        progress: body.progress,
       });
       await persistServerDatabase(db);
       return NextResponse.json({
