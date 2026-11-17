@@ -1,43 +1,205 @@
 @import "tailwindcss";
 
-:root {
-  /* Light Theme — Soft Lavender & Alabaster */
+:root,
+html[data-theme="alabaster-lavender"] {
+  /* Alabaster Fajr — Crisp Light */
   --bg-canvas: #F6F4FC;
   --bg-surface: #FFFFFF;
-  --bg-surface-elevated: rgba(255, 255, 255, 0.95);
+  --bg-card: #FFFFFF;
+  --bg-elevated: #F1EDFA;
+  --bg-surface-elevated: rgba(255, 255, 255, 0.96);
   --bg-muted: #EDE8FA;
-  --border-hairline: rgba(134, 62, 213, 0.14);
-  --text-primary: #240F4F;
-  --text-muted: #8789A3;
-  --accent-primary: #863ED5;
-  --accent-secondary: #672CBC;
-  --accent-gold: #E08E6D;
-  --accent-danger: #EF4444;
-  --accent-soft: rgba(134, 62, 213, 0.11);
-  --gold-soft: rgba(249, 176, 145, 0.22);
-  --gradient-brand: linear-gradient(135deg, #DF98FA 0%, #9055FF 100%);
-  --gradient-twilight: linear-gradient(135deg, #672CBC 0%, #3B1D7A 55%, #1E1348 100%);
-  --shadow-card: 0 4px 20px -2px rgba(36, 15, 79, 0.06);
+  --border-hairline: rgba(124, 58, 237, 0.16);
+  --border-subtle: rgba(124, 58, 237, 0.16);
+  --text-primary: #1F0E47;
+  --text-secondary: #4C3B78;
+  --text-muted: #6E6A8E;
+  --accent-primary: #7C3AED;
+  --accent-secondary: #6D28D9;
+  --accent-gold: #C26A27;
+  --accent-danger: #DC2626;
+  --accent-soft: rgba(124, 58, 237, 0.11);
+  --gold-soft: rgba(217, 119, 6, 0.15);
+  --gradient-brand: linear-gradient(135deg, #A855F7 0%, #6D28D9 100%);
+  --gradient-twilight: linear-gradient(135deg, #5B21B6 0%, #3B1D7A 55%, #1E1348 100%);
+  --shadow-card: 0 8px 28px -6px rgba(31, 14, 71, 0.08);
+  --glow-primary: rgba(124, 58, 237, 0.28);
 }
 
-html.dark {
-  /* Deep Indigo Night Theme (Exact Reference UI Palette: #040C23, #121931, #A19CC5, #DF98FA -> #9055FF, #F9B091) */
+html[data-theme="parchment-noor"] {
+  /* Madinah Parchment — Warm Cream & Sacred Emerald */
+  --bg-canvas: #FAF5E8;
+  --bg-surface: #FFFDF7;
+  --bg-card: #FFFDF7;
+  --bg-elevated: #F3EAD6;
+  --bg-surface-elevated: rgba(255, 253, 247, 0.96);
+  --bg-muted: #EFE5CE;
+  --border-hairline: rgba(4, 120, 87, 0.18);
+  --border-subtle: rgba(146, 64, 14, 0.18);
+  --text-primary: #1C150D;
+  --text-secondary: #4A3B2A;
+  --text-muted: #75634D;
+  --accent-primary: #047857;
+  --accent-secondary: #065F46;
+  --accent-gold: #B45309;
+  --accent-danger: #B91C1C;
+  --accent-soft: rgba(4, 120, 87, 0.11);
+  --gold-soft: rgba(180, 83, 9, 0.14);
+  --gradient-brand: linear-gradient(135deg, #10B981 0%, #047857 100%);
+  --gradient-twilight: linear-gradient(135deg, #065F46 0%, #064E3B 55%, #022C22 100%);
+  --shadow-card: 0 8px 26px -6px rgba(68, 46, 17, 0.09);
+  --glow-primary: rgba(4, 120, 87, 0.25);
+}
+
+html[data-theme="ottoman-ivory"] {
+  /* Ottoman Iznik — Porcelain Teal & Burnished Gold */
+  --bg-canvas: #F2F7F8;
+  --bg-surface: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #E5EFF2;
+  --bg-surface-elevated: rgba(255, 255, 255, 0.96);
+  --bg-muted: #E0ECEF;
+  --border-hairline: rgba(15, 118, 110, 0.18);
+  --border-subtle: rgba(15, 118, 110, 0.18);
+  --text-primary: #0F2930;
+  --text-secondary: #2E525C;
+  --text-muted: #5B7982;
+  --accent-primary: #0F766E;
+  --accent-secondary: #115E59;
+  --accent-gold: #B45309;
+  --accent-danger: #DC2626;
+  --accent-soft: rgba(15, 118, 110, 0.11);
+  --gold-soft: rgba(180, 83, 9, 0.14);
+  --gradient-brand: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);
+  --gradient-twilight: linear-gradient(135deg, #0F766E 0%, #134E4A 55%, #082F36 100%);
+  --shadow-card: 0 8px 26px -6px rgba(15, 41, 48, 0.09);
+  --glow-primary: rgba(15, 118, 110, 0.25);
+}
+
+html.dark,
+html[data-theme="indigo-night"] {
+  /* Midnight Layl — Signature Deep Indigo & Amethyst */
   --bg-canvas: #040C23;
   --bg-surface: #121931;
+  --bg-card: #121931;
+  --bg-elevated: #1A2342;
   --bg-surface-elevated: rgba(18, 25, 49, 0.94);
   --bg-muted: #1B2444;
-  --border-hairline: rgba(161, 156, 197, 0.13);
+  --border-hairline: rgba(161, 156, 197, 0.15);
+  --border-subtle: rgba(161, 156, 197, 0.15);
   --text-primary: #FFFFFF;
+  --text-secondary: #D4D0EE;
   --text-muted: #A19CC5;
   --accent-primary: #A44AFF;
   --accent-secondary: #DF98FA;
   --accent-gold: #F9B091;
   --accent-danger: #F87171;
-  --accent-soft: rgba(164, 74, 255, 0.15);
+  --accent-soft: rgba(164, 74, 255, 0.16);
   --gold-soft: rgba(249, 176, 145, 0.16);
   --gradient-brand: linear-gradient(135deg, #DF98FA 0%, #9055FF 100%);
   --gradient-twilight: linear-gradient(135deg, #471E8A 0%, #27155D 55%, #121931 100%);
-  --shadow-card: 0 12px 34px -8px rgba(1, 4, 15, 0.65);
+  --shadow-card: 0 14px 36px -8px rgba(1, 4, 15, 0.68);
+  --glow-primary: rgba(164, 74, 255, 0.35);
+}
+
+html[data-theme="madinah-emerald"] {
+  /* Green Dome Emerald — Masjid an-Nabawi ﷺ */
+  --bg-canvas: #031611;
+  --bg-surface: #0A261E;
+  --bg-card: #0A261E;
+  --bg-elevated: #10352A;
+  --bg-surface-elevated: rgba(10, 38, 30, 0.94);
+  --bg-muted: #123B2F;
+  --border-hairline: rgba(52, 211, 153, 0.18);
+  --border-subtle: rgba(52, 211, 153, 0.18);
+  --text-primary: #F3FDF9;
+  --text-secondary: #C6EFE0;
+  --text-muted: #88BDA9;
+  --accent-primary: #10B981;
+  --accent-secondary: #34D399;
+  --accent-gold: #FBBF24;
+  --accent-danger: #F87171;
+  --accent-soft: rgba(16, 185, 129, 0.17);
+  --gold-soft: rgba(251, 191, 36, 0.16);
+  --gradient-brand: linear-gradient(135deg, #34D399 0%, #059669 100%);
+  --gradient-twilight: linear-gradient(135deg, #065F46 0%, #064E3B 55%, #041F18 100%);
+  --shadow-card: 0 14px 36px -8px rgba(1, 12, 9, 0.72);
+  --glow-primary: rgba(16, 185, 129, 0.35);
+}
+
+html[data-theme="kiswah-obsidian"] {
+  /* Kaaba Kiswah Gold — OLED Obsidian & Pure Gold */
+  --bg-canvas: #050508;
+  --bg-surface: #111118;
+  --bg-card: #111118;
+  --bg-elevated: #1A1A24;
+  --bg-surface-elevated: rgba(17, 17, 24, 0.95);
+  --bg-muted: #1D1D29;
+  --border-hairline: rgba(234, 179, 8, 0.2);
+  --border-subtle: rgba(234, 179, 8, 0.2);
+  --text-primary: #FAF8F2;
+  --text-secondary: #E5DEC9;
+  --text-muted: #A39D8B;
+  --accent-primary: #EAB308;
+  --accent-secondary: #FACC15;
+  --accent-gold: #FDE047;
+  --accent-danger: #F87171;
+  --accent-soft: rgba(234, 179, 8, 0.16);
+  --gold-soft: rgba(253, 224, 71, 0.15);
+  --gradient-brand: linear-gradient(135deg, #FACC15 0%, #CA8A04 100%);
+  --gradient-twilight: linear-gradient(135deg, #422006 0%, #1C1917 58%, #09090B 100%);
+  --shadow-card: 0 16px 40px -8px rgba(0, 0, 0, 0.85);
+  --glow-primary: rgba(234, 179, 8, 0.34);
+}
+
+html[data-theme="baghdad-sapphire"] {
+  /* Baghdad Sapphire — Qadri Azure & Amber */
+  --bg-canvas: #041122;
+  --bg-surface: #0C213B;
+  --bg-card: #0C213B;
+  --bg-elevated: #122E50;
+  --bg-surface-elevated: rgba(12, 33, 59, 0.94);
+  --bg-muted: #153459;
+  --border-hairline: rgba(56, 189, 248, 0.18);
+  --border-subtle: rgba(56, 189, 248, 0.18);
+  --text-primary: #F2F9FF;
+  --text-secondary: #C8E2F8;
+  --text-muted: #87AFCF;
+  --accent-primary: #38BDF8;
+  --accent-secondary: #22D3EE;
+  --accent-gold: #F59E0B;
+  --accent-danger: #F87171;
+  --accent-soft: rgba(56, 189, 248, 0.16);
+  --gold-soft: rgba(245, 158, 11, 0.16);
+  --gradient-brand: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%);
+  --gradient-twilight: linear-gradient(135deg, #0369A1 0%, #0C4A6E 55%, #07192E 100%);
+  --shadow-card: 0 14px 36px -8px rgba(1, 8, 18, 0.72);
+  --glow-primary: rgba(56, 189, 248, 0.34);
+}
+
+html[data-theme="ajmer-rose"] {
+  /* Chishti Rose & Saffron — Velvet Plum & Rose Gold */
+  --bg-canvas: #160714;
+  --bg-surface: #261023;
+  --bg-card: #261023;
+  --bg-elevated: #361732;
+  --bg-surface-elevated: rgba(38, 16, 35, 0.94);
+  --bg-muted: #3C1A37;
+  --border-hairline: rgba(244, 114, 182, 0.18);
+  --border-subtle: rgba(244, 114, 182, 0.18);
+  --text-primary: #FFF5FA;
+  --text-secondary: #F3CFE3;
+  --text-muted: #BD95AC;
+  --accent-primary: #F472B6;
+  --accent-secondary: #FB7185;
+  --accent-gold: #FB923C;
+  --accent-danger: #F87171;
+  --accent-soft: rgba(244, 114, 182, 0.17);
+  --gold-soft: rgba(251, 146, 60, 0.17);
+  --gradient-brand: linear-gradient(135deg, #F472B6 0%, #DB2777 100%);
+  --gradient-twilight: linear-gradient(135deg, #831843 0%, #500724 55%, #22091E 100%);
+  --shadow-card: 0 14px 36px -8px rgba(12, 2, 10, 0.75);
+  --glow-primary: rgba(244, 114, 182, 0.34);
 }
 
 * {
@@ -49,9 +211,21 @@ body {
   background-color: var(--bg-canvas);
   color: var(--text-primary);
   font-family: var(--font-poppins), var(--font-inter), system-ui, -apple-system, sans-serif;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.28s ease, color 0.28s ease;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle Sacred Ambient Glow on Canvas */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(640px circle at 12% 8%, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 65%),
+    radial-gradient(560px circle at 88% 14%, color-mix(in srgb, var(--accent-gold) 8%, transparent), transparent 65%);
 }
 
 /* Script-specific typography */
@@ -74,26 +248,40 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Clean Elevated Card Surface */
-.bento-card {
+/* Clean Elevated Card Surfaces */
+.bento-card,
+.card-surface {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-hairline);
   box-shadow: var(--shadow-card);
   border-radius: 1.25rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease, background-color 0.22s ease;
 }
 
 .bento-card-interactive:hover {
-  border-color: color-mix(in srgb, var(--accent-primary) 45%, var(--border-hairline));
-  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-primary) 52%, var(--border-hairline));
+  box-shadow: 0 14px 32px -10px var(--glow-primary);
+  transform: translateY(-2px);
 }
 
-/* Reference UI Signature Lavender-to-Violet Gradient Card (#DF98FA -> #9055FF) */
+/* Dramatic Glass Halo Card */
+.sanctuary-halo-card {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--bg-surface) 92%, var(--accent-primary) 8%),
+    var(--bg-surface)
+  );
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border-hairline));
+  box-shadow: 0 18px 42px -12px var(--glow-primary);
+  border-radius: 1.35rem;
+}
+
+/* Reference UI Signature Brand Gradient Card */
 .quran-gradient-card {
   background-image: var(--gradient-brand);
   color: #ffffff;
   border-radius: 1.35rem;
-  box-shadow: 0 16px 36px -10px rgba(144, 85, 255, 0.48);
+  box-shadow: 0 16px 36px -10px var(--glow-primary);
 }
 
 /* Reference UI Twilight Mosque Prayer Card */
@@ -101,16 +289,45 @@ body {
   background-image: var(--gradient-twilight);
   color: #ffffff;
   border-radius: 1.35rem;
-  box-shadow: 0 16px 36px -10px rgba(24, 11, 64, 0.6);
+  box-shadow: 0 16px 36px -10px rgba(8, 8, 24, 0.55);
 }
 
-/* Reference UI Verse Top Action Pill Bar (#121931 in Dark Mode) */
 .verse-action-pill {
   background-color: var(--bg-surface);
   border-radius: 0.85rem;
 }
 
-/* Custom Select Appearance (Removes raw browser look) */
+/* Semantic Status Badges */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.badge-emerald {
+  background-color: rgba(16, 185, 129, 0.16);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.badge-crimson {
+  background-color: rgba(239, 68, 68, 0.16);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.badge-gold {
+  background-color: var(--gold-soft);
+  color: var(--accent-gold);
+  border: 1px solid color-mix(in srgb, var(--accent-gold) 38%, transparent);
+}
+
+/* Custom Select Appearance */
 select.ui-select {
   appearance: none;
   -webkit-appearance: none;
@@ -120,36 +337,53 @@ select.ui-select {
   padding-right: 1.85rem;
 }
 
+html[dir="rtl"] select.ui-select {
+  background-position: left 0.65rem center;
+  padding-right: 0.75rem;
+  padding-left: 1.85rem;
+}
+
 .btn-primary {
   background-image: var(--gradient-brand);
   color: #ffffff;
-  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 6px 18px -4px rgba(144, 85, 255, 0.45);
+  transition: filter 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+  box-shadow: 0 8px 22px -4px var(--glow-primary);
 }
 
 .btn-primary:hover {
-  filter: brightness(1.06);
+  filter: brightness(1.07);
 }
 
 .btn-primary:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 .btn-peach {
-  background-color: #F9B091;
+  background-color: var(--accent-gold);
   color: #091945;
-  font-weight: 600;
+  font-weight: 700;
   transition: filter 0.15s ease, transform 0.15s ease;
-  box-shadow: 0 8px 20px -4px rgba(249, 176, 145, 0.4);
+  box-shadow: 0 8px 20px -4px var(--gold-soft);
 }
 
 .btn-peach:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.06);
 }
 
 :focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Custom subtle scrollbars */

@@ -107,18 +107,28 @@ export function getHijriDate(date: Date, hilalOffset: number = 0): HijriDateInfo
   }
 }
 
-export function getEventsForHijri(month: number, day: number): IslamicEvent[] {
-  return SACRED_EVENTS.filter((ev) => ev.month === month && ev.day === day);
+export function getEventsForHijri(
+  month: number,
+  day: number,
+  events: IslamicEvent[] = SACRED_EVENTS
+): IslamicEvent[] {
+  return events.filter((ev) => ev.month === month && ev.day === day);
 }
 
-export function getUpcomingEvents(month: number, day: number): IslamicEvent[] {
+export function getUpcomingEvents(
+  month: number,
+  day: number,
+  events: IslamicEvent[] = SACRED_EVENTS,
+  limit = 4
+): IslamicEvent[] {
   const idx = (m: number, d: number) => (m - 1) * 30 + d;
   const current = idx(month, day);
-  return SACRED_EVENTS.slice()
+  return events
+    .slice()
     .sort((a, b) => {
       const da = (idx(a.month, a.day) - current + 360) % 360;
       const db = (idx(b.month, b.day) - current + 360) % 360;
       return da - db;
     })
-    .slice(0, 4);
+    .slice(0, limit);
 }
