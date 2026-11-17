@@ -40,7 +40,7 @@ import {
   ZakatBackendConfig,
 } from "./backend-types";
 
-const LOCAL_DB_KEY = "auliya_modular_backend_db_v1";
+const LOCAL_DB_KEY = "auliya_modular_backend_db_v2";
 const SESSION_TOKEN_KEY = "auliya_auth_session_token_v1";
 
 type TransportMode = "unknown" | "server-api" | "local-engine";
@@ -73,7 +73,7 @@ async function getLocalDb(): Promise<BackendDatabaseSnapshot> {
       const raw = localStorage.getItem(LOCAL_DB_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as BackendDatabaseSnapshot;
-        if (parsed && parsed.schemaVersion >= 1 && Array.isArray(parsed.users)) {
+        if (parsed && parsed.schemaVersion >= 2 && Array.isArray(parsed.users)) {
           cachedLocalDb = parsed;
           return parsed;
         }

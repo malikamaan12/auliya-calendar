@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
-  Award,
   BadgeCheck,
   BookOpen,
   Briefcase,
@@ -46,7 +45,7 @@ import {
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { HIJRI_MONTHS } from "@/lib/hijri";
-import { formatLocalizedHijriMonth, t } from "@/lib/i18n";
+import { formatLocalizedHijriMonth, LangCode, t, tp } from "@/lib/i18n";
 import { decryptZakatPayload, encryptZakatPayload, sha256Hex } from "@/lib/crypto-integrity";
 import type { ZakatCurrencyConfig } from "@/lib/backend-types";
 
@@ -307,6 +306,1038 @@ function hijriDayOfYearApprox(month: number, day: number): number {
   return acc + Math.max(1, Math.min(30, day));
 }
 
+function tl(lang: LangCode, key: string, fallback: string): string {
+  const val = t(lang, key);
+  if (lang !== "en" && val === t("en", key)) {
+    return fallback;
+  }
+  return val;
+}
+
+interface ZakatUiCopy {
+  subtitle: string;
+  tabCalc: string;
+  tabHawl: string;
+  tabFitrah: string;
+  tabUshr: string;
+  netZakatableWealth: string;
+  zakatDue: string;
+  silverNisab: string;
+  goldNisab: string;
+  aboveNisab: string;
+  belowNisab: string;
+  remainingToPay: string;
+  paidSoFar: string;
+  grossAssets: string;
+  goldHeading: string;
+  goldDesc: string;
+  addGoldRow: string;
+  silverHeading: string;
+  silverDesc: string;
+  silver999Label: string;
+  silver925Label: string;
+  cashHeading: string;
+  cashDesc: string;
+  cashInHand: string;
+  bankAccounts: string;
+  foreignCurrency: string;
+  businessHeading: string;
+  businessDesc: string;
+  tradeInventory: string;
+  halalShares: string;
+  activeTrading100: string;
+  longTerm30: string;
+  receivablesHeading: string;
+  receivablesDesc: string;
+  receivablesStrong: string;
+  retirementAccessible: string;
+  liabilitiesHeading: string;
+  liabilitiesDesc: string;
+  immediateDebts: string;
+  supplierPayables: string;
+  unpaidMahr: string;
+  dueBillsTaxes: string;
+  unpaidPriorZakat: string;
+  currency: string;
+  weightUnit: string;
+  grams: string;
+  tola: string;
+  troyOz: string;
+  yearBasis: string;
+  lunar: string;
+  solar: string;
+  updateRates: string;
+  updatingRates: string;
+  resetRate: string;
+  saveSnapshot: string;
+  encryptedNote: string;
+  recordPayment: string;
+  portfolioBreakdown: string;
+  nisabGaugeHeading: string;
+  hawlHeading: string;
+  disbursementHeading: string;
+  encryptedVaultHeading: string;
+  copySummary: string;
+  downloadReport: string;
+  recipientLabel: string;
+  categoryLabel: string;
+  dateLabel: string;
+  amountLabel: string;
+  fitrahHeading: string;
+  adultsLabel: string;
+  minorsLabel: string;
+  newbornsLabel: string;
+  commodityStandard: string;
+  markFitrahPaid: string;
+  fidyahHeading: string;
+  missedFastsLabel: string;
+  kaffarahHeading: string;
+  brokenOath: string;
+  brokenFast: string;
+  ushrHeading: string;
+  byMarketValue: string;
+  byHarvestWeight: string;
+  irrigationSource: string;
+  rainNatural: string;
+  paidIrrigation: string;
+  masarifHeading: string;
+  allRules: string;
+  canReceive: string;
+  cannotReceive: string;
+  sadatTamlik: string;
+}
+
+const ZAKAT_UI: Record<LangCode, ZakatUiCopy> = {
+  en: {
+    subtitle:
+      "Calculate Zakat on the Hanafi 52.5-tola silver standard alongside Fitrah, Fidyah, and Ushr",
+    tabCalc: "Calculator",
+    tabHawl: "Hawl & Ledger",
+    tabFitrah: "Fitrah & Fidyah",
+    tabUshr: "Ushr & Rulings",
+    netZakatableWealth: "Net Zakatable Wealth",
+    zakatDue: "Zakat Due",
+    silverNisab: "Silver Nisab",
+    goldNisab: "Gold Nisab",
+    aboveNisab: "Above Nisab",
+    belowNisab: "Below Nisab",
+    remainingToPay: "Remaining to Pay",
+    paidSoFar: "Paid So Far",
+    grossAssets: "Gross Assets",
+    goldHeading: "Gold Jewelry & Bullion",
+    goldDesc:
+      "In the Hanafi school, personal gold jewelry (even worn daily) and bullion are zakatable by pure metal content.",
+    addGoldRow: "Add Gold Holding",
+    silverHeading: "Silver",
+    silverDesc:
+      "Separate 999 fine bullion/coins (100%) and 925 sterling ornaments/silverware (92.5% purity).",
+    silver999Label: "Fine Silver 999",
+    silver925Label: "Sterling Silver 925",
+    cashHeading: "Cash & Bank Balances",
+    cashDesc:
+      "Enter balances held on your Hawl valuation day (excluding bank interest, which is given away without intention of reward).",
+    cashInHand: "Cash in Hand / Safe",
+    bankAccounts: "Bank Accounts — Savings & Current",
+    foreignCurrency: "Foreign Currency Equivalent",
+    businessHeading: "Business Inventory & Shares",
+    businessDesc: "Goods held for resale (Mal-e-Tijarah) and halal equity investments.",
+    tradeInventory: "Business Inventory / Mal-e-Tijarah",
+    halalShares: "Halal Shares & Equity Funds",
+    activeTrading100: "Active Trading (100%)",
+    longTerm30: "Long-Term Proxy (30%)",
+    receivablesHeading: "Receivables",
+    receivablesDesc: "Recoverable loans owed to you (Dayn Qawi) and accessible retirement funds.",
+    receivablesStrong: "Recoverable Receivables (Dayn Qawi)",
+    retirementAccessible: "Accessible Retirement / PF Savings",
+    liabilitiesHeading: "Immediate Debts & Liabilities",
+    liabilitiesDesc:
+      "Deduct immediate debts due now, supplier payables, demanded Mahr, due bills, and unpaid prior Zakat.",
+    immediateDebts: "Immediate Debts Due",
+    supplierPayables: "Supplier / Trade Payables",
+    unpaidMahr: "Unpaid Demanded Mahr",
+    dueBillsTaxes: "Due Bills, Rent & Taxes",
+    unpaidPriorZakat: "Unpaid Prior Years' Zakat",
+    currency: "Currency",
+    weightUnit: "Weight Unit",
+    grams: "Grams",
+    tola: "Tola",
+    troyOz: "Troy Oz",
+    yearBasis: "Year Basis",
+    lunar: "Lunar",
+    solar: "Solar",
+    updateRates: "Update Live Rates",
+    updatingRates: "Updating Rates…",
+    resetRate: "Reset Rate",
+    saveSnapshot: "Save Encrypted Snapshot",
+    encryptedNote: "Encrypted locally on this device",
+    recordPayment: "Record Payment",
+    portfolioBreakdown: "Zakatable Asset Breakdown",
+    nisabGaugeHeading: "Hanafi Nisab Threshold",
+    hawlHeading: "Hijri Hawl Anniversary & Countdown",
+    disbursementHeading: "Payment & Disbursement Ledger",
+    encryptedVaultHeading: "Saved Encrypted Assessments",
+    copySummary: "Copy Summary",
+    downloadReport: "Download Report",
+    recipientLabel: "Recipient / Wakil Name",
+    categoryLabel: "Masarif Category",
+    dateLabel: "Date",
+    amountLabel: "Amount",
+    fitrahHeading: "Sadaqat-ul-Fitr (Fitrah)",
+    adultsLabel: "Self & Adults",
+    minorsLabel: "Minor Children",
+    newbornsLabel: "Newborns",
+    commodityStandard: "Prophetic Commodity Standard",
+    markFitrahPaid: "Record Fitrah Paid",
+    fidyahHeading: "Fidyah (Shaykh Fani Only)",
+    missedFastsLabel: "Missed Fasts Count",
+    kaffarahHeading: "Hanafi Kaffarah Benchmarks",
+    brokenOath: "Broken Oath (Kaffarah-e-Yamin)",
+    brokenFast: "Deliberately Broken Ramadan Fast",
+    ushrHeading: "Hanafi Ushr Calculator",
+    byMarketValue: "By Market Value",
+    byHarvestWeight: "By Harvest Weight (kg)",
+    irrigationSource: "Primary Irrigation Source",
+    rainNatural: "Rain / River / Natural Spring",
+    paidIrrigation: "Tube-Well / Paid Irrigation",
+    masarifHeading: "Hanafi Recipient Guide (Masarif & Tamlik)",
+    allRules: "All Rules",
+    canReceive: "Can Receive",
+    cannotReceive: "Cannot Receive",
+    sadatTamlik: "Sadat & Tamlik",
+  },
+  ur: {
+    subtitle: "ساڑھے باون تولہ چاندی کے حنفی نصاب کے مطابق زکوٰۃ، فطرہ، فدیہ اور عشر کا حساب",
+    tabCalc: "زکوٰۃ کیلکولیٹر",
+    tabHawl: "سال و ادائیگی",
+    tabFitrah: "فطرہ و فدیہ",
+    tabUshr: "عشر و مصارف",
+    netZakatableWealth: "قابلِ زکوٰۃ خالص مال",
+    zakatDue: "واجب الادا زکوٰۃ",
+    silverNisab: "چاندی کا نصاب",
+    goldNisab: "سونے کا نصاب",
+    aboveNisab: "صاحبِ نصاب",
+    belowNisab: "نصاب سے کم",
+    remainingToPay: "باقی واجب الادا",
+    paidSoFar: "ادا شدہ زکوٰۃ",
+    grossAssets: "مجموعی اموال",
+    goldHeading: "سونے کے زیورات اور ڈلیاں",
+    goldDesc: "فقہِ حنفی میں ذاتی استعمال کے سونے کے زیورات اور بسکٹ خالص وزن کے اعتبار سے قابلِ زکوٰۃ ہیں۔",
+    addGoldRow: "سونے کی مد شامل کریں",
+    silverHeading: "چاندی",
+    silverDesc: "خالص چاندی ۹۹۹ (۱۰۰٪) اور ۹۲۵ چاندی کے زیورات و برتن الگ درج کریں۔",
+    silver999Label: "خالص چاندی 999",
+    silver925Label: "اسٹرلنگ چاندی 925",
+    cashHeading: "نقد رقم اور بینک بیلنس",
+    cashDesc: "زکوٰۃ کی تاریخ پر موجود نقدی، سیونگ/کرنٹ اکاؤنٹ اور غیر ملکی کرنسی درج کریں۔",
+    cashInHand: "نقد رقم (گھر / تجوری)",
+    bankAccounts: "بینک اکاؤنٹس (بچت و کرنٹ)",
+    foreignCurrency: "غیر ملکی کرنسی کی مالیت",
+    businessHeading: "مالِ تجارت اور حصص (شیئرز)",
+    businessDesc: "فروخت کے لیے رکھا گیا تجارتی سامان اور حلال شیئرز کی مالیت۔",
+    tradeInventory: "مالِ تجارت / کاروباری اسٹاک",
+    halalShares: "حلال شیئرز اور میوچل فنڈز",
+    activeTrading100: "تجارتی شیئرز (100%)",
+    longTerm30: "طویل مدتی سرمایہ (30%)",
+    receivablesHeading: "واجب الوصول قرضے",
+    receivablesDesc: "مضبوط قرضے جو واپس ملنے کی امید ہو (دَینِ قوی) اور قابلِ حصول فنڈز۔",
+    receivablesStrong: "واجب الوصول قرضے (دَینِ قوی)",
+    retirementAccessible: "قابلِ حصول پراویڈنٹ / ریٹائرمنٹ فنڈ",
+    liabilitiesHeading: "فوری واجب الادا قرض اور ذمہ داریاں",
+    liabilitiesDesc: "فوری واجب الادا قرض، تجارتی ادائیگیاں، عند المطالبہ مہر، بل اور سابقہ زکوٰۃ منہا کریں۔",
+    immediateDebts: "فوری واجب الادا قرض",
+    supplierPayables: "تجارتی و سپلائر ادائیگیاں",
+    unpaidMahr: "واجب الادا مہر",
+    dueBillsTaxes: "واجب الادا بل، کرایہ اور ٹیکس",
+    unpaidPriorZakat: "سابقہ سالوں کی باقی زکوٰۃ",
+    currency: "کرنسی",
+    weightUnit: "وزن کی اکائی",
+    grams: "گرام",
+    tola: "تولہ",
+    troyOz: "اونس",
+    yearBasis: "سال کی بنیاد",
+    lunar: "قمری",
+    solar: "شمسی",
+    updateRates: "تازہ ریٹس حاصل کریں",
+    updatingRates: "اپ ڈیٹ جاری…",
+    resetRate: "ریٹ بحال کریں",
+    saveSnapshot: "محفوظ ریکارڈ ثبت کریں",
+    encryptedNote: "آپ کے آلے پر خفیہ طور پر محفوظ",
+    recordPayment: "ادائیگی درج کریں",
+    portfolioBreakdown: "قابلِ زکوٰۃ اموال کی تفصیل",
+    nisabGaugeHeading: "حنفی معیارِ نصاب",
+    hawlHeading: "ہجری سال (حول) اور مدت",
+    disbursementHeading: "ادائیگیِ زکوٰۃ کا کھاتہ",
+    encryptedVaultHeading: "محفوظ سالانہ حسابات",
+    copySummary: "خلاصہ نقل کریں",
+    downloadReport: "رپورٹ ڈاؤن لوڈ",
+    recipientLabel: "مستحق / وکیل کا نام",
+    categoryLabel: "مصرف کی قسم",
+    dateLabel: "تاریخ",
+    amountLabel: "رقم",
+    fitrahHeading: "صدقۂ فطر (فطرانہ)",
+    adultsLabel: "خود اور بالغ افراد",
+    minorsLabel: "نابالغ بچے",
+    newbornsLabel: "نومولود (فجرِ عید سے قبل)",
+    commodityStandard: "مسنون اجناس کا معیار",
+    markFitrahPaid: "ادائیگیِ فطرہ درج کریں",
+    fidyahHeading: "فدیۂ صوم (صرف شیخِ فانی کے لیے)",
+    missedFastsLabel: "فوت شدہ روزوں کی تعداد",
+    kaffarahHeading: "حنفی کفارہ معیار",
+    brokenOath: "قسم کا کفارہ (کفارۂ یمین)",
+    brokenFast: "رمضان کا روزہ قصداً توڑنے کا کفارہ",
+    ushrHeading: "حنفی عشر کیلکولیٹر",
+    byMarketValue: "بازاری قیمت کے مطابق",
+    byHarvestWeight: "پیداوار کے وزن (کلو) سے",
+    irrigationSource: "آبپاشی کا ذریعہ",
+    rainNatural: "بارانی / نہری / قدرتی پانی",
+    paidIrrigation: "ٹیوب ویل / قیمتاً آبپاشی",
+    masarifHeading: "مصارفِ زکوٰۃ اور شرطِ تملیک",
+    allRules: "تمام مسائل",
+    canReceive: "مستحقین",
+    cannotReceive: "غیر مستحق",
+    sadatTamlik: "سادات و تملیک",
+  },
+  ar: {
+    subtitle: "حساب الزكاة وفق نصاب الفضة الحنفي مع صدقة الفطر والفدية والعشر",
+    tabCalc: "حاسبة الزكاة",
+    tabHawl: "الحول والسجل",
+    tabFitrah: "الفطرة والفدية",
+    tabUshr: "العشر والمصارف",
+    netZakatableWealth: "صافي المال الزكوي",
+    zakatDue: "الزكاة الواجبة",
+    silverNisab: "نصاب الفضة",
+    goldNisab: "نصاب الذهب",
+    aboveNisab: "بلَغ النصاب",
+    belowNisab: "دون النصاب",
+    remainingToPay: "المتبقي للأداء",
+    paidSoFar: "المؤدى حتى الآن",
+    grossAssets: "إجمالي الأصول",
+    goldHeading: "حلي الذهب والسبائك",
+    goldDesc: "في المذهب الحنفي تجب الزكاة في حلي الذهب والسبائك بحسب وزن الذهب الخالص.",
+    addGoldRow: "إضافة بند ذهب",
+    silverHeading: "الفضة",
+    silverDesc: "افصل بين الفضة الخالصة 999 (100%) والفضة الاسترلينية 925 (92.5%).",
+    silver999Label: "فضة خالصة 999",
+    silver925Label: "فضة استرلينية 925",
+    cashHeading: "النقد والأرصدة البنكية",
+    cashDesc: "أدخل النقد والأرصدة البنكية والعملات الأجنبية يوم تمام الحول.",
+    cashInHand: "النقد في اليد / الخزنة",
+    bankAccounts: "الحسابات البنكية (جاري وادخار)",
+    foreignCurrency: "ما يعادل العملات الأجنبية",
+    businessHeading: "عروض التجارة والأسهم",
+    businessDesc: "البضائع المعدة للبيع (عروض التجارة) والأسهم النقية.",
+    tradeInventory: "عروض التجارة والمخزون",
+    halalShares: "الأسهم والصناديق الشرعية",
+    activeTrading100: "مضاربة وتجارة (100%)",
+    longTerm30: "استثمار طويل الأجل (30%)",
+    receivablesHeading: "الديون المرجوة التحصيل",
+    receivablesDesc: "الديون القوية لدى الغير ومدخرات التقاعد المتاحة.",
+    receivablesStrong: "ديون مرجوة الأداء (دين قوي)",
+    retirementAccessible: "مدخرات التقاعد المتاحة",
+    liabilitiesHeading: "الديون والالتزامات الحالة",
+    liabilitiesDesc: "تُخصم الديون الحالة وذمم الموردين والمهر المطالب به والفواتير وزكاة الأعوام السابقة.",
+    immediateDebts: "الديون الحالة المستحقة",
+    supplierPayables: "مستحقات الموردين والتجار",
+    unpaidMahr: "المهر الحال المطالب به",
+    dueBillsTaxes: "الفواتير والإيجار والضرائب المستحقة",
+    unpaidPriorZakat: "زكاة سنوات سابقة غير مؤداة",
+    currency: "العملة",
+    weightUnit: "وحدة الوزن",
+    grams: "غرام",
+    tola: "تولة",
+    troyOz: "أونصة",
+    yearBasis: "أساس الحول",
+    lunar: "قمري",
+    solar: "شمسي",
+    updateRates: "تحديث الأسعار الحية",
+    updatingRates: "جارٍ التحديث…",
+    resetRate: "إعادة الضبط",
+    saveSnapshot: "حفظ نسخة مشفرة",
+    encryptedNote: "مشفر محلياً على جهازك",
+    recordPayment: "تسجيل دفعة",
+    portfolioBreakdown: "تفصيل الأصول الزكوية",
+    nisabGaugeHeading: "مؤشر النصاب الحنفي",
+    hawlHeading: "ذكرى الحول الهجري والعد التنازلي",
+    disbursementHeading: "سجل دفعات الزكاة",
+    encryptedVaultHeading: "التقديرات المحفوظة",
+    copySummary: "نسخ الملخص",
+    downloadReport: "تنزيل التقرير",
+    recipientLabel: "اسم المستحق / الوكيل",
+    categoryLabel: "المصرف",
+    dateLabel: "التاريخ",
+    amountLabel: "المبلغ",
+    fitrahHeading: "صدقة الفطر",
+    adultsLabel: "النفس والبالغون",
+    minorsLabel: "الأولاد الصغار",
+    newbornsLabel: "المولود قبل فجر العيد",
+    commodityStandard: "المعيار النبوي للأصناف",
+    markFitrahPaid: "تسجيل أداء الفطرة",
+    fidyahHeading: "فدية الصيام (للشيخ الفاني فقط)",
+    missedFastsLabel: "عدد الأيام الفائتة",
+    kaffarahHeading: "مقادير الكفارات الحنفية",
+    brokenOath: "كفارة اليمين",
+    brokenFast: "كفارة إفساد صوم رمضان عمداً",
+    ushrHeading: "حاسبة العشر الزراعي",
+    byMarketValue: "حسب القيمة السوقية",
+    byHarvestWeight: "حسب وزن المحصول (كغ)",
+    irrigationSource: "طريقة السقي",
+    rainNatural: "مطر / نهر / سقي طبيعي",
+    paidIrrigation: "آبار / سقي بالآلة والكلفة",
+    masarifHeading: "دليل مصارف الزكاة وشرط التمليك",
+    allRules: "الكل",
+    canReceive: "يجوز صرفها لهم",
+    cannotReceive: "لا يجوز صرفها لهم",
+    sadatTamlik: "آل البيت والتمليك",
+  },
+  ro_ur: {
+    subtitle:
+      "Hanafi 52.5 tola chandi nisab ke mutabiq Zakat, Fitrah, Fidyah aur Ushr ka hisab",
+    tabCalc: "Zakat Calculator",
+    tabHawl: "Hawl aur Khata",
+    tabFitrah: "Fitrah aur Fidyah",
+    tabUshr: "Ushr aur Masarif",
+    netZakatableWealth: "Qabil-e-Zakat Khalis Maal",
+    zakatDue: "Wajib Zakat",
+    silverNisab: "Chandi Nisab",
+    goldNisab: "Sona Nisab",
+    aboveNisab: "Sahib-e-Nisab",
+    belowNisab: "Nisab se Kam",
+    remainingToPay: "Baqi Adaigi",
+    paidSoFar: "Ada Shuda",
+    grossAssets: "Kul Maal",
+    goldHeading: "Sone ke Zewarat aur Bullion",
+    goldDesc:
+      "Fiqh-e-Hanafi mein rozmarra pehne jane wale sone ke zewarat aur bullion khalis wazan par qabil-e-zakat hain.",
+    addGoldRow: "Sone ki Mad Shamil Karein",
+    silverHeading: "Chandi (Silver)",
+    silverDesc: "999 khalis chandi aur 925 chandi ke zewarat/bartan alag darj karein.",
+    silver999Label: "Khalis Chandi 999",
+    silver925Label: "Sterling Chandi 925",
+    cashHeading: "Naqad Raqam aur Bank Balance",
+    cashDesc: "Hawl ki tareekh par maujood naqdi, bank balance aur foreign currency darj karein.",
+    cashInHand: "Naqad Raqam (Ghar / Safe)",
+    bankAccounts: "Bank Accounts (Savings / Current)",
+    foreignCurrency: "Foreign Currency Maliyat",
+    businessHeading: "Maal-e-Tijarat aur Halal Shares",
+    businessDesc: "Farokht ke liye rakha gaya stock aur halal shares ki maliyat.",
+    tradeInventory: "Maal-e-Tijarat / Business Stock",
+    halalShares: "Halal Shares aur Equity Funds",
+    activeTrading100: "Active Trading (100%)",
+    longTerm30: "Long-Term Holding (30%)",
+    receivablesHeading: "Wajib-ul-Wusool Qarze (Receivables)",
+    receivablesDesc: "Mazboot qarze jo wapas milne ki umeed ho aur accessible PF bachat.",
+    receivablesStrong: "Qabil-e-Wusool Qarze (Dayn Qawi)",
+    retirementAccessible: "Accessible PF / Retirement Bachat",
+    liabilitiesHeading: "Fauri Qarze aur Zimmedariyan",
+    liabilitiesDesc:
+      "Fauri wajib-ul-ada qarz, tijarati adaigiyan, mutalba shuda Mahr, bill aur pichli Zakat minha karein.",
+    immediateDebts: "Fauri Wajib-ul-Ada Qarz",
+    supplierPayables: "Supplier / Tijarati Adaigiyan",
+    unpaidMahr: "Wajib-ul-Ada Mahr",
+    dueBillsTaxes: "Wajib-ul-Ada Bills, Kiraya aur Tax",
+    unpaidPriorZakat: "Pichle Saalon ki Baqi Zakat",
+    currency: "Currency",
+    weightUnit: "Wazan ki Ikai",
+    grams: "Grams",
+    tola: "Tola",
+    troyOz: "Troy Oz",
+    yearBasis: "Saal ki Bunyad",
+    lunar: "Qamari",
+    solar: "Shamsi",
+    updateRates: "Live Rates Update Karein",
+    updatingRates: "Update Jari…",
+    resetRate: "Rate Reset",
+    saveSnapshot: "Encrypted Snapshot Mahfooz Karein",
+    encryptedNote: "Aap ke device par mahfooz taur par encrypted",
+    recordPayment: "Adaigi Darj Karein",
+    portfolioBreakdown: "Maal ki Tafseel",
+    nisabGaugeHeading: "Hanafi Nisab Paimana",
+    hawlHeading: "Hijri Hawl Tareekh aur Countdown",
+    disbursementHeading: "Zakat Adaigi Khata",
+    encryptedVaultHeading: "Mahfooz Salana Hisab",
+    copySummary: "Khulasa Copy Karein",
+    downloadReport: "Report Download",
+    recipientLabel: "Mustahiq / Wakil ka Naam",
+    categoryLabel: "Masarif Qism",
+    dateLabel: "Tareekh",
+    amountLabel: "Raqam",
+    fitrahHeading: "Sadaqat-ul-Fitr (Fitrah)",
+    adultsLabel: "Khud aur Baligh Afrad",
+    minorsLabel: "Nabaligh Bachay",
+    newbornsLabel: "Newborn (Eid Fajr se pehle)",
+    commodityStandard: "Masnoon Ajnas ka Mayar",
+    markFitrahPaid: "Fitrah Adaigi Darj Karein",
+    fidyahHeading: "Fidyah (Sirf Shaykh-e-Fani)",
+    missedFastsLabel: "Chhoote Hue Rozay",
+    kaffarahHeading: "Hanafi Kaffarah Mayar",
+    brokenOath: "Qasam Todne ka Kaffarah",
+    brokenFast: "Qasdan Roza Todne ka Kaffarah",
+    ushrHeading: "Hanafi Ushr Calculator",
+    byMarketValue: "Bazar Qeemat se",
+    byHarvestWeight: "Fasal ke Wazan (kg) se",
+    irrigationSource: "Abpashi ka Zariya",
+    rainNatural: "Barish / Nahar / Qudrati Pani",
+    paidIrrigation: "Tube-Well / Qeematan Pani",
+    masarifHeading: "Hanafi Masarif aur Shart-e-Tamlik",
+    allRules: "Tamam",
+    canReceive: "Mustahiq",
+    cannotReceive: "Ghair Mustahiq",
+    sadatTamlik: "Sadat aur Tamlik",
+  },
+  hi: {
+    subtitle: "हनफ़ी 52.5 तोला चाँदी निसाब के अनुसार ज़कात, फ़ितरा, फ़िदया और उश्र की गणना",
+    tabCalc: "कैलकुलेटर",
+    tabHawl: "हौल व खाता",
+    tabFitrah: "फ़ितरा व फ़िदया",
+    tabUshr: "उश्र व मसाइल",
+    netZakatableWealth: "शुद्ध ज़कात योग्य धन",
+    zakatDue: "देय ज़कात",
+    silverNisab: "चाँदी निसाब",
+    goldNisab: "सोना निसाब",
+    aboveNisab: "निसाब से ऊपर",
+    belowNisab: "निसाब से कम",
+    remainingToPay: "शेष देय राशि",
+    paidSoFar: "अब तक अदा किया",
+    grossAssets: "कुल संपत्ति",
+    goldHeading: "सोने के आभूषण और बुलियन",
+    goldDesc: "हनफ़ी फ़िक़्ह में व्यक्तिगत सोने के ज़ेवर और सिक्के शुद्ध धातु वज़न के अनुसार ज़कात योग्य हैं।",
+    addGoldRow: "सोने की मद जोड़ें",
+    silverHeading: "चाँदी",
+    silverDesc: "999 शुद्ध चाँदी (100%) और 925 स्टर्लिंग चाँदी (92.5%) अलग दर्ज करें।",
+    silver999Label: "शुद्ध चाँदी 999",
+    silver925Label: "स्टर्लिंग चाँदी 925",
+    cashHeading: "नक़द और बैंक बैलेंस",
+    cashDesc: "हौल के दिन उपलब्ध नक़द राशि, बचत/चालू बैंक खाते और विदेशी मुद्रा दर्ज करें।",
+    cashInHand: "हाथ / तिजोरी में नक़द",
+    bankAccounts: "बैंक खाते (बचत व चालू)",
+    foreignCurrency: "विदेशी मुद्रा मूल्य",
+    businessHeading: "व्यापारिक माल और हलाल शेयर",
+    businessDesc: "बिक्री के लिए रखा गया स्टॉक (माले-तिजारत) और हलाल शेयर निवेश।",
+    tradeInventory: "व्यापारिक स्टॉक (माले-तिजारत)",
+    halalShares: "हलाल शेयर और म्यूचुअल फंड",
+    activeTrading100: "सक्रिय ट्रेडिंग (100%)",
+    longTerm30: "दीर्घकालिक निवेश (30%)",
+    receivablesHeading: "प्राप्य ऋण (रिकवरेबल)",
+    receivablesDesc: "वापस मिलने योग्य ऋण (दैन क़वी) और सुलभ रिटायरमेंट बचत।",
+    receivablesStrong: "मज़बूत प्राप्य ऋण (दैन क़वी)",
+    retirementAccessible: "सुलभ पीएफ़ / रिटायरमेंट बचत",
+    liabilitiesHeading: "तत्काल ऋण और देनदारियाँ",
+    liabilitiesDesc: "तत्काल देय ऋण, व्यापारिक बकाया, मांगी गई महर, बिल और पिछली बकाया ज़कात घटाएँ।",
+    immediateDebts: "तत्काल देय ऋण",
+    supplierPayables: "व्यापारिक / सप्लायर बकाया",
+    unpaidMahr: "देय महर",
+    dueBillsTaxes: "देय बिल, किराया व टैक्स",
+    unpaidPriorZakat: "पिछले वर्षों की बकाया ज़कात",
+    currency: "मुद्रा",
+    weightUnit: "वज़न इकाई",
+    grams: "ग्राम",
+    tola: "तोला",
+    troyOz: "ट्रॉय औंस",
+    yearBasis: "वर्ष आधार",
+    lunar: "चंद्र",
+    solar: "सौर",
+    updateRates: "लाइव दरें अपडेट करें",
+    updatingRates: "अपडेट हो रहा…",
+    resetRate: "दर रीसेट करें",
+    saveSnapshot: "एन्क्रिप्टेड स्नैपशॉट सहेजें",
+    encryptedNote: "इस डिवाइस पर निजी रूप से एन्क्रिप्टेड",
+    recordPayment: "भुगतान दर्ज करें",
+    portfolioBreakdown: "संपत्ति विवरण",
+    nisabGaugeHeading: "हनफ़ी निसाब पैमाना",
+    hawlHeading: "हिजरी हौल वर्षगांठ",
+    disbursementHeading: "ज़कात भुगतान खाता",
+    encryptedVaultHeading: "सहेजे गए वार्षिक हिसाब",
+    copySummary: "सारांश कॉपी करें",
+    downloadReport: "रिपोर्ट डाउनलोड",
+    recipientLabel: "पात्र / वकील का नाम",
+    categoryLabel: "मसरफ़ श्रेणी",
+    dateLabel: "तारीख़",
+    amountLabel: "राशि",
+    fitrahHeading: "सदक़ा-ए-फ़ित्र (फ़ितरा)",
+    adultsLabel: "स्वयं व वयस्क",
+    minorsLabel: "नाबालिग बच्चे",
+    newbornsLabel: "नवजात (ईद फ़ज्र से पूर्व)",
+    commodityStandard: "सुन्नत अनाज मानक",
+    markFitrahPaid: "फ़ितरा अदायगी दर्ज करें",
+    fidyahHeading: "फ़िदया (केवल शैख़ फ़ानी)",
+    missedFastsLabel: "छूटे हुए रोज़े",
+    kaffarahHeading: "हनफ़ी कफ़्फ़ारा मानक",
+    brokenOath: "टूटी क़सम का कफ़्फ़ारा",
+    brokenFast: "जानबूझकर तोड़े रमज़ान रोज़े का कफ़्फ़ारा",
+    ushrHeading: "हनफ़ी उश्र कैलकुलेटर",
+    byMarketValue: "बाज़ार मूल्य से",
+    byHarvestWeight: "फ़सल वज़न (किग्रा) से",
+    irrigationSource: "सिंचाई का स्रोत",
+    rainNatural: "वर्षा / नदी / प्राकृतिक जल",
+    paidIrrigation: "ट्यूबवेल / सशुल्क सिंचाई",
+    masarifHeading: "हनफ़ी मसारिफ़ और तमलीक नियम",
+    allRules: "सभी नियम",
+    canReceive: "पात्र",
+    cannotReceive: "अपात्र",
+    sadatTamlik: "सादात व तमलीक",
+  },
+  tr: {
+    subtitle: "Hanefî gümüş nisabı ölçüsüne göre Zekât, Fitre, Fidye ve Öşür hesaplaması",
+    tabCalc: "Hesaplayıcı",
+    tabHawl: "Havelân ve Defter",
+    tabFitrah: "Fitre ve Fidye",
+    tabUshr: "Öşür ve Masraflar",
+    netZakatableWealth: "Net Zekâta Tabi Mal",
+    zakatDue: "Ödenecek Zekât",
+    silverNisab: "Gümüş Nisabı",
+    goldNisab: "Altın Nisabı",
+    aboveNisab: "Nisap Üstü",
+    belowNisab: "Nisap Altı",
+    remainingToPay: "Kalan Ödeme",
+    paidSoFar: "Ödenen Tutar",
+    grossAssets: "Brüt Varlıklar",
+    goldHeading: "Altın Ziynet ve Külçe",
+    goldDesc: "Hanefî mezhebinde kişisel altın takılar ve külçeler saf altın ağırlığına göre zekâta tabidir.",
+    addGoldRow: "Altın Kalemi Ekle",
+    silverHeading: "Gümüş",
+    silverDesc: "999 saf gümüş ile 925 ayar gümüş eşya ve takıları ayrı giriniz.",
+    silver999Label: "Saf Gümüş 999",
+    silver925Label: "925 Ayar Gümüş",
+    cashHeading: "Nakit ve Banka Bakiyeleri",
+    cashDesc: "Havelân (zekât günü) eldeki nakit, banka hesapları ve döviz varlıklarını giriniz.",
+    cashInHand: "Eldeki / Kasadaki Nakit",
+    bankAccounts: "Banka Hesapları (Vadesiz / Katılım)",
+    foreignCurrency: "Döviz Karşılığı",
+    businessHeading: "Ticaret Malları ve Hisseler",
+    businessDesc: "Satış amaçlı ticari stoklar ve helal hisse yatırımları.",
+    tradeInventory: "Ticaret Malı / Stok",
+    halalShares: "Helal Hisseler ve Fonlar",
+    activeTrading100: "Kısa Vadeli Al-Sat (%100)",
+    longTerm30: "Uzun Vadeli Yatırım (%30)",
+    receivablesHeading: "Alacaklar",
+    receivablesDesc: "Tahsil edilmesi kuvvetli alacaklar (deyn-i kavî) ve erişilebilir emeklilik birikimi.",
+    receivablesStrong: "Kuvvetli Alacaklar (Deyn-i Kavî)",
+    retirementAccessible: "Erişilebilir Emeklilik Birikimi",
+    liabilitiesHeading: "Muaccel Borçlar ve Yükümlülükler",
+    liabilitiesDesc: "Vadesi gelmiş borçları, ticari borçları, talep edilen mehri, faturaları ve geçmiş zekâtı düşünüz.",
+    immediateDebts: "Vadesi Gelmiş Borçlar",
+    supplierPayables: "Tedarikçi / Ticari Borçlar",
+    unpaidMahr: "Ödenmemiş Muaccel Mehir",
+    dueBillsTaxes: "Ödenecek Fatura, Kira ve Vergiler",
+    unpaidPriorZakat: "Geçmiş Yılların Zekât Borcu",
+    currency: "Para Birimi",
+    weightUnit: "Ağırlık Birimi",
+    grams: "Gram",
+    tola: "Tola",
+    troyOz: "Ons",
+    yearBasis: "Yıl Esası",
+    lunar: "Kamerî",
+    solar: "Şemsî",
+    updateRates: "Canlı Kurları Güncelle",
+    updatingRates: "Güncelleniyor…",
+    resetRate: "Kuru Sıfırla",
+    saveSnapshot: "Şifreli Kayıt Oluştur",
+    encryptedNote: "Bu cihazda yerel olarak şifrelenir",
+    recordPayment: "Ödeme Kaydet",
+    portfolioBreakdown: "Zekât Varlık Dağılımı",
+    nisabGaugeHeading: "Hanefî Nisap Göstergesi",
+    hawlHeading: "Hicrî Havelân Yıl Dönümü",
+    disbursementHeading: "Zekât Ödeme Defteri",
+    encryptedVaultHeading: "Kayıtlı Hesaplamalar",
+    copySummary: "Özeti Kopyala",
+    downloadReport: "Raporu İndir",
+    recipientLabel: "Alıcı / Vekil Adı",
+    categoryLabel: "Sarf Yeri",
+    dateLabel: "Tarih",
+    amountLabel: "Tutar",
+    fitrahHeading: "Sadaka-i Fıtır (Fitre)",
+    adultsLabel: "Kendisi ve Yetişkinler",
+    minorsLabel: "Küçük Çocuklar",
+    newbornsLabel: "Yeni Doğanlar",
+    commodityStandard: "Sünnet Gıda Ölçüsü",
+    markFitrahPaid: "Fitre Ödendi İşaretle",
+    fidyahHeading: "Oruç Fidyesi (Yalnızca Şeyh-i Fânî)",
+    missedFastsLabel: "Tutulamayan Oruç Sayısı",
+    kaffarahHeading: "Hanefî Kefaret Ölçüleri",
+    brokenOath: "Yemin Kefareti",
+    brokenFast: "Ramazan Orucunu Kasten Bozma Kefareti",
+    ushrHeading: "Hanefî Öşür Hesaplayıcı",
+    byMarketValue: "Piyasa Değerine Göre",
+    byHarvestWeight: "Mahsul Ağırlığına Göre (kg)",
+    irrigationSource: "Sulama Kaynağı",
+    rainNatural: "Yağmur / Nehir / Doğal Su",
+    paidIrrigation: "Kuyu / Masraflı Sulama",
+    masarifHeading: "Zekât Kimlere Verilir? (Temlik Rehberi)",
+    allRules: "Tümü",
+    canReceive: "Verilebilir",
+    cannotReceive: "Verilemez",
+    sadatTamlik: "Ehl-i Beyt ve Temlik",
+  },
+  bn: {
+    subtitle: "হানাফি ৫২.৫ তোলা রৌপ্য নিসাব অনুযায়ী যাকাত, ফিতরা, ফিদইয়া ও উশর হিসাব",
+    tabCalc: "ক্যালকুলেটর",
+    tabHawl: "বর্ষ ও খাতা",
+    tabFitrah: "ফিতরা ও ফিদইয়া",
+    tabUshr: "উশর ও মাসারিফ",
+    netZakatableWealth: "নিট যাকাতযোগ্য সম্পদ",
+    zakatDue: "প্রদেয় যাকাত",
+    silverNisab: "রৌপ্য নিসাব",
+    goldNisab: "স্বর্ণ নিসাব",
+    aboveNisab: "সাহিবে নিসাব",
+    belowNisab: "নিসাবের নিচে",
+    remainingToPay: "অবশিষ্ট প্রদেয়",
+    paidSoFar: "পরিশোধিত",
+    grossAssets: "মোট সম্পদ",
+    goldHeading: "স্বর্ণালংকার ও বুলিয়ন",
+    goldDesc: "হানাফি মাযহাবে ব্যবহৃত স্বর্ণালংকার ও স্বর্ণমুদ্রা বিশুদ্ধ স্বর্ণের ওজনে যাকাতযোগ্য।",
+    addGoldRow: "স্বর্ণ যোগ করুন",
+    silverHeading: "রৌপ্য (চাঁদি)",
+    silverDesc: "৯৯৯ বিশুদ্ধ রৌপ্য এবং ৯২৫ রুপার গহনা/পাত্র আলাদাভাবে লিখুন।",
+    silver999Label: "বিশুদ্ধ রৌপ্য 999",
+    silver925Label: "স্টার্লিং রৌপ্য 925",
+    cashHeading: "নগদ অর্থ ও ব্যাংক ব্যালেন্স",
+    cashDesc: "যাকাত বর্ষপূর্ণের দিনে হাতে থাকা নগদ অর্থ, ব্যাংক জমা ও বৈদেশিক মুদ্রা লিখুন।",
+    cashInHand: "হাতে / লকারে নগদ",
+    bankAccounts: "ব্যাংক হিসাব (সঞ্চয় ও চলতি)",
+    foreignCurrency: "বৈদেশিক মুদ্রার সমমূল্য",
+    businessHeading: "ব্যবসায়িক পণ্য ও হালাল শেয়ার",
+    businessDesc: "বিক্রয়ের উদ্দেশ্যে রক্ষিত পণ্য (মালে তিজারত) ও হালাল শেয়ার বিনিয়োগ।",
+    tradeInventory: "ব্যবসায়িক মজুদ পণ্য",
+    halalShares: "হালাল শেয়ার ও ফান্ড",
+    activeTrading100: "সক্রিয় ট্রেডিং (100%)",
+    longTerm30: "দীর্ঘমেয়াদি বিনিয়োগ (30%)",
+    receivablesHeading: "প্রাপ্য ঋণ (রিসিভেবলস)",
+    receivablesDesc: "ফেরত পাওয়ার নিশ্চিত ঋণ (দাইনে ক্বওয়ী) ও উত্তোলনযোগ্য প্রভিডেন্ট ফান্ড।",
+    receivablesStrong: "আদায়যোগ্য প্রাপ্য ঋণ",
+    retirementAccessible: "উত্তোলনযোগ্য রিটায়ারমেন্ট তহবিল",
+    liabilitiesHeading: "তাৎক্ষণিক ঋণ ও দায়সমূহ",
+    liabilitiesDesc: "তাৎক্ষণিক পরিশোধযোগ্য ঋণ, ব্যবসায়িক বকেয়া, দাবিকৃত মোহর, বিল ও পূর্বের বকেয়া যাকাত বাদ দিন।",
+    immediateDebts: "তাৎক্ষণিক পরিশোধযোগ্য ঋণ",
+    supplierPayables: "সরবরাহকারী / ব্যবসায়িক বকেয়া",
+    unpaidMahr: "অপরিশোধিত মোহর",
+    dueBillsTaxes: "বকেয়া বিল, ভাড়া ও কর",
+    unpaidPriorZakat: "বিগত বছরের বকেয়া যাকাত",
+    currency: "মুদ্রা",
+    weightUnit: "ওজনের একক",
+    grams: "গ্রাম",
+    tola: "তোলা",
+    troyOz: "ট্রয় আউন্স",
+    yearBasis: "বর্ষের ভিত্তি",
+    lunar: "চন্দ্রবর্ষ",
+    solar: "সৌরবর্ষ",
+    updateRates: "লাইভ দর হালনাগাদ",
+    updatingRates: "হালনাগাদ হচ্ছে…",
+    resetRate: "দর রিসেট",
+    saveSnapshot: "এনক্রিপ্টেড স্ন্যাপশট সংরক্ষণ",
+    encryptedNote: "এই ডিভাইসে গোপনীয়ভাবে এনক্রিপ্টেড",
+    recordPayment: "পরিশোধ লিখুন",
+    portfolioBreakdown: "সম্পদের বিবরণ",
+    nisabGaugeHeading: "হানাফি নিসাব মানদণ্ড",
+    hawlHeading: "হিজরি বর্ষপূর্তি ও গণনা",
+    disbursementHeading: "যাকাত প্রদানের খাতা",
+    encryptedVaultHeading: "সংরক্ষিত বার্ষিক হিসাব",
+    copySummary: "সারাংশ কপি",
+    downloadReport: "রিপোর্ট ডাউনলোড",
+    recipientLabel: "গ্রহীতা / প্রতিনিধির নাম",
+    categoryLabel: "মাসারিফ বিভাগ",
+    dateLabel: "তারিখ",
+    amountLabel: "পরিমাণ",
+    fitrahHeading: "সদকাতুল ফিতর (ফিতরা)",
+    adultsLabel: "নিজ ও প্রাপ্তবয়স্ক",
+    minorsLabel: "নাবালক সন্তান",
+    newbornsLabel: "নবজাতক (ঈদের ফজরের পূর্বে)",
+    commodityStandard: "সুন্নাহ শস্য মানদণ্ড",
+    markFitrahPaid: "ফিতরা আদায় নথিভুক্ত করুন",
+    fidyahHeading: "ফিদইয়া (কেবল শাইখে ফানির জন্য)",
+    missedFastsLabel: "ছুটে যাওয়া রোজার সংখ্যা",
+    kaffarahHeading: "হানাফি কাফফারা মানদণ্ড",
+    brokenOath: "শপথ ভঙ্গের কাফফারা",
+    brokenFast: "ইচ্ছাকৃত রমজানের রোজা ভঙ্গের কাফফারা",
+    ushrHeading: "হানাফি উশর ক্যালকুলেটর",
+    byMarketValue: "বাজারমূল্য অনুসারে",
+    byHarvestWeight: "ফসলের ওজন (কেজি) অনুসারে",
+    irrigationSource: "সেচের মাধ্যম",
+    rainNatural: "বৃষ্টি / নদী / প্রাকৃতিক পানি",
+    paidIrrigation: "টিউবওয়েল / ব্যয়সাপেক্ষ সেচ",
+    masarifHeading: "হানাফি মাসারিফ ও তামলিক নির্দেশিকা",
+    allRules: "সব বিধান",
+    canReceive: "গ্রহণযোগ্য",
+    cannotReceive: "অগ্রহণযোগ্য",
+    sadatTamlik: "সাদাত ও তামলিক",
+  },
+  fa: {
+    subtitle: "محاسبه زکات بر اساس نصاب نقره حنفی به همراه فطریه، فدیه و عشر",
+    tabCalc: "ماشین‌حساب زکات",
+    tabHawl: "حول و دفتر پرداخت",
+    tabFitrah: "فطریه و فدیه",
+    tabUshr: "عشر و مصارف",
+    netZakatableWealth: "خالص دارایی مشمول زکات",
+    zakatDue: "زکات واجب",
+    silverNisab: "نصاب نقره",
+    goldNisab: "نصاب طلا",
+    aboveNisab: "صاحب نصاب",
+    belowNisab: "کمتر از نصاب",
+    remainingToPay: "مانده قابل پرداخت",
+    paidSoFar: "پرداخت‌شده تا کنون",
+    grossAssets: "کل دارایی‌ها",
+    goldHeading: "زیورآلات طلا و شمش",
+    goldDesc: "در فقه حنفی زیورآلات شخصی طلا و شمش به میزان طلای خالص مشمول زکات است.",
+    addGoldRow: "افزودن ردیف طلا",
+    silverHeading: "نقره",
+    silverDesc: "نقره خالص ۹۹۹ (۱۰۰٪) و ظروف و زیورآلات نقره ۹۲۵ را جداگانه وارد کنید.",
+    silver999Label: "نقره خالص 999",
+    silver925Label: "نقره استرلینگ 925",
+    cashHeading: "وجه نقد و موجودی بانکی",
+    cashDesc: "وجه نقد، حساب‌های بانکی و ارز خارجی موجود در روز سررسید سال قمری را وارد کنید.",
+    cashInHand: "وجه نقد در دست / گاوصندوق",
+    bankAccounts: "حساب‌های بانکی (پس‌انداز و جاری)",
+    foreignCurrency: "معادل ارز خارجی",
+    businessHeading: "موجودی کالا و سهام حلال",
+    businessDesc: "کالای آماده فروش (مال‌التجاره) و سهام شرعی.",
+    tradeInventory: "کالای تجاری / موجودی انبار",
+    halalShares: "سهام و صندوق‌های حلال",
+    activeTrading100: "معاملات کوتاه‌مدت (100%)",
+    longTerm30: "سرمایه‌گذاری بلندمدت (30%)",
+    receivablesHeading: "مطالبات قابل وصول",
+    receivablesDesc: "طلب‌های مطمئن (دَین قوی) و پس‌انداز بازنشستگی قابل برداشت.",
+    receivablesStrong: "مطالبات مطمئن (دین قوی)",
+    retirementAccessible: "پس‌انداز بازنشستگی در دسترس",
+    liabilitiesHeading: "بدهی‌ها و تعهدات فوری",
+    liabilitiesDesc: "بدهی‌های سررسیدشده، بدهی تجاری، مهریه مطالبه‌شده، قبوض و زکات معوقه را کسر کنید.",
+    immediateDebts: "بدهی‌های فوری سررسیدشده",
+    supplierPayables: "بدهی به تأمین‌کنندگان",
+    unpaidMahr: "مهریه مطالبه‌شده پرداخت‌نشده",
+    dueBillsTaxes: "قبوض، اجاره و مالیات سررسیدشده",
+    unpaidPriorZakat: "زکات سال‌های گذشته",
+    currency: "ارز",
+    weightUnit: "واحد وزن",
+    grams: "گرم",
+    tola: "توله",
+    troyOz: "اونس",
+    yearBasis: "مبنای سال",
+    lunar: "قمری",
+    solar: "شمسی",
+    updateRates: "به‌روزرسانی نرخ روز",
+    updatingRates: "در حال دریافت…",
+    resetRate: "بازنشانی نرخ",
+    saveSnapshot: "ذخیره نسخه رمزنگاری‌شده",
+    encryptedNote: "رمزنگاری محلی روی دستگاه شما",
+    recordPayment: "ثبت پرداخت",
+    portfolioBreakdown: "تفکیک دارایی‌های زکوی",
+    nisabGaugeHeading: "سنجش نصاب حنفی",
+    hawlHeading: "سالگرد حول قمری و شمارش معکوس",
+    disbursementHeading: "دفتر پرداخت‌های زکات",
+    encryptedVaultHeading: "محاسبات ذخیره‌شده",
+    copySummary: "کپی خلاصه",
+    downloadReport: "دانلود گزارش",
+    recipientLabel: "نام مستحق / وکیل",
+    categoryLabel: "نوع مصرف",
+    dateLabel: "تاریخ",
+    amountLabel: "مبلغ",
+    fitrahHeading: "زکات فطره (فطریه)",
+    adultsLabel: "خود و بزرگسالان",
+    minorsLabel: "فرزندان نابالغ",
+    newbornsLabel: "نوزادان (پیش از فجر عید)",
+    commodityStandard: "معیار اجناس مسنون",
+    markFitrahPaid: "ثبت پرداخت فطریه",
+    fidyahHeading: "فدیه روزه (ویژه شیخ فانی)",
+    missedFastsLabel: "تعداد روزه‌های فوت‌شده",
+    kaffarahHeading: "مقادیر کفاره در فقه حنفی",
+    brokenOath: "کفاره شکستن سوگند",
+    brokenFast: "کفاره افطار عمدی روزه رمضان",
+    ushrHeading: "ماشین‌حساب عشر کشاورزی",
+    byMarketValue: "بر اساس ارزش روز",
+    byHarvestWeight: "بر اساس وزن محصول (کیلوگرم)",
+    irrigationSource: "روش آبیاری",
+    rainNatural: "باران / رودخانه / آب طبیعی",
+    paidIrrigation: "چاه عمیق / آبیاری با هزینه",
+    masarifHeading: "راهنمای مصارف زکات و شرط تملیک",
+    allRules: "همه احکام",
+    canReceive: "مستحق",
+    cannotReceive: "غیر مستحق",
+    sadatTamlik: "سادات و تملیک",
+  },
+  id: {
+    subtitle: "Hitung Zakat sesuai nisab perak Hanafi beserta Fitrah, Fidyah, dan Usyur",
+    tabCalc: "Kalkulator",
+    tabHawl: "Haul & Buku Kas",
+    tabFitrah: "Fitrah & Fidyah",
+    tabUshr: "Usyur & Mustahik",
+    netZakatableWealth: "Harta Bersih Wajib Zakat",
+    zakatDue: "Zakat Wajib",
+    silverNisab: "Nisab Perak",
+    goldNisab: "Nisab Emas",
+    aboveNisab: "Mencapai Nisab",
+    belowNisab: "Di Bawah Nisab",
+    remainingToPay: "Sisa Belum Dibayar",
+    paidSoFar: "Sudah Ditunaikan",
+    grossAssets: "Total Harta Kotor",
+    goldHeading: "Perhiasan Emas & Logam Mulia",
+    goldDesc: "Dalam mazhab Hanafi, perhiasan emas pribadi dan emas batangan wajib dizakati sesuai berat emas murni.",
+    addGoldRow: "Tambah Item Emas",
+    silverHeading: "Perak",
+    silverDesc: "Pisahkan perak murni 999 (100%) dan perak sterling 925 (92,5%).",
+    silver999Label: "Perak Murni 999",
+    silver925Label: "Perak Sterling 925",
+    cashHeading: "Uang Tunai & Saldo Bank",
+    cashDesc: "Masukkan uang tunai, tabungan/giro bank, dan valuta asing pada tanggal jatuh tempo Haul.",
+    cashInHand: "Uang Tunai di Tangan / Brankas",
+    bankAccounts: "Rekening Bank — Tabungan & Giro",
+    foreignCurrency: "Setara Mata Uang Asing",
+    businessHeading: "Persediaan Dagang & Saham Halal",
+    businessDesc: "Barang dagangan (Mal-e-Tijarah) dan investasi saham syariah.",
+    tradeInventory: "Persediaan Dagang (Mal-e-Tijarah)",
+    halalShares: "Saham & Reksa Dana Syariah",
+    activeTrading100: "Trading Aktif (100%)",
+    longTerm30: "Investasi Jangka Panjang (30%)",
+    receivablesHeading: "Piutang",
+    receivablesDesc: "Piutang lancar yang diharapkan kembali (Dayn Qawi) dan dana pensiun cair.",
+    receivablesStrong: "Piutang Lancar (Dayn Qawi)",
+    retirementAccessible: "Tabungan Pensiun yang Dapat Dicairkan",
+    liabilitiesHeading: "Utang Jatuh Tempo & Kewajiban",
+    liabilitiesDesc: "Kurangi utang jatuh tempo, utang dagang, mahar yang dituntut, tagihan, dan zakat tahun lalu.",
+    immediateDebts: "Utang Jatuh Tempo Saat Ini",
+    supplierPayables: "Utang Dagang / Pemasok",
+    unpaidMahr: "Mahar Terutang",
+    dueBillsTaxes: "Tagihan, Sewa & Pajak Jatuh Tempo",
+    unpaidPriorZakat: "Tunggakan Zakat Tahun Sebelumnya",
+    currency: "Mata Uang",
+    weightUnit: "Satuan Berat",
+    grams: "Gram",
+    tola: "Tola",
+    troyOz: "Troy Oz",
+    yearBasis: "Basis Tahun",
+    lunar: "Qamariyah",
+    solar: "Syamsiyah",
+    updateRates: "Perbarui Kurs",
+    updatingRates: "Memperbarui…",
+    resetRate: "Atur Ulang",
+    saveSnapshot: "Simpan Catatan Terenkripsi",
+    encryptedNote: "Dienkripsi secara lokal di perangkat ini",
+    recordPayment: "Catat Pembayaran",
+    portfolioBreakdown: "Rincian Harta Zakat",
+    nisabGaugeHeading: "Ambang Nisab Hanafi",
+    hawlHeading: "Tanggal Haul Hijriah & Hitung Mundur",
+    disbursementHeading: "Buku Penyaluran Zakat",
+    encryptedVaultHeading: "Riwayat Perhitungan Tersimpan",
+    copySummary: "Salin Ringkasan",
+    downloadReport: "Unduh Laporan",
+    recipientLabel: "Nama Mustahik / Wakil",
+    categoryLabel: "Kategori Mustahik",
+    dateLabel: "Tanggal",
+    amountLabel: "Jumlah",
+    fitrahHeading: "Zakat Fitrah (Sadaqat-ul-Fitr)",
+    adultsLabel: "Diri Sendiri & Dewasa",
+    minorsLabel: "Anak Belum Baligh",
+    newbornsLabel: "Bayi Baru Lahir",
+    commodityStandard: "Standar Bahan Pokok Sunnah",
+    markFitrahPaid: "Catat Fitrah Lunas",
+    fidyahHeading: "Fidyah Puasa (Khusus Syaikh Fani)",
+    missedFastsLabel: "Jumlah Puasa Tertinggal",
+    kaffarahHeading: "Standar Kaffarah Hanafi",
+    brokenOath: "Kaffarah Sumpah (Yamin)",
+    brokenFast: "Kaffarah Membatalkan Puasa Ramadan",
+    ushrHeading: "Kalkulator Usyur Pertanian",
+    byMarketValue: "Berdasarkan Nilai Pasar",
+    byHarvestWeight: "Berdasarkan Berat Panen (kg)",
+    irrigationSource: "Sumber Pengairan",
+    rainNatural: "Air Hujan / Sungai / Alami",
+    paidIrrigation: "Pompa / Irigasi Berbayar",
+    masarifHeading: "Panduan Mustahik & Syarat Tamlik",
+    allRules: "Semua",
+    canReceive: "Berhak Menerima",
+    cannotReceive: "Tidak Berhak",
+    sadatTamlik: "Ahlul Bait & Tamlik",
+  },
+  fr: {
+    subtitle: "Calculez la Zakat selon le Nisab d'argent hanafite ainsi que la Fitrah, la Fidyah et l'Oushr",
+    tabCalc: "Calculateur",
+    tabHawl: "Hawl & Registre",
+    tabFitrah: "Fitrah & Fidyah",
+    tabUshr: "Oushr & Règles",
+    netZakatableWealth: "Patrimoine Net Zakatable",
+    zakatDue: "Zakat Due",
+    silverNisab: "Nisab d'Argent",
+    goldNisab: "Nisab d'Or",
+    aboveNisab: "Au-dessus du Nisab",
+    belowNisab: "Sous le Nisab",
+    remainingToPay: "Reste à Verser",
+    paidSoFar: "Déjà Versé",
+    grossAssets: "Actifs Bruts",
+    goldHeading: "Bijoux en Or & Lingots",
+    goldDesc: "Dans l'école hanafite, les bijoux personnels en or et lingots sont soumis à la Zakat selon leur poids d'or pur.",
+    addGoldRow: "Ajouter une Ligne d'Or",
+    silverHeading: "Argent",
+    silverDesc: "Séparez l'argent fin 999 (100 %) et l'argenterie/bijoux sterling 925 (92,5 %).",
+    silver999Label: "Argent Fin 999",
+    silver925Label: "Argent Sterling 925",
+    cashHeading: "Espèces & Comptes Bancaires",
+    cashDesc: "Soldes détenus au jour anniversaire du Hawl (hors intérêts bancaires illicites).",
+    cashInHand: "Espèces en Main / Coffre",
+    bankAccounts: "Comptes Bancaires — Épargne & Courant",
+    foreignCurrency: "Équivalent Devises Étrangères",
+    businessHeading: "Stocks Commerciaux & Actions",
+    businessDesc: "Marchandises destinées à la revente (Mal-e-Tijarah) et actions licites.",
+    tradeInventory: "Stock Commercial (Mal-e-Tijarah)",
+    halalShares: "Actions & Fonds Islamiques",
+    activeTrading100: "Trading Actif (100 %)",
+    longTerm30: "Détention Long Terme (30 %)",
+    receivablesHeading: "Créances Recouvrables",
+    receivablesDesc: "Prêts solides recouvrables (Dayn Qawi) et épargne retraite disponible.",
+    receivablesStrong: "Créances Solides (Dayn Qawi)",
+    retirementAccessible: "Épargne Retraite Accessible",
+    liabilitiesHeading: "Dettes Exigibles & Passifs",
+    liabilitiesDesc: "Déduisez les dettes exigibles, dettes fournisseurs, Mahr réclamé, factures dues et Zakat antérieure.",
+    immediateDebts: "Dettes Immédiatement Exigibles",
+    supplierPayables: "Dettes Fournisseurs",
+    unpaidMahr: "Mahr Exigible Non Versé",
+    dueBillsTaxes: "Factures, Loyer & Impôts Dus",
+    unpaidPriorZakat: "Zakat des Années Précédentes",
+    currency: "Devise",
+    weightUnit: "Unité de Poids",
+    grams: "Grammes",
+    tola: "Tola",
+    troyOz: "Once Troy",
+    yearBasis: "Base Annuelle",
+    lunar: "Lunaire",
+    solar: "Solaire",
+    updateRates: "Actualiser les Cours",
+    updatingRates: "Actualisation…",
+    resetRate: "Réinitialiser",
+    saveSnapshot: "Enregistrer un Relevé Chiffré",
+    encryptedNote: "Chiffré localement sur cet appareil",
+    recordPayment: "Enregistrer un Versement",
+    portfolioBreakdown: "Répartition des Actifs",
+    nisabGaugeHeading: "Seuil du Nisab Hanafite",
+    hawlHeading: "Anniversaire du Hawl Hégirien",
+    disbursementHeading: "Registre des Versements",
+    encryptedVaultHeading: "Relevés Enregistrés",
+    copySummary: "Copier le Résumé",
+    downloadReport: "Télécharger le Rapport",
+    recipientLabel: "Bénéficiaire / Mandataire",
+    categoryLabel: "Catégorie",
+    dateLabel: "Date",
+    amountLabel: "Montant",
+    fitrahHeading: "Sadaqat-ul-Fitr (Fitrah)",
+    adultsLabel: "Soi-même & Adultes",
+    minorsLabel: "Enfants Mineurs",
+    newbornsLabel: "Nouveau-nés",
+    commodityStandard: "Denrée Prophétique de Référence",
+    markFitrahPaid: "Marquer la Fitrah Versée",
+    fidyahHeading: "Fidyah (Shaykh Fani Uniquement)",
+    missedFastsLabel: "Jours de Jeûne Manqués",
+    kaffarahHeading: "Repères Hanafites de Kaffarah",
+    brokenOath: "Serment Rompu (Kaffarah-e-Yamin)",
+    brokenFast: "Jeûne du Ramadan Rompu Volontairement",
+    ushrHeading: "Calculateur d'Oushr Agricole",
+    byMarketValue: "Par Valeur Marchande",
+    byHarvestWeight: "Par Poids de Récolte (kg)",
+    irrigationSource: "Mode d'Irrigation",
+    rainNatural: "Pluie / Rivière / Source Naturelle",
+    paidIrrigation: "Forage / Irrigation Coûteuse",
+    masarifHeading: "Guide des Bénéficiaires (Masarif & Tamlik)",
+    allRules: "Tout",
+    canReceive: "Éligibles",
+    cannotReceive: "Non Éligibles",
+    sadatTamlik: "Ahl al-Bayt & Tamlik",
+  },
+};
+
 /* -------------------------------------------------------------------------- */
 /* Inner Studio Component                                                     */
 /* -------------------------------------------------------------------------- */
@@ -321,11 +1352,10 @@ function ZakatStudioInner() {
     hawlHijriDay,
     setHawlDate,
     backend,
-    totalXp,
-    currentRank,
     awardXp,
   } = useApp();
 
+  const ui = ZAKAT_UI[lang] || ZAKAT_UI.en;
   const zakatConfig = backend.zakatConfig;
   const xpZakatReward = backend.gamificationConfig.xpRewards.zakatLogged || 60;
 
@@ -616,7 +1646,7 @@ function ZakatStudioInner() {
       } else {
         setSpotMessage({
           tone: "gold",
-          text: `FX synced, using Sanctuary CMS rate for ${activeCurrency.code}. Verify with local bullion jeweler if needed.`,
+          text: `FX synced — using standard benchmark rate for ${activeCurrency.code}. Adjust manually if your local bullion market differs.`,
         });
       }
     } catch {
@@ -628,7 +1658,7 @@ function ZakatStudioInner() {
       });
       setSpotMessage({
         tone: "gold",
-        text: `Live FX feed unavailable — gracefully using Sanctuary CMS benchmark (${activeCurrency.symbol}${activeCurrency.goldPerGram24K}/g 24K Gold • ${activeCurrency.symbol}${activeCurrency.silverPerGram}/g Silver).`,
+        text: `Live FX feed unavailable — using standard benchmark (${activeCurrency.symbol}${activeCurrency.goldPerGram24K}/g 24K Gold • ${activeCurrency.symbol}${activeCurrency.silverPerGram}/g Silver).`,
       });
     } finally {
       setSpotLoading(false);
@@ -777,11 +1807,11 @@ function ZakatStudioInner() {
 
   const donutSegments = useMemo(() => {
     const raw = [
-      { id: "gold", label: "Gold Vault", value: calc.goldValue, color: "#F59E0B" },
-      { id: "silver", label: "Silver Vault", value: calc.silverValue, color: "#94A3B8" },
-      { id: "cash", label: "Cash & Bank", value: calc.cashTotal, color: "#10B981" },
-      { id: "business", label: "Trade & Shares", value: calc.businessTotal, color: "#A855F7" },
-      { id: "receivables", label: "Receivables & PF", value: calc.receivablesTotal, color: "#38BDF8" },
+      { id: "gold", label: ui.goldHeading, value: calc.goldValue, color: "#F59E0B" },
+      { id: "silver", label: ui.silverHeading, value: calc.silverValue, color: "#94A3B8" },
+      { id: "cash", label: ui.cashHeading, value: calc.cashTotal, color: "#10B981" },
+      { id: "business", label: ui.businessHeading, value: calc.businessTotal, color: "#A855F7" },
+      { id: "receivables", label: ui.receivablesHeading, value: calc.receivablesTotal, color: "#38BDF8" },
     ];
     const total = calc.grossAssets;
     const circumference = 2 * Math.PI * 60;
@@ -801,6 +1831,11 @@ function ZakatStudioInner() {
       };
     });
   }, [
+    ui.goldHeading,
+    ui.silverHeading,
+    ui.cashHeading,
+    ui.businessHeading,
+    ui.receivablesHeading,
     calc.goldValue,
     calc.silverValue,
     calc.cashTotal,
@@ -1221,31 +2256,26 @@ function ZakatStudioInner() {
   const studioTabs: {
     id: StudioTab;
     label: string;
-    shortBadge: string;
     icon: React.ComponentType<{ className?: string }>;
   }[] = [
     {
       id: "calculator",
-      label: "Zakat Calculator",
-      shortBadge: calc.isSahibNisab ? "Wajib" : "Nisab",
+      label: tl(lang, "zakatTabCalc", ui.tabCalc),
       icon: Calculator,
     },
     {
       id: "ledger",
-      label: "Hawl & Payment Ledger",
-      shortBadge: `${disbursements.length} Paid`,
+      label: tl(lang, "zakatTabHawl", ui.tabHawl),
       icon: History,
     },
     {
       id: "fitrah",
-      label: "Fitrah, Fidyah & Kaffarah",
-      shortBadge: `${zakatConfig.fitrahWheatKg}kg`,
+      label: tl(lang, "zakatTabFitrah", ui.tabFitrah),
       icon: Wheat,
     },
     {
       id: "ushr",
-      label: "Ushr & Masarif Guide",
-      shortBadge: "10% / 5%",
+      label: tl(lang, "zakatTabUshr", ui.tabUshr),
       icon: Sprout,
     },
   ];
@@ -1253,7 +2283,7 @@ function ZakatStudioInner() {
   return (
     <div className="space-y-6 pb-10">
       {/* ------------------------------------------------------------------ */}
-      {/* Hero Sanctuary Studio Banner & Global Benchmark Deck               */}
+      {/* Calm Authoritative Wealth & Nisab Overview                         */}
       {/* ------------------------------------------------------------------ */}
       <section className="sanctuary-halo-card p-5 sm:p-6 space-y-5 relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
@@ -1262,32 +2292,22 @@ function ZakatStudioInner() {
               <span className="badge-pill badge-gold">
                 <Scale className="w-3.5 h-3.5" />
                 <span>
-                  Hanafi Silver Nisab • {silverTolaDisplay} Tola ({zakatConfig.silverNisabGrams}g)
+                  {ui.silverNisab} ({zakatConfig.silverNisabGrams}g • {silverTolaDisplay} {ui.tola})
                 </span>
               </span>
               <span
-                className="badge-pill"
-                style={{
-                  backgroundColor: "var(--accent-soft)",
-                  color: "var(--accent-primary)",
-                  border: "1px solid var(--border-hairline)",
-                }}
+                className={`badge-pill ${calc.isSahibNisab ? "badge-emerald" : ""}`}
+                style={
+                  calc.isSahibNisab
+                    ? undefined
+                    : {
+                        backgroundColor: "var(--bg-elevated)",
+                        color: "var(--text-secondary)",
+                        border: "1px solid var(--border-hairline)",
+                      }
+                }
               >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>AES-256-GCM Zero-Knowledge Vault</span>
-              </span>
-              <span
-                className="badge-pill"
-                style={{
-                  backgroundColor: "var(--bg-elevated)",
-                  color: "var(--text-secondary)",
-                  border: "1px solid var(--border-hairline)",
-                }}
-              >
-                <Award className="w-3.5 h-3.5" style={{ color: "var(--accent-gold)" }} />
-                <span>
-                  {currentRank.title} • {totalXp.toLocaleString()} XP (+{xpZakatReward} XP)
-                </span>
+                <span>{calc.isSahibNisab ? ui.aboveNisab : ui.belowNisab}</span>
               </span>
             </div>
 
@@ -1295,16 +2315,13 @@ function ZakatStudioInner() {
               className="text-2xl sm:text-3xl font-bold tracking-tight"
               style={{ color: "var(--text-primary)" }}
             >
-              {t(lang, "navZakat")} — Fiqh-Verified Wealth &amp; Charity Studio
+              {t(lang, "navZakat")}
             </h1>
             <p
               className="text-xs sm:text-sm max-w-3xl leading-relaxed"
               style={{ color: "var(--text-secondary)" }}
             >
-              Authoritative Sunni Hanafi calculator for annual Zakat (<em>Dhamm</em> &amp;{" "}
-              <em>Anfa&apos; lil-Fuqara</em> Silver Nisab), Hijri Hawl installment tracking,
-              Ramadan Sadaqat-ul-Fitr, <em>Shaykh Fani</em> Fidyah, agricultural Ushr, and{" "}
-              <em>Tamlik</em> recipient verification.
+              {tl(lang, "zakatSubtitle", ui.subtitle)}
             </p>
           </div>
 
@@ -1317,14 +2334,14 @@ function ZakatStudioInner() {
               className="btn-primary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer disabled:opacity-60"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${spotLoading ? "animate-spin" : ""}`} />
-              <span>{spotLoading ? "Syncing FX Rates..." : "Fetch Live Spot Benchmark"}</span>
+              <span>{spotLoading ? ui.updatingRates : ui.updateRates}</span>
             </button>
 
             {activeOverride && (
               <button
                 type="button"
                 onClick={handleResetBenchmark}
-                aria-label="Reset currency rates to CMS benchmark"
+                aria-label={ui.resetRate}
                 className="px-3 py-2.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
                 style={{
                   borderColor: "var(--border-hairline)",
@@ -1333,13 +2350,105 @@ function ZakatStudioInner() {
                 }}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset Rate</span>
+                <span>{ui.resetRate}</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Global Currency, Weight Unit, Calendar Basis & Manual Jeweler Rate Deck */}
+        {/* Authoritative Wealth & Nisab Summary Strip */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div
+            className="p-3.5 rounded-xl border space-y-1 tabular-nums"
+            style={{
+              borderColor: "var(--border-hairline)",
+              backgroundColor: "var(--bg-elevated)",
+            }}
+          >
+            <div className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+              {ui.netZakatableWealth}
+            </div>
+            <div
+              className="text-lg sm:text-xl font-bold truncate"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {formatMoney(calc.netZakatableWealth, sym, 0)}
+            </div>
+            <div
+              className="text-[11px] font-semibold"
+              style={{
+                color: calc.isSahibNisab ? "var(--accent-primary)" : "var(--text-secondary)",
+              }}
+            >
+              {calc.isSahibNisab ? ui.aboveNisab : ui.belowNisab}
+            </div>
+          </div>
+
+          <div
+            className="p-3.5 rounded-xl border space-y-1 tabular-nums"
+            style={{
+              borderColor: calc.isSahibNisab ? "var(--accent-primary)" : "var(--border-hairline)",
+              backgroundColor: calc.isSahibNisab ? "var(--accent-soft)" : "var(--bg-elevated)",
+            }}
+          >
+            <div className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+              {ui.zakatDue} ({calc.zakatRatePercent}%)
+            </div>
+            <div
+              className="text-lg sm:text-xl font-bold truncate"
+              style={{ color: "var(--accent-primary)" }}
+            >
+              {formatMoney(calc.zakatDue, sym)}
+            </div>
+            <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+              {ui.remainingToPay}: {formatMoney(calc.remainingDue, sym, 0)}
+            </div>
+          </div>
+
+          <div
+            className="p-3.5 rounded-xl border space-y-1 tabular-nums"
+            style={{
+              borderColor: !calc.onlyPureGold ? "var(--accent-gold)" : "var(--border-hairline)",
+              backgroundColor: "var(--bg-elevated)",
+            }}
+          >
+            <div className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+              {ui.silverNisab} ({zakatConfig.silverNisabGrams}g)
+            </div>
+            <div
+              className="text-lg sm:text-xl font-bold truncate"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {formatMoney(calc.silverNisabValue, sym)}
+            </div>
+            <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+              {silverTolaDisplay} {ui.tola}
+            </div>
+          </div>
+
+          <div
+            className="p-3.5 rounded-xl border space-y-1 tabular-nums"
+            style={{
+              borderColor: calc.onlyPureGold ? "var(--accent-gold)" : "var(--border-hairline)",
+              backgroundColor: "var(--bg-elevated)",
+            }}
+          >
+            <div className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+              {ui.goldNisab} ({zakatConfig.goldNisabGrams}g)
+            </div>
+            <div
+              className="text-lg sm:text-xl font-bold truncate"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {formatMoney(calc.goldNisabValue, sym)}
+            </div>
+            <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+              {goldTolaDisplay} {ui.tola}
+            </div>
+          </div>
+        </div>
+
+        {/* Global Currency, Weight Unit, Calendar Basis & Bullion Rate Controls */}
         <div
           className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-3 pt-4 border-t"
           style={{ borderColor: "var(--border-hairline)" }}
@@ -1352,7 +2461,7 @@ function ZakatStudioInner() {
               style={{ color: "var(--text-muted)" }}
             >
               <Globe className="w-3.5 h-3.5" style={{ color: "var(--accent-primary)" }} />
-              <span>Active Currency (CMS)</span>
+              <span>{ui.currency}</span>
             </label>
             <select
               id="zakat-currency-select"
@@ -1387,7 +2496,7 @@ function ZakatStudioInner() {
               style={{ color: "var(--text-muted)" }}
             >
               <Coins className="w-3.5 h-3.5" style={{ color: "var(--accent-gold)" }} />
-              <span>Bullion Weight Unit</span>
+              <span>{ui.weightUnit}</span>
             </span>
             <div
               className="grid grid-cols-3 p-1 rounded-xl border gap-1"
@@ -1409,7 +2518,7 @@ function ZakatStudioInner() {
                       color: active ? "#ffffff" : "var(--text-secondary)",
                     }}
                   >
-                    {u === "grams" ? "Grams" : u === "tola" ? "Tola" : "Troy Oz"}
+                    {u === "grams" ? ui.grams : u === "tola" ? ui.tola : ui.troyOz}
                   </button>
                 );
               })}
@@ -1423,7 +2532,7 @@ function ZakatStudioInner() {
               style={{ color: "var(--text-muted)" }}
             >
               <Calendar className="w-3.5 h-3.5" style={{ color: "var(--accent-primary)" }} />
-              <span>Year Basis</span>
+              <span>{ui.yearBasis}</span>
             </span>
             <div
               className="grid grid-cols-2 p-1 rounded-xl border gap-1"
@@ -1441,9 +2550,9 @@ function ZakatStudioInner() {
                     calendarBasis === "lunar" ? "var(--accent-primary)" : "transparent",
                   color: calendarBasis === "lunar" ? "#ffffff" : "var(--text-secondary)",
                 }}
-                title={`Hijri Lunar Year (${zakatConfig.lunarRatePercent}%)`}
+                title={`${ui.lunar} (${zakatConfig.lunarRatePercent}%)`}
               >
-                Lunar {zakatConfig.lunarRatePercent}%
+                {ui.lunar} {zakatConfig.lunarRatePercent}%
               </button>
               <button
                 type="button"
@@ -1454,9 +2563,9 @@ function ZakatStudioInner() {
                     calendarBasis === "solar" ? "var(--accent-primary)" : "transparent",
                   color: calendarBasis === "solar" ? "#ffffff" : "var(--text-secondary)",
                 }}
-                title={`Solar Year Equivalent (${zakatConfig.solarRatePercent}%)`}
+                title={`${ui.solar} (${zakatConfig.solarRatePercent}%)`}
               >
-                Solar {zakatConfig.solarRatePercent}%
+                {ui.solar} {zakatConfig.solarRatePercent}%
               </button>
             </div>
           </div>
@@ -1468,7 +2577,7 @@ function ZakatStudioInner() {
               className="text-[11px] font-semibold uppercase tracking-wider flex items-center justify-between"
               style={{ color: "var(--text-muted)" }}
             >
-              <span>24K Gold / {unitMeta.shortLabel}</span>
+              <span>24K / {unitMeta.shortLabel}</span>
               <span className="tabular-nums" style={{ color: "var(--accent-gold)" }}>
                 {sym}
                 {effectiveGoldPerGram.toFixed(2)}/g
@@ -1497,7 +2606,9 @@ function ZakatStudioInner() {
               className="text-[11px] font-semibold uppercase tracking-wider flex items-center justify-between"
               style={{ color: "var(--text-muted)" }}
             >
-              <span>Silver / {unitMeta.shortLabel}</span>
+              <span>
+                {ui.silverHeading} / {unitMeta.shortLabel}
+              </span>
               <span className="tabular-nums" style={{ color: "var(--accent-primary)" }}>
                 {sym}
                 {effectiveSilverPerGram.toFixed(2)}/g
@@ -1557,54 +2668,28 @@ function ZakatStudioInner() {
       </section>
 
       {/* ------------------------------------------------------------------ */}
-      {/* 4 Interactive Animated Studio Tabs                                 */}
+      {/* Crisp Pill Tab Bar Navigation                                      */}
       {/* ------------------------------------------------------------------ */}
-      <nav
-        aria-label="Hanafi Zakat Studio Sections"
-        className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 p-1.5 rounded-2xl border"
-        style={{
-          backgroundColor: "var(--bg-surface)",
-          borderColor: "var(--border-hairline)",
-        }}
-      >
-        {studioTabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className="relative px-3.5 py-3 rounded-xl text-left transition-colors cursor-pointer flex items-center justify-between gap-2 overflow-hidden"
-              style={{
-                color: isActive ? "#ffffff" : "var(--text-secondary)",
-              }}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="zakat-studio-active-tab"
-                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                  className="absolute inset-0 rounded-xl"
-                  style={{ backgroundImage: "var(--gradient-brand)" }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-2 font-semibold text-xs sm:text-sm truncate">
-                <Icon className="w-4 h-4 shrink-0" />
-                <span className="truncate">{tab.label}</span>
-              </span>
-              <span
-                className="relative z-10 text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums shrink-0 hidden sm:inline-block"
-                style={{
-                  backgroundColor: isActive ? "rgba(255,255,255,0.22)" : "var(--bg-muted)",
-                  color: isActive ? "#ffffff" : "var(--text-muted)",
-                }}
+      <div className="overflow-x-auto no-scrollbar">
+        <nav aria-label={t(lang, "navZakat")} className="pill-tab-bar min-w-max">
+          {studioTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                data-active={isActive}
+                onClick={() => setActiveTab(tab.id)}
+                className="pill-tab-btn inline-flex items-center gap-2 whitespace-nowrap"
               >
-                {tab.shortBadge}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+                <Icon className="w-4 h-4 shrink-0" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
       {/* ------------------------------------------------------------------ */}
       {/* Animated Tab Viewport                                              */}
@@ -1622,26 +2707,25 @@ function ZakatStudioInner() {
             transition={{ duration: 0.22 }}
             className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
           >
-            {/* Left Column: Hanafi Vaults, Liquid Assets & Deductible Liabilities */}
+            {/* Left Column: 6 Structured Financial Ledger Sections */}
             <div className="lg:col-span-7 space-y-5">
-              {/* 1A. Itemized Multi-Karat Gold Vault */}
+              {/* 1A. Gold Jewelry & Bullion */}
               <section className="bento-card p-5 sm:p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
                       <Coins className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
                       <h2 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
-                        Itemized Multi-Karat Gold Vault
+                        {ui.goldHeading}
                       </h2>
                     </div>
                     <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                      In the Hanafi Madhhab, personal gold jewelry (even worn daily) is zakatable
-                      by pure metal content. Exclude non-gold precious stones.
+                      {ui.goldDesc}
                     </p>
                   </div>
                   <div className="text-right tabular-nums">
                     <div className="text-xs font-semibold" style={{ color: "var(--accent-gold)" }}>
-                      {calc.totalPureGoldGrams.toFixed(2)}g Pure 24K Eq.
+                      {calc.totalPureGoldGrams.toFixed(2)}g 24K
                     </div>
                     <div className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
                       {formatMoney(calc.goldValue, sym)}
@@ -1652,10 +2736,10 @@ function ZakatStudioInner() {
                 {/* Quick-Add Presets */}
                 <div className="flex flex-wrap items-center gap-1.5">
                   {[
-                    { label: "Wife's Jewelry", karat: "22K" as GoldKarat, grams: 35 },
-                    { label: "Gold Coins (Ashrafi)", karat: "24K" as GoldKarat, grams: 11.664 },
-                    { label: "Bullion Bar", karat: "24K" as GoldKarat, grams: 31.1035 },
-                    { label: "18K Gift Ring/Watch", karat: "18K" as GoldKarat, grams: 12 },
+                    { label: "22K Jewelry (35g)", karat: "22K" as GoldKarat, grams: 35 },
+                    { label: "Gold Coin (1 Tola)", karat: "24K" as GoldKarat, grams: 11.664 },
+                    { label: "Bullion Bar (1 Oz)", karat: "24K" as GoldKarat, grams: 31.1035 },
+                    { label: "18K Ring / Watch (12g)", karat: "18K" as GoldKarat, grams: 12 },
                   ].map((preset) => (
                     <button
                       key={preset.label}
@@ -1685,8 +2769,7 @@ function ZakatStudioInner() {
                         color: "var(--text-muted)",
                       }}
                     >
-                      No gold items in vault. Click &ldquo;Add Gold Holding Row&rdquo; below if you
-                      own jewelry, coins, or bullion.
+                      {ui.addGoldRow}
                     </div>
                   ) : (
                     calc.itemizedGold.map((item) => (
@@ -1701,10 +2784,10 @@ function ZakatStudioInner() {
                         <div className="sm:col-span-5">
                           <input
                             type="text"
-                            aria-label="Gold item description"
+                            aria-label={ui.goldHeading}
                             value={item.label}
                             onChange={(e) => updateGoldRow(item.id, { label: e.target.value })}
-                            placeholder="Item label (e.g., Bridal Set)"
+                            placeholder={ui.goldHeading}
                             className="w-full px-2.5 py-1.5 rounded-lg border text-xs font-medium bg-transparent outline-none"
                             style={{
                               borderColor: "var(--border-hairline)",
@@ -1716,7 +2799,7 @@ function ZakatStudioInner() {
                         <div className="sm:col-span-3 flex items-center gap-1.5">
                           <input
                             type="number"
-                            aria-label={`Weight in ${unitMeta.label}`}
+                            aria-label={`${ui.weightUnit} (${unitMeta.label})`}
                             min={0}
                             step="any"
                             value={item.weight}
@@ -1782,7 +2865,7 @@ function ZakatStudioInner() {
                           </div>
                           <button
                             type="button"
-                            aria-label={`Remove ${item.label || "gold item"}`}
+                            aria-label={`${tp(lang, "Delete")} ${item.label || "gold"}`}
                             onClick={() => removeGoldRow(item.id)}
                             className="p-1.5 rounded-lg border cursor-pointer transition-opacity hover:opacity-80"
                             style={{
@@ -1800,7 +2883,7 @@ function ZakatStudioInner() {
 
                 <button
                   type="button"
-                  onClick={() => addGoldRow("Additional Gold Holding", "22K", 10)}
+                  onClick={() => addGoldRow(ui.goldHeading, "22K", 10)}
                   className="w-full py-2 rounded-xl border border-dashed text-xs font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                   style={{
                     borderColor: "var(--accent-gold)",
@@ -1809,28 +2892,27 @@ function ZakatStudioInner() {
                   }}
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Add Gold Holding Row</span>
+                  <span>{ui.addGoldRow}</span>
                 </button>
               </section>
 
-              {/* 1B. Silver Vault (999 Fine & 925 Sterling) */}
+              {/* 1B. Silver */}
               <section className="bento-card p-5 sm:p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                       <h2 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
-                        Silver Vault (Chandi Coins, Bars &amp; Ornaments)
+                        {ui.silverHeading}
                       </h2>
                     </div>
                     <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                      Separate 999 Fine Bullion/Coins (100%) and 925 Sterling Silverware/Jewelry
-                      (92.5% silver purity).
+                      {ui.silverDesc}
                     </p>
                   </div>
                   <div className="text-right tabular-nums">
                     <div className="text-xs font-semibold" style={{ color: "var(--accent-primary)" }}>
-                      {calc.pureSilverGrams.toFixed(2)}g Pure Silver Eq.
+                      {calc.pureSilverGrams.toFixed(2)}g 999
                     </div>
                     <div className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
                       {formatMoney(calc.silverValue, sym)}
@@ -1845,7 +2927,7 @@ function ZakatStudioInner() {
                       className="block font-semibold"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Fine Silver 999 ({unitMeta.label})
+                      {ui.silver999Label} ({unitMeta.shortLabel})
                     </label>
                     <input
                       id="silver-999-input"
@@ -1862,7 +2944,7 @@ function ZakatStudioInner() {
                       }}
                     />
                     <div className="text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>
-                      {calc.silver999Grams.toFixed(2)}g pure •{" "}
+                      {calc.silver999Grams.toFixed(2)}g •{" "}
                       {formatMoney(calc.silver999Grams * effectiveSilverPerGram, sym)}
                     </div>
                   </div>
@@ -1873,7 +2955,7 @@ function ZakatStudioInner() {
                       className="block font-semibold"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Sterling Silver 925 ({unitMeta.label})
+                      {ui.silver925Label} ({unitMeta.shortLabel})
                     </label>
                     <input
                       id="silver-925-input"
@@ -1890,43 +2972,39 @@ function ZakatStudioInner() {
                       }}
                     />
                     <div className="text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>
-                      {(calc.silver925Grams * 0.925).toFixed(2)}g pure eq. •{" "}
+                      {(calc.silver925Grams * 0.925).toFixed(2)}g •{" "}
                       {formatMoney(calc.silver925Grams * 0.925 * effectiveSilverPerGram, sym)}
                     </div>
                   </div>
                 </div>
               </section>
 
-              {/* 1C. Liquid, Business & Investment Assets */}
+              {/* 1C. Cash & Bank Balances */}
               <section className="bento-card p-5 sm:p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
                       <Landmark className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                       <h2 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
-                        Liquid Cash, Business Inventory &amp; Halal Investments
+                        {ui.cashHeading}
                       </h2>
                     </div>
                     <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                      Enter balances held on your Hawl valuation day (excluding unlawful bank
-                      interest, which is given away without intention of reward).
+                      {ui.cashDesc}
                     </p>
                   </div>
                   <div
                     className="text-sm font-bold tabular-nums"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    {formatMoney(
-                      calc.cashTotal + calc.businessTotal + calc.receivablesTotal,
-                      sym
-                    )}
+                    {formatMoney(calc.cashTotal, sym)}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                   <div className="space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Cash in Hand / Safe ({sym})
+                      {ui.cashInHand} ({sym})
                     </label>
                     <input
                       type="number"
@@ -1945,7 +3023,7 @@ function ZakatStudioInner() {
 
                   <div className="space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Bank Accounts — Savings &amp; Current ({sym})
+                      {ui.bankAccounts} ({sym})
                     </label>
                     <input
                       type="number"
@@ -1964,7 +3042,7 @@ function ZakatStudioInner() {
 
                   <div className="space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Foreign Currency Equivalent ({sym})
+                      {ui.foreignCurrency} ({sym})
                     </label>
                     <input
                       type="number"
@@ -1980,10 +3058,35 @@ function ZakatStudioInner() {
                       }}
                     />
                   </div>
+                </div>
+              </section>
 
+              {/* 1D. Business Inventory & Shares */}
+              <section className="bento-card p-5 sm:p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+                      <h2 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
+                        {ui.businessHeading}
+                      </h2>
+                    </div>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                      {ui.businessDesc}
+                    </p>
+                  </div>
+                  <div
+                    className="text-sm font-bold tabular-nums"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    {formatMoney(calc.businessTotal, sym)}
+                  </div>
+                </div>
+
+                <div className="space-y-4 text-xs">
                   <div className="space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Business Inventory / Mal-e-Tijarah ({sym})
+                      {ui.tradeInventory} ({sym})
                     </label>
                     <input
                       type="number"
@@ -2002,7 +3105,7 @@ function ZakatStudioInner() {
 
                   {/* Halal Shares / Mutual Funds with 100% vs 30% Toggle */}
                   <div
-                    className="sm:col-span-2 p-3.5 rounded-xl border space-y-2.5"
+                    className="p-3.5 rounded-xl border space-y-2.5"
                     style={{
                       borderColor: "var(--border-hairline)",
                       backgroundColor: "var(--bg-elevated)",
@@ -2013,17 +3116,15 @@ function ZakatStudioInner() {
                         className="font-semibold flex items-center gap-1.5"
                         style={{ color: "var(--text-primary)" }}
                       >
-                        <TrendingUp
-                          className="w-3.5 h-3.5"
-                          style={{ color: "var(--accent-primary)" }}
-                        />
-                        <span>Halal Shares / Islamic Equity Mutual Funds ({sym})</span>
+                        <span>
+                          {ui.halalShares} ({sym})
+                        </span>
                       </label>
                       <span
                         className="text-[11px] font-bold tabular-nums"
                         style={{ color: "var(--accent-primary)" }}
                       >
-                        Zakatable Portion: {formatMoney(calc.effectiveSharesValue, sym)}
+                        {formatMoney(calc.effectiveSharesValue, sym)}
                       </span>
                     </div>
 
@@ -2037,7 +3138,7 @@ function ZakatStudioInner() {
                           onChange={(e) =>
                             setHalalSharesValue(Math.max(0, Number(e.target.value) || 0))
                           }
-                          placeholder="Portfolio market value"
+                          placeholder="0"
                           className="w-full px-3 py-2 rounded-lg border font-semibold tabular-nums outline-none"
                           style={{
                             borderColor: "var(--border-hairline)",
@@ -2067,7 +3168,7 @@ function ZakatStudioInner() {
                                 : "var(--text-secondary)",
                           }}
                         >
-                          Active Trading (100%)
+                          {ui.activeTrading100}
                         </button>
                         <button
                           type="button"
@@ -2088,15 +3189,40 @@ function ZakatStudioInner() {
                                 : "var(--text-secondary)",
                           }}
                         >
-                          Long-Term Proxy (30%)
+                          {ui.longTerm30}
                         </button>
                       </div>
                     </div>
                   </div>
+                </div>
+              </section>
 
+              {/* 1E. Receivables */}
+              <section className="bento-card p-5 sm:p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+                      <h2 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
+                        {ui.receivablesHeading}
+                      </h2>
+                    </div>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                      {ui.receivablesDesc}
+                    </p>
+                  </div>
+                  <div
+                    className="text-sm font-bold tabular-nums"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    {formatMoney(calc.receivablesTotal, sym)}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div className="space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Strong/Medium Receivables — Dayn Qawi ({sym})
+                      {ui.receivablesStrong} ({sym})
                     </label>
                     <input
                       type="number"
@@ -2117,7 +3243,7 @@ function ZakatStudioInner() {
 
                   <div className="space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Accessible Retirement / PF Savings ({sym})
+                      {ui.retirementAccessible} ({sym})
                     </label>
                     <input
                       type="number"
@@ -2138,20 +3264,18 @@ function ZakatStudioInner() {
                 </div>
               </section>
 
-              {/* 1D. Deductible Hanafi Liabilities */}
+              {/* 1F. Immediate Debts & Liabilities */}
               <section className="bento-card p-5 sm:p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
                       <Briefcase className="w-4 h-4" style={{ color: "var(--accent-danger)" }} />
                       <h2 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
-                        Deductible Hanafi Liabilities
+                        {ui.liabilitiesHeading}
                       </h2>
                     </div>
                     <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                      Deduct immediate debts due now (or current lunar year&apos;s principal
-                      installments on long-term financing), supplier payables, demanded Mahr, and
-                      unpaid prior Zakat.
+                      {ui.liabilitiesDesc}
                     </p>
                   </div>
                   <div
@@ -2165,7 +3289,7 @@ function ZakatStudioInner() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                   <div className="space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Immediate Debts Due ({sym})
+                      {ui.immediateDebts} ({sym})
                     </label>
                     <input
                       type="number"
@@ -2184,7 +3308,7 @@ function ZakatStudioInner() {
 
                   <div className="space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Supplier / Trade Payables ({sym})
+                      {ui.supplierPayables} ({sym})
                     </label>
                     <input
                       type="number"
@@ -2205,7 +3329,7 @@ function ZakatStudioInner() {
 
                   <div className="space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Unpaid Demanded Mahr ({sym})
+                      {ui.unpaidMahr} ({sym})
                     </label>
                     <input
                       type="number"
@@ -2224,7 +3348,7 @@ function ZakatStudioInner() {
 
                   <div className="space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Due Bills, Rent &amp; Taxes ({sym})
+                      {ui.dueBillsTaxes} ({sym})
                     </label>
                     <input
                       type="number"
@@ -2243,7 +3367,7 @@ function ZakatStudioInner() {
 
                   <div className="sm:col-span-2 space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Unpaid Prior Years&apos; Zakat Obligations ({sym})
+                      {ui.unpaidPriorZakat} ({sym})
                     </label>
                     <input
                       type="number"
@@ -2265,26 +3389,26 @@ function ZakatStudioInner() {
               </section>
             </div>
 
-            {/* Right Column: Dramatic Visual Telemetry Panel */}
+            {/* Right Column: Obligation Summary, Nisab Gauge & Asset Breakdown */}
             <aside className="lg:col-span-5 space-y-5 lg:sticky lg:top-20">
-              {/* Hero Zakat Obligation Card */}
+              {/* Zakat Obligation Card */}
               <div className="quran-gradient-card p-6 space-y-4">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/20 text-white inline-flex items-center gap-1.5">
                     <Wallet className="w-3.5 h-3.5" />
-                    <span>
-                      {calc.isSahibNisab
-                        ? `${calc.zakatRatePercent}% Zakat Wajib`
-                        : "Below Nisab — Exempt"}
-                    </span>
+                    <span>{calc.isSahibNisab ? ui.aboveNisab : ui.belowNisab}</span>
                   </span>
                   <span className="text-xs font-medium text-white/85 tabular-nums">
-                    {calendarBasis === "lunar" ? "Hijri Lunar (354d)" : "Solar Year (365d)"}
+                    {calendarBasis === "lunar"
+                      ? `${ui.lunar} ${zakatConfig.lunarRatePercent}%`
+                      : `${ui.solar} ${zakatConfig.solarRatePercent}%`}
                   </span>
                 </div>
 
                 <div>
-                  <div className="text-xs text-white/80 font-medium">Annual Zakat Obligation</div>
+                  <div className="text-xs text-white/80 font-medium">
+                    {ui.zakatDue} ({calc.zakatRatePercent}%)
+                  </div>
                   <div className="text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums text-white mt-0.5">
                     {formatMoney(calc.zakatDue, sym)}
                   </div>
@@ -2292,42 +3416,50 @@ function ZakatStudioInner() {
 
                 <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/20 text-xs tabular-nums">
                   <div>
-                    <div className="text-white/75 text-[11px]">Net Zakatable</div>
+                    <div className="text-white/75 text-[11px] truncate">
+                      {ui.netZakatableWealth}
+                    </div>
                     <div className="font-bold text-white truncate">
                       {formatMoney(calc.netZakatableWealth, sym, 0)}
                     </div>
                   </div>
                   <div>
-                    <div className="text-white/75 text-[11px]">Paid So Far</div>
+                    <div className="text-white/75 text-[11px] truncate">{ui.paidSoFar}</div>
                     <div className="font-bold text-white truncate">
                       {formatMoney(calc.totalPaid, sym, 0)}
                     </div>
                   </div>
                   <div>
-                    <div className="text-white/75 text-[11px]">Remaining</div>
+                    <div className="text-white/75 text-[11px] truncate">{ui.remainingToPay}</div>
                     <div className="font-bold text-white truncate">
                       {formatMoney(calc.remainingDue, sym, 0)}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleSaveEncryptedSnapshot}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-white text-slate-900 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-md hover:opacity-95 transition-opacity"
-                  >
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>Save Encrypted Snapshot (+{xpZakatReward} XP)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("ledger")}
-                    className="py-2.5 px-3.5 rounded-xl bg-white/20 text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer hover:bg-white/25 transition-colors"
-                  >
-                    <History className="w-3.5 h-3.5" />
-                    <span>Log Payment</span>
-                  </button>
+                <div className="space-y-2 pt-1">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveEncryptedSnapshot}
+                      className="flex-1 py-2.5 px-4 rounded-xl bg-white text-slate-900 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-md hover:opacity-95 transition-opacity"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>{ui.saveSnapshot}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("ledger")}
+                      className="py-2.5 px-3.5 rounded-xl bg-white/20 text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer hover:bg-white/25 transition-colors"
+                    >
+                      <History className="w-3.5 h-3.5" />
+                      <span>{ui.recordPayment}</span>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px] text-white/75">
+                    <Lock className="w-3 h-3 shrink-0" />
+                    <span>{ui.encryptedNote}</span>
+                  </div>
                 </div>
               </div>
 
@@ -2337,13 +3469,13 @@ function ZakatStudioInner() {
                   <div className="flex items-center gap-2">
                     <Scale className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
                     <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
-                      Hanafi Nisab Threshold Gauge
+                      {ui.nisabGaugeHeading}
                     </h3>
                   </div>
                   <span
                     className={`badge-pill ${calc.isSahibNisab ? "badge-emerald" : "badge-gold"}`}
                   >
-                    {calc.isSahibNisab ? "Sahib-un-Nisab" : "Below Nisab"}
+                    {calc.isSahibNisab ? ui.aboveNisab : ui.belowNisab}
                   </span>
                 </div>
 
@@ -2351,11 +3483,10 @@ function ZakatStudioInner() {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs tabular-nums">
                     <span style={{ color: "var(--text-secondary)" }}>
-                      Active:{" "}
                       <strong style={{ color: "var(--text-primary)" }}>
                         {calc.onlyPureGold
-                          ? `Gold Nisab (${zakatConfig.goldNisabGrams}g / ${goldTolaDisplay} Tola)`
-                          : `Silver Nisab (${zakatConfig.silverNisabGrams}g / ${silverTolaDisplay} Tola)`}
+                          ? `${ui.goldNisab} (${zakatConfig.goldNisabGrams}g)`
+                          : `${ui.silverNisab} (${zakatConfig.silverNisabGrams}g)`}
                       </strong>
                     </span>
                     <span className="font-bold" style={{ color: "var(--accent-primary)" }}>
@@ -2380,10 +3511,12 @@ function ZakatStudioInner() {
                     className="flex items-center justify-between text-[11px] tabular-nums"
                     style={{ color: "var(--text-muted)" }}
                   >
-                    <span>Net Wealth: {formatMoney(calc.netZakatableWealth, sym)}</span>
+                    <span>
+                      {ui.netZakatableWealth}: {formatMoney(calc.netZakatableWealth, sym)}
+                    </span>
                     <span>
                       {calc.activeNisabValue > 0
-                        ? `${((calc.netZakatableWealth / calc.activeNisabValue) * 100).toFixed(0)}% of Nisab`
+                        ? `${((calc.netZakatableWealth / calc.activeNisabValue) * 100).toFixed(0)}%`
                         : "0%"}
                     </span>
                   </div>
@@ -2403,7 +3536,7 @@ function ZakatStudioInner() {
                     }}
                   >
                     <div className="font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Silver Nisab ({silverTolaDisplay} Tola)
+                      {ui.silverNisab} ({zakatConfig.silverNisabGrams}g)
                     </div>
                     <div
                       className="font-bold text-xs mt-0.5"
@@ -2425,7 +3558,7 @@ function ZakatStudioInner() {
                     }}
                   >
                     <div className="font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Gold Nisab ({goldTolaDisplay} Tola)
+                      {ui.goldNisab} ({zakatConfig.goldNisabGrams}g)
                     </div>
                     <div
                       className="font-bold text-xs mt-0.5"
@@ -2446,11 +3579,11 @@ function ZakatStudioInner() {
                   }}
                 >
                   <strong style={{ color: "var(--accent-gold)" }}>
-                    Hanafi Dhamm &amp; Anfa&apos; lil-Fuqara Rule:{" "}
+                    Hanafi Dhamm &amp; Anfa&apos; lil-Fuqara:{" "}
                   </strong>
                   {calc.onlyPureGold
                     ? `Because you hold pure gold alone with zero silver, cash, or trade assets, the Gold Nisab (${zakatConfig.goldNisabGrams}g) applies.`
-                    : `Whenever cash, bank savings, silver, trade inventory, or receivables are held (alone or alongside gold), Hanafi Fiqh aggregates all assets by value under the Silver Nisab (${zakatConfig.silverNisabGrams}g) as most beneficial to the poor.`}
+                    : `Whenever cash, bank savings, silver, trade inventory, or receivables are held (alone or alongside gold), Hanafi Fiqh aggregates all assets under the Silver Nisab (${zakatConfig.silverNisabGrams}g) as most beneficial to the poor.`}
                 </div>
               </div>
 
@@ -2458,7 +3591,7 @@ function ZakatStudioInner() {
               <div className="bento-card p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
-                    Gross Zakatable Portfolio Breakdown
+                    {ui.portfolioBreakdown}
                   </h3>
                   <span
                     className="text-xs font-bold tabular-nums"
@@ -2510,7 +3643,7 @@ function ZakatStudioInner() {
                         className="text-[10px] font-semibold uppercase tracking-wider truncate max-w-full"
                         style={{ color: "var(--text-muted)" }}
                       >
-                        {focusedDonutSeg ? focusedDonutSeg.label : "Gross Assets"}
+                        {focusedDonutSeg ? focusedDonutSeg.label : ui.grossAssets}
                       </span>
                       <span
                         className="text-xs font-extrabold tabular-nums truncate max-w-full"
@@ -2601,14 +3734,14 @@ function ZakatStudioInner() {
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
                       <h2 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
-                        Hijri Hawl Anniversary &amp; Lunar Countdown
+                        {ui.hawlHeading}
                       </h2>
                     </div>
                     <p
                       className="text-xs mt-1 leading-relaxed"
                       style={{ color: "var(--text-muted)" }}
                     >
-                      Today is{" "}
+                      {tp(lang, "Today")}:{" "}
                       <strong style={{ color: "var(--text-primary)" }}>{hijri.formatted}</strong>.
                       In Hanafi Fiqh, your Hawl begins on the lunar date your wealth first reached
                       Nisab and completes 354 days later.
@@ -2630,13 +3763,13 @@ function ZakatStudioInner() {
                       className="text-[10px] font-semibold uppercase"
                       style={{ color: "var(--text-muted)" }}
                     >
-                      {hawlTelemetry.isToday ? "Hawl Due Today!" : "Countdown to Hawl"}
+                      {hawlTelemetry.isToday ? tp(lang, "Today") : ui.lunar}
                     </div>
                     <div
                       className="text-xl font-extrabold"
                       style={{ color: "var(--accent-primary)" }}
                     >
-                      {hawlTelemetry.daysRemaining} Days
+                      {hawlTelemetry.daysRemaining} {tp(lang, "days")}
                     </div>
                     <div className="text-[10px]" style={{ color: "var(--text-secondary)" }}>
                       ~{hawlTelemetry.approxGregorian}
@@ -2652,7 +3785,7 @@ function ZakatStudioInner() {
                       className="block font-semibold"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Hijri Day (1–30)
+                      Hijri {ui.dateLabel} (1–30)
                     </label>
                     <input
                       id="hawl-day-input"
@@ -2681,7 +3814,7 @@ function ZakatStudioInner() {
                       className="block font-semibold"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Hijri Month ({hawlTelemetry.monthDisplay})
+                      {hawlTelemetry.monthDisplay}
                     </label>
                     <select
                       id="hawl-month-select"
@@ -2703,7 +3836,7 @@ function ZakatStudioInner() {
                             color: "var(--text-primary)",
                           }}
                         >
-                          {idx + 1}. {m}
+                          {idx + 1}. {formatLocalizedHijriMonth(lang, idx + 1, m)}
                         </option>
                       ))}
                     </select>
@@ -2720,7 +3853,7 @@ function ZakatStudioInner() {
                         color: "var(--text-secondary)",
                       }}
                     >
-                      1st Ramadan
+                      1 {formatLocalizedHijriMonth(lang, 9, "Ramadan")}
                     </button>
                     <button
                       type="button"
@@ -2732,7 +3865,7 @@ function ZakatStudioInner() {
                         color: "var(--text-secondary)",
                       }}
                     >
-                      Set Today
+                      {tp(lang, "Today")}
                     </button>
                   </div>
                 </div>
@@ -2743,8 +3876,8 @@ function ZakatStudioInner() {
                     className="flex justify-between text-[11px] tabular-nums"
                     style={{ color: "var(--text-muted)" }}
                   >
-                    <span>Current 354-Day Lunar Hawl Cycle</span>
-                    <span>{hawlTelemetry.cycleCompletedPct}% Elapsed</span>
+                    <span>354d {ui.lunar} Hawl</span>
+                    <span>{hawlTelemetry.cycleCompletedPct}%</span>
                   </div>
                   <div
                     className="h-2.5 rounded-full overflow-hidden"
@@ -2770,12 +3903,11 @@ function ZakatStudioInner() {
                         style={{ color: "var(--accent-primary)" }}
                       />
                       <h2 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
-                        Installment Disbursement Logger
+                        {ui.disbursementHeading}
                       </h2>
                     </div>
                     <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                      Pay Zakat in lump sum or advance/installment payments across your Hawl year
-                      (+{Math.max(25, Math.round(xpZakatReward * 0.65))} XP per payment logged).
+                      Pay Zakat in lump sum or advance/installment payments across your Hawl year.
                     </p>
                   </div>
 
@@ -2799,7 +3931,7 @@ function ZakatStudioInner() {
                       ) : (
                         <Copy className="w-3.5 h-3.5" />
                       )}
-                      <span>{copiedReport ? "Copied!" : "Copy Summary"}</span>
+                      <span>{copiedReport ? tp(lang, "Copied!") : ui.copySummary}</span>
                     </button>
                     <button
                       type="button"
@@ -2812,7 +3944,7 @@ function ZakatStudioInner() {
                       }}
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>Download Report</span>
+                      <span>{ui.downloadReport}</span>
                     </button>
                   </div>
                 </div>
@@ -2827,20 +3959,20 @@ function ZakatStudioInner() {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs tabular-nums">
                     <span style={{ color: "var(--text-secondary)" }}>
-                      Disbursed:{" "}
+                      {ui.paidSoFar}:{" "}
                       <strong style={{ color: "var(--text-primary)" }}>
                         {formatMoney(calc.totalPaid, sym)}
                       </strong>{" "}
-                      of {formatMoney(calc.zakatDue, sym)}
+                      / {formatMoney(calc.zakatDue, sym)}
                     </span>
                     <span className="font-bold" style={{ color: "var(--accent-primary)" }}>
                       {calc.remainingDue > 0
-                        ? `${formatMoney(calc.remainingDue, sym)} Remaining`
+                        ? `${ui.remainingToPay}: ${formatMoney(calc.remainingDue, sym)}`
                         : calc.surplusSadaqah > 0
-                        ? `100% Fulfilled (+${formatMoney(calc.surplusSadaqah, sym)} Nafl Sadaqah)`
+                        ? `100% (+${formatMoney(calc.surplusSadaqah, sym)} Sadaqah)`
                         : calc.zakatDue > 0
-                        ? "100% Zakat Fulfilled!"
-                        : "Ready to Track"}
+                        ? "100%"
+                        : "0%"}
                     </span>
                   </div>
 
@@ -2864,7 +3996,7 @@ function ZakatStudioInner() {
                 >
                   <div className="sm:col-span-4 space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Recipient / Wakil Name
+                      {ui.recipientLabel}
                     </label>
                     <input
                       type="text"
@@ -2882,7 +4014,7 @@ function ZakatStudioInner() {
 
                   <div className="sm:col-span-4 space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Masarif Category
+                      {ui.categoryLabel}
                     </label>
                     <select
                       value={payCategory}
@@ -2911,7 +4043,7 @@ function ZakatStudioInner() {
 
                   <div className="sm:col-span-2 space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Date
+                      {ui.dateLabel}
                     </label>
                     <input
                       type="date"
@@ -2928,7 +4060,7 @@ function ZakatStudioInner() {
 
                   <div className="sm:col-span-2 space-y-1">
                     <label className="block font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Amount ({sym})
+                      {ui.amountLabel} ({sym})
                     </label>
                     <input
                       type="number"
@@ -2966,7 +4098,7 @@ function ZakatStudioInner() {
                       className="btn-primary px-5 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
-                      <span>Log Disbursement (+XP)</span>
+                      <span>{ui.recordPayment}</span>
                     </button>
                   </div>
                 </form>
@@ -2982,7 +4114,7 @@ function ZakatStudioInner() {
                         color: "var(--text-muted)",
                       }}
                     >
-                      No Zakat installments recorded yet. Log each Tamlik payment above to track
+                      No Zakat installments recorded yet. Record each Tamlik payment above to track
                       your remaining Hawl balance.
                     </div>
                   ) : (
@@ -3023,7 +4155,7 @@ function ZakatStudioInner() {
                             className="text-[11px] tabular-nums"
                             style={{ color: "var(--text-muted)" }}
                           >
-                            Disbursed on {entry.date}
+                            {entry.date}
                           </div>
                         </div>
 
@@ -3036,7 +4168,7 @@ function ZakatStudioInner() {
                           </span>
                           <button
                             type="button"
-                            aria-label={`Delete payment to ${entry.recipient}`}
+                            aria-label={`${tp(lang, "Delete")} ${entry.recipient}`}
                             onClick={() => handleDeleteDisbursement(entry.id)}
                             className="p-1.5 rounded-lg border cursor-pointer hover:opacity-80"
                             style={{
@@ -3054,14 +4186,14 @@ function ZakatStudioInner() {
               </section>
             </div>
 
-            {/* Right Column: Encrypted Vault History (`auliya_encrypted_zakat_v2`) */}
+            {/* Right Column: Saved Encrypted Assessments */}
             <aside className="lg:col-span-5 space-y-4">
               <div className="bento-card p-5 sm:p-6 space-y-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Lock className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                     <h2 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
-                      Encrypted Vault History
+                      {ui.encryptedVaultHeading}
                     </h2>
                   </div>
                   <button
@@ -3069,20 +4201,25 @@ function ZakatStudioInner() {
                     onClick={handleSaveEncryptedSnapshot}
                     className="btn-primary px-3 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Save Current</span>
+                    <Lock className="w-3 h-3" />
+                    <span>{ui.saveSnapshot}</span>
                   </button>
                 </div>
 
-                <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                  Saved assessments are encrypted locally with WebCrypto{" "}
-                  <strong>AES-256-GCM</strong> (<code>{VAULT_STORAGE_KEY}</code>) and never leave
-                  your device in plaintext.
+                <p
+                  className="text-xs leading-relaxed flex items-center gap-1.5"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  <ShieldCheck
+                    className="w-3.5 h-3.5 shrink-0"
+                    style={{ color: "var(--accent-primary)" }}
+                  />
+                  <span>{ui.encryptedNote}</span>
                 </p>
 
                 {!vaultHydrated ? (
                   <div className="p-4 text-xs text-center" style={{ color: "var(--text-muted)" }}>
-                    Decrypting local AES-256-GCM vault...
+                    {tp(lang, "Loading…")}
                   </div>
                 ) : vaultSnapshots.length === 0 ? (
                   <div
@@ -3100,11 +4237,10 @@ function ZakatStudioInner() {
                       className="text-xs font-semibold"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      No Saved Annual Snapshots Yet
+                      {ui.encryptedVaultHeading}
                     </div>
                     <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                      Click &ldquo;Save Encrypted Snapshot&rdquo; to seal your current Hawl
-                      calculation with AES-256-GCM &amp; SHA-256 verification.
+                      {ui.saveSnapshot} — {ui.encryptedNote}.
                     </p>
                   </div>
                 ) : (
@@ -3132,8 +4268,7 @@ function ZakatStudioInner() {
                                 className="text-[11px] tabular-nums"
                                 style={{ color: "var(--text-muted)" }}
                               >
-                                Saved {new Date(snap.createdAt).toLocaleString()} •{" "}
-                                {snap.currencyCode}
+                                {new Date(snap.createdAt).toLocaleString()} • {snap.currencyCode}
                               </div>
                             </div>
                             <span
@@ -3141,14 +4276,14 @@ function ZakatStudioInner() {
                                 snap.isSahibNisab ? "badge-emerald" : "badge-gold"
                               }`}
                             >
-                              {snap.isSahibNisab ? "Wajib" : "Exempt"}
+                              {snap.isSahibNisab ? ui.aboveNisab : ui.belowNisab}
                             </span>
                           </div>
 
                           <div className="grid grid-cols-3 gap-2 text-xs tabular-nums">
                             <div>
                               <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                                Net Wealth
+                                {ui.netZakatableWealth}
                               </div>
                               <div className="font-bold" style={{ color: "var(--text-primary)" }}>
                                 {formatMoney(snap.netZakatableWealth, snap.currencySymbol, 0)}
@@ -3156,7 +4291,7 @@ function ZakatStudioInner() {
                             </div>
                             <div>
                               <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                                Zakat Due
+                                {ui.zakatDue}
                               </div>
                               <div
                                 className="font-bold"
@@ -3167,7 +4302,7 @@ function ZakatStudioInner() {
                             </div>
                             <div>
                               <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                                Paid
+                                {ui.paidSoFar}
                               </div>
                               <div className="font-bold" style={{ color: "var(--text-primary)" }}>
                                 {formatMoney(snap.totalPaid, snap.currencySymbol, 0)}
@@ -3184,21 +4319,21 @@ function ZakatStudioInner() {
                               }}
                             >
                               <div>
-                                Gross Assets: {formatMoney(snap.grossAssets, snap.currencySymbol)} |
-                                Liabilities: −
+                                {ui.grossAssets}:{" "}
+                                {formatMoney(snap.grossAssets, snap.currencySymbol)} |{" "}
+                                {ui.liabilitiesHeading}: −
                                 {formatMoney(snap.totalLiabilities, snap.currencySymbol)}
                               </div>
                               <div>
-                                Basis:{" "}
-                                {snap.calendarBasis === "lunar" ? "Hijri Lunar" : "Solar Eq."} (
+                                {snap.calendarBasis === "lunar" ? ui.lunar : ui.solar} (
                                 {snap.zakatRatePercent}%) •{" "}
-                                {snap.activeNisabType === "gold" ? "Gold Nisab" : "Silver Nisab"}
+                                {snap.activeNisabType === "gold" ? ui.goldNisab : ui.silverNisab}
                               </div>
                               <div
                                 className="truncate font-mono text-[10px]"
                                 style={{ color: "var(--text-muted)" }}
                               >
-                                SHA-256: {snap.sha256Digest} • CT: {snap.cipherPreview}…
+                                SHA-256: {snap.sha256Digest}
                               </div>
                             </div>
                           )}
@@ -3216,7 +4351,7 @@ function ZakatStudioInner() {
                                 }}
                               >
                                 <RotateCcw className="w-3 h-3" />
-                                <span>Restore</span>
+                                <span>{tp(lang, "Reset")}</span>
                               </button>
                               <button
                                 type="button"
@@ -3234,7 +4369,6 @@ function ZakatStudioInner() {
                                 }}
                               >
                                 <Eye className="w-3 h-3" />
-                                <span>{isOpen ? "Hide" : "Inspect"}</span>
                                 {isOpen ? (
                                   <ChevronUp className="w-3 h-3" />
                                 ) : (
@@ -3245,7 +4379,7 @@ function ZakatStudioInner() {
 
                             <button
                               type="button"
-                              aria-label="Delete encrypted snapshot"
+                              aria-label={tp(lang, "Delete")}
                               onClick={() => handleDeleteSnapshot(snap.id)}
                               className="p-1.5 rounded-lg border cursor-pointer hover:opacity-80"
                               style={{
@@ -3285,7 +4419,7 @@ function ZakatStudioInner() {
                   <div className="flex items-center gap-2">
                     <Wheat className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
                     <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-                      Hanafi Sadaqat-ul-Fitr (Fitrah) Calculator
+                      {ui.fitrahHeading}
                     </h2>
                   </div>
                   <p
@@ -3295,7 +4429,7 @@ function ZakatStudioInner() {
                     Wajib at <em>Subh Sadiq</em> (dawn) of 1st Shawwal (Eid-ul-Fitr) on every free
                     Muslim owning Nisab-value wealth surplus to basic necessities (no 1-year Hawl
                     required). Include yourself, minor children, and any newborn born before Fajr
-                    of Eid!
+                    of Eid.
                   </p>
                 </div>
               </div>
@@ -3304,26 +4438,29 @@ function ZakatStudioInner() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 {[
                   {
-                    label: "Self & Adults",
+                    id: "adults",
+                    label: ui.adultsLabel,
                     sub: "Household adults",
                     value: familyAdults,
                     setter: setFamilyAdults,
                   },
                   {
-                    label: "Minor Children",
+                    id: "minors",
+                    label: ui.minorsLabel,
                     sub: "Wajib on father",
                     value: familyMinors,
                     setter: setFamilyMinors,
                   },
                   {
-                    label: "Newborns",
+                    id: "newborns",
+                    label: ui.newbornsLabel,
                     sub: "Born before Eid Fajr",
                     value: familyNewborns,
                     setter: setFamilyNewborns,
                   },
                 ].map((group) => (
                   <div
-                    key={group.label}
+                    key={group.id}
                     className="p-3.5 rounded-xl border space-y-2.5"
                     style={{
                       borderColor: "var(--border-hairline)",
@@ -3382,7 +4519,7 @@ function ZakatStudioInner() {
               {/* 4 Sunnah Commodities Selector */}
               <div className="space-y-2.5">
                 <div className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
-                  Select Prophetic Commodity Standard (CMS Weights: {zakatConfig.fitrahWheatKg} kg /{" "}
+                  {ui.commodityStandard} ({zakatConfig.fitrahWheatKg} kg /{" "}
                   {zakatConfig.fitrahOtherKg} kg)
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3450,12 +4587,11 @@ function ZakatStudioInner() {
                     className="font-bold block"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Local Market Price for {selectedCommodity.title} ({sym} / kg)
+                    {selectedCommodity.title} ({sym} / kg)
                   </label>
                   <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                    Defaults to Sanctuary CMS rate (
-                    {formatMoney(selectedCommodity.defaultPrice, sym)}
-                    /kg). Adjust to match your local grain/date bazaar.
+                    Benchmark: {formatMoney(selectedCommodity.defaultPrice, sym)}/kg. Adjust to
+                    match your local grain or date market.
                   </p>
                 </div>
 
@@ -3487,7 +4623,7 @@ function ZakatStudioInner() {
                     undefined && (
                     <button
                       type="button"
-                      aria-label="Reset commodity price to CMS default"
+                      aria-label={ui.resetRate}
                       onClick={() =>
                         setFitrahPriceOverrides((prev) => {
                           const nextCurr = { ...prev[activeCurrency.code] };
@@ -3513,9 +4649,8 @@ function ZakatStudioInner() {
                   <div className="text-xs font-semibold text-white/85 flex items-center gap-1.5">
                     <Users className="w-4 h-4" />
                     <span>
-                      {totalFamilyMembers} Family Member{totalFamilyMembers === 1 ? "" : "s"} •{" "}
-                      {formatMoney(perPersonFitrah, sym)} per person (
-                      {(selectedCommodity.kg * totalFamilyMembers).toFixed(2)} kg total)
+                      {totalFamilyMembers} • {formatMoney(perPersonFitrah, sym)} (
+                      {(selectedCommodity.kg * totalFamilyMembers).toFixed(2)} kg)
                     </span>
                   </div>
                   <div className="text-3xl font-extrabold tabular-nums text-white">
@@ -3537,7 +4672,7 @@ function ZakatStudioInner() {
                   className="px-4 py-2.5 rounded-xl bg-white text-slate-900 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-md"
                 >
                   <BadgeCheck className="w-4 h-4" />
-                  <span>Mark Fitrah Paid (+40 XP)</span>
+                  <span>{ui.markFitrahPaid}</span>
                 </button>
               </div>
             </section>
@@ -3549,7 +4684,7 @@ function ZakatStudioInner() {
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
                   <h2 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
-                    Hanafi Fidyah Calculator (Shaykh Fani Only)
+                    {ui.fidyahHeading}
                   </h2>
                 </div>
 
@@ -3567,14 +4702,14 @@ function ZakatStudioInner() {
                     style={{ color: "var(--accent-gold)" }}
                   >
                     <BookOpen className="w-3.5 h-3.5" />
-                    <span>Strict Ruling — Bahar-e-Shariat &amp; Al-Hidayah</span>
+                    <span>Bahar-e-Shariat &amp; Al-Hidayah</span>
                   </div>
                   <p style={{ color: "var(--text-secondary)" }}>
                     In the Hanafi Madhhab, Fidyah is valid <strong>ONLY</strong> for a{" "}
                     <strong>Shaykh Fani</strong> (a chronically frail, very elderly, or terminally
                     ill Muslim who has <strong>zero medical hope of recovery</strong> even in short
                     winter days). Temporary illness, travel, pregnancy, or nursing{" "}
-                    <strong>require Qaza make-up fasts</strong> — Fidyah does NOT replace them!
+                    <strong>require Qaza make-up fasts</strong> — Fidyah does NOT replace them.
                   </p>
                 </div>
 
@@ -3597,9 +4732,9 @@ function ZakatStudioInner() {
                     className="font-semibold flex items-center justify-between"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    <span>Missed Fasts Count</span>
+                    <span>{ui.missedFastsLabel}</span>
                     <span className="tabular-nums" style={{ color: "var(--text-muted)" }}>
-                      1 Fast = 1 Fitrah ({formatMoney(perPersonFitrah, sym)})
+                      1 = {formatMoney(perPersonFitrah, sym)}
                     </span>
                   </label>
 
@@ -3655,7 +4790,7 @@ function ZakatStudioInner() {
                 >
                   <div>
                     <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                      Total Shaykh Fani Fidyah ({selectedCommodity.title} basis)
+                      {ui.fidyahHeading} ({selectedCommodity.title})
                     </div>
                     <div
                       className="text-2xl font-extrabold tabular-nums"
@@ -3673,7 +4808,7 @@ function ZakatStudioInner() {
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                   <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
-                    Hanafi Kaffarah Benchmarks
+                    {ui.kaffarahHeading}
                   </h3>
                 </div>
 
@@ -3688,7 +4823,7 @@ function ZakatStudioInner() {
                     className="flex items-center justify-between font-bold"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    <span>Broken Oath (Kaffarah-e-Yamin)</span>
+                    <span>{ui.brokenOath}</span>
                     <span className="tabular-nums" style={{ color: "var(--accent-primary)" }}>
                       {formatMoney(kaffarahOath10Value, sym)}
                     </span>
@@ -3710,7 +4845,7 @@ function ZakatStudioInner() {
                     className="flex items-center justify-between font-bold"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    <span>Deliberately Broken Ramadan Fast</span>
+                    <span>{ui.brokenFast}</span>
                     <span className="tabular-nums" style={{ color: "var(--accent-gold)" }}>
                       {formatMoney(kaffarahFast60Value, sym)}
                     </span>
@@ -3744,7 +4879,7 @@ function ZakatStudioInner() {
                 <div className="flex items-center gap-2">
                   <Sprout className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                   <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-                    Hanafi Ushr Calculator
+                    {ui.ushrHeading}
                   </h2>
                 </div>
                 <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--text-muted)" }}>
@@ -3773,7 +4908,7 @@ function ZakatStudioInner() {
                     color: ushrInputMode === "value" ? "#ffffff" : "var(--text-secondary)",
                   }}
                 >
-                  By Market Value ({sym})
+                  {ui.byMarketValue} ({sym})
                 </button>
                 <button
                   type="button"
@@ -3785,7 +4920,7 @@ function ZakatStudioInner() {
                     color: ushrInputMode === "quantity" ? "#ffffff" : "var(--text-secondary)",
                   }}
                 >
-                  By Harvest Weight (kg)
+                  {ui.byHarvestWeight}
                 </button>
               </div>
 
@@ -3796,7 +4931,7 @@ function ZakatStudioInner() {
                     className="block font-semibold"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    Gross Harvest Market Value ({sym})
+                    {ui.byMarketValue} ({sym})
                   </label>
                   <input
                     id="ushr-value-input"
@@ -3822,7 +4957,7 @@ function ZakatStudioInner() {
                       className="block font-semibold"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Total Produce (kg)
+                      {ui.byHarvestWeight}
                     </label>
                     <input
                       type="number"
@@ -3846,7 +4981,7 @@ function ZakatStudioInner() {
                       className="block font-semibold"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Crop Price ({sym}/kg)
+                      {ui.amountLabel} ({sym}/kg)
                     </label>
                     <input
                       type="number"
@@ -3874,7 +5009,7 @@ function ZakatStudioInner() {
                   style={{ color: "var(--text-primary)" }}
                 >
                   <Droplets className="w-3.5 h-3.5" style={{ color: "var(--accent-primary)" }} />
-                  <span>Primary Irrigation Source</span>
+                  <span>{ui.irrigationSource}</span>
                 </div>
 
                 <div className="space-y-2">
@@ -3897,8 +5032,8 @@ function ZakatStudioInner() {
                       className="flex items-center justify-between text-xs font-bold"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      <span>Rain / River / Natural Spring</span>
-                      <span style={{ color: "var(--accent-primary)" }}>10% Full Ushr (1/10)</span>
+                      <span>{ui.rainNatural}</span>
+                      <span style={{ color: "var(--accent-primary)" }}>10% (1/10)</span>
                     </div>
                     <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
                       Watered predominantly by rainfall, natural streams, or unpaid floodwater.
@@ -3924,8 +5059,8 @@ function ZakatStudioInner() {
                       className="flex items-center justify-between text-xs font-bold"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      <span>Tube-Well / Paid Irrigation</span>
-                      <span style={{ color: "var(--accent-gold)" }}>5% Nisf Ushr (1/20)</span>
+                      <span>{ui.paidIrrigation}</span>
+                      <span style={{ color: "var(--accent-gold)" }}>5% (1/20)</span>
                     </div>
                     <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
                       Watered predominantly via diesel/electric pumps, water tankers, or paid canal
@@ -3938,15 +5073,14 @@ function ZakatStudioInner() {
               {/* Ushr Output Card */}
               <div className="quran-gradient-card p-5 space-y-2">
                 <div className="text-xs font-semibold text-white/85">
-                  Obligatory Harvest Tithe ({ushrCalc.ratePct}%{" "}
-                  {ushrCalc.ratePct === 10 ? "Full Ushr" : "Nisf Ushr"})
+                  {ui.ushrHeading} ({ushrCalc.ratePct}%)
                 </div>
                 <div className="text-3xl font-extrabold tabular-nums text-white">
                   {formatMoney(ushrCalc.dueValue, sym)}
                 </div>
                 {ushrCalc.dueKg !== null && (
                   <div className="text-xs font-semibold text-white/90 tabular-nums">
-                    In-Kind Produce Equivalent: {ushrCalc.dueKg.toFixed(2)} kg
+                    {ushrCalc.dueKg.toFixed(2)} kg
                   </div>
                 )}
                 <div className="text-[11px] text-white/80 pt-1">
@@ -3963,7 +5097,7 @@ function ZakatStudioInner() {
                   <div className="flex items-center gap-2">
                     <Info className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
                     <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-                      Interactive Hanafi Masarif &amp; Tamlik Verifier
+                      {ui.masarifHeading}
                     </h2>
                   </div>
                   <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
@@ -3982,10 +5116,10 @@ function ZakatStudioInner() {
                   />
                   <input
                     type="search"
-                    aria-label="Search Masarif recipient rules"
+                    aria-label={tp(lang, "Search")}
                     value={masarifSearch}
                     onChange={(e) => setMasarifSearch(e.target.value)}
-                    placeholder="Search sister, Sadat, parents, wife, madrasa, masjid, debt..."
+                    placeholder={`${tp(lang, "Search")}…`}
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl border text-xs outline-none"
                     style={{
                       borderColor: "var(--border-hairline)",
@@ -3998,10 +5132,10 @@ function ZakatStudioInner() {
                 <div className="flex flex-wrap gap-1.5">
                   {(
                     [
-                      { id: "all", label: "All Rules" },
-                      { id: "eligible", label: "Can Receive" },
-                      { id: "ineligible", label: "Cannot Receive" },
-                      { id: "special", label: "Sadat & Tamlik" },
+                      { id: "all", label: ui.allRules },
+                      { id: "eligible", label: ui.canReceive },
+                      { id: "ineligible", label: ui.cannotReceive },
+                      { id: "special", label: ui.sadatTamlik },
                     ] as { id: MasarifFilter; label: string }[]
                   ).map((f) => (
                     <button

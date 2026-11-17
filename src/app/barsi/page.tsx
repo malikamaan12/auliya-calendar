@@ -12,7 +12,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Award,
   BookOpen,
   Calendar,
   Check,
@@ -23,14 +22,12 @@ import {
   Edit3,
   ExternalLink,
   Filter,
-  Flame,
   Globe,
   Heart,
   HeartHandshake,
   Lock,
   MapPin,
   Moon,
-  Plus,
   Search,
   ShieldCheck,
   Sparkles,
@@ -47,7 +44,7 @@ import {
   hasPermission,
 } from "@/lib/backend-types";
 import { HIJRI_MONTHS } from "@/lib/hijri";
-import { formatLocalizedHijriMonth, t } from "@/lib/i18n";
+import { formatLocalizedHijriMonth, LangCode, t, tp } from "@/lib/i18n";
 import { JUZ_LIST, toArabicIndicDigits } from "@/data/quran";
 import { TASBIH_LITANIES } from "@/data/fiqh-hadith";
 import { assetUrl } from "@/lib/assets";
@@ -55,6 +52,369 @@ import { assetUrl } from "@/lib/assets";
 type BarsiTabId = "sanctuary" | "khatm" | "fatiha" | "calendar";
 type VisibilityFilter = "all" | "private" | "community";
 type ParaFilterMode = "all" | "available" | "completed";
+
+function tl(lang: LangCode, key: string, fallback: string): string {
+  const val = t(lang, key);
+  if (lang !== "en" && val === t("en", key)) {
+    return fallback;
+  }
+  return val;
+}
+
+interface BarsiUiCopy {
+  subtitle: string;
+  tabSanctuary: string;
+  tabKhatm: string;
+  tabMethod: string;
+  tabCalendar: string;
+  addLovedOne: string;
+  filterAll: string;
+  filterFamily: string;
+  filterCommunity: string;
+  allHijriMonths: string;
+  sendFatihaGift: string;
+  dedicating: string;
+  khatmProgress: string;
+  claimCompletePara: string;
+  recitedBy: string;
+  recentGifts: string;
+  openProfile: string;
+  upcomingBarsi: string;
+  todayBarsi: string;
+  todaysGifts: string;
+  totalHadiyah: string;
+  profilesHeading: string;
+  readInMushaf: string;
+  completeFatiha: string;
+  reciteSalam: string;
+  noorAccepted: string;
+  currentMonth: string;
+  noBarsisInMonth: string;
+  saveChanges: string;
+}
+
+const BARSI_UI: Record<LangCode, BarsiUiCopy> = {
+  en: {
+    subtitle:
+      "Preserve the blessed memory of departed parents, elders, and Mashaykh through annual Hijri Barsi reminders, 30-Para family Khatms, and authentic Sunni Hanafi Fatiha.",
+    tabSanctuary: "Memorial Sanctuary",
+    tabKhatm: "30-Para Khatm",
+    tabMethod: "Tariqa-e-Fatiha",
+    tabCalendar: "Barsi Calendar & Adab",
+    addLovedOne: "+ Add Loved One",
+    filterAll: "All",
+    filterFamily: "My Family",
+    filterCommunity: "Community",
+    allHijriMonths: "All 12 Hijri Months",
+    sendFatihaGift: "Send Fatiha Gift",
+    dedicating: "Dedicating…",
+    khatmProgress: "30-Para Khatm Progress",
+    claimCompletePara: "Claim / Complete Para",
+    recitedBy: "Recited by",
+    recentGifts: "Recent Gifts",
+    openProfile: "Open Memorial",
+    upcomingBarsi: "Upcoming Barsi",
+    todayBarsi: "Today • Yaum-e-Barsi",
+    todaysGifts: "Today's Dedications",
+    totalHadiyah: "Total Hadiyah Gifts",
+    profilesHeading: "Memorial Directory",
+    readInMushaf: "Read in Mushaf",
+    completeFatiha: "Complete Fatiha & Dedicate Hadiyah",
+    reciteSalam: "Mark Salam Recited",
+    noorAccepted: "Hadiyah Dedicated In-Sha-Allah",
+    currentMonth: "Current Month",
+    noBarsisInMonth: "No memorials recorded in",
+    saveChanges: "Save Changes",
+  },
+  ur: {
+    subtitle:
+      "مرحوم والدین، بزرگوں اور مشائخِ عظام کی سالانہ ہجری برسی، ۳۰ پارہ خاندانی ختمِ قرآن اور مستند سنی حنفی طریقۂ فاتحہ و ایصالِ ثواب۔",
+    tabSanctuary: "یادگارِ مرحومین",
+    tabKhatm: "۳۰ پارہ ختمِ قرآن",
+    tabMethod: "طریقۂ فاتحہ",
+    tabCalendar: "برسی تقویم و آداب",
+    addLovedOne: "+ مرحوم شامل کریں",
+    filterAll: "سب",
+    filterFamily: "میرا خاندان",
+    filterCommunity: "اجتماعی وقف",
+    allHijriMonths: "تمام ۱۲ ہجری مہینے",
+    sendFatihaGift: "ہدیۂ فاتحہ بھیجیں",
+    dedicating: "ایصال ہو رہا ہے…",
+    khatmProgress: "۳۰ پارہ ختمِ قرآن پیش رفت",
+    claimCompletePara: "پارہ منتخب / مکمل کریں",
+    recitedBy: "تلاوت کنندہ",
+    recentGifts: "حالیہ ایصالِ ثواب ہدیے",
+    openProfile: "تفصیل دیکھیں",
+    upcomingBarsi: "قریب ترین برسی",
+    todayBarsi: "آج یومِ برسی",
+    todaysGifts: "آج کے ہدیے",
+    totalHadiyah: "مجموعی ایصالِ ثواب",
+    profilesHeading: "فہرستِ مرحومین",
+    readInMushaf: "مصحف میں پڑھیں",
+    completeFatiha: "فاتحہ مکمل کریں اور ہدیہ بخشیں",
+    reciteSalam: "سلامِ قبرستان پڑھا",
+    noorAccepted: "ہدیۂ نور بارگاہِ الٰہی میں پیش کر دیا گیا",
+    currentMonth: "موجودہ مہینہ",
+    noBarsisInMonth: "اس مہینے میں کوئی برسی درج نہیں",
+    saveChanges: "تبدیلیاں محفوظ کریں",
+  },
+  ar: {
+    subtitle:
+      "إحياء ذكرى الوالدين والمشايخ والراحلين عبر تقويم البرسي الهجري وختمة القرآن الثلاثين جزءاً وطريقة الفاتحة وإيصال الثواب السنية الحنفية.",
+    tabSanctuary: "واحة الراحلين",
+    tabKhatm: "ختمة ٣٠ جزءاً",
+    tabMethod: "طريقة الفاتحة",
+    tabCalendar: "تقويم البرسي والآداب",
+    addLovedOne: "+ إضافة راحل عزيز",
+    filterAll: "الكل",
+    filterFamily: "عائلتي",
+    filterCommunity: "المجتمع",
+    allHijriMonths: "جميع الأشهر الهجرية (١٢)",
+    sendFatihaGift: "إهداء ثواب الفاتحة",
+    dedicating: "جارٍ الإهداء…",
+    khatmProgress: "تقدم ختمة ٣٠ جزءاً",
+    claimCompletePara: "حجز / إتمام الجزء",
+    recitedBy: "تلاوة",
+    recentGifts: "الإهداءات الأخيرة",
+    openProfile: "عرض السيرة",
+    upcomingBarsi: "الذكرى السنوية القادمة",
+    todayBarsi: "اليوم • ذكرى الوفاة",
+    todaysGifts: "إهداءات اليوم",
+    totalHadiyah: "مجموع الإهداءات",
+    profilesHeading: "سجل الراحلين",
+    readInMushaf: "القراءة في المصحف",
+    completeFatiha: "إتمام الفاتحة وإهداء الثواب",
+    reciteSalam: "تمت قراءة السلام",
+    noorAccepted: "تقبّل الله هدية النور إن شاء الله",
+    currentMonth: "الشهر الحالي",
+    noBarsisInMonth: "لا توجد ذكرى مسجلة في",
+    saveChanges: "حفظ التغييرات",
+  },
+  ro_ur: {
+    subtitle:
+      "Marhoom walidain, buzurgo aur Mashaykh ki salana Hijri Barsi, 30-Para khandani Khatm-e-Quran aur mustanad Sunni Hanafi Tariqa-e-Fatiha.",
+    tabSanctuary: "Marhumeen گوشہ",
+    tabKhatm: "30-Para Khatm",
+    tabMethod: "Tariqa-e-Fatiha",
+    tabCalendar: "Barsi Calendar aur Adab",
+    addLovedOne: "+ Pyare Marhoom Shamil Karein",
+    filterAll: "Sab",
+    filterFamily: "Mera Khandan",
+    filterCommunity: "Community",
+    allHijriMonths: "Tamam 12 Hijri Mahine",
+    sendFatihaGift: "Fatiha Hadiyah Bhejein",
+    dedicating: "Hadiyah pesh ho raha hai…",
+    khatmProgress: "30-Para Khatm Peshraft",
+    claimCompletePara: "Para Chunein / Mukammal Karein",
+    recitedBy: "Tilawat",
+    recentGifts: "Haaliya Hadiye",
+    openProfile: "Profile Kholein",
+    upcomingBarsi: "Aane Wali Barsi",
+    todayBarsi: "Aaj • Yaum-e-Barsi",
+    todaysGifts: "Aaj Ke Hadiye",
+    totalHadiyah: "Kul Hadiyah",
+    profilesHeading: "Marhumeen Fehrist",
+    readInMushaf: "Mushaf Mein Parhein",
+    completeFatiha: "Fatiha Mukammal Aur Hadiyah Pesh Karein",
+    reciteSalam: "Salam Parh Liya",
+    noorAccepted: "Noor Hadiyah Qabool Ho In-Sha-Allah",
+    currentMonth: "Maujooda Mahina",
+    noBarsisInMonth: "Is mahine mein koi Barsi darj nahi",
+    saveChanges: "Tabdeeliyan Mahfooz Karein",
+  },
+  hi: {
+    subtitle:
+      "दिवंगत माता-पिता, बुज़ुर्गों और मशाइख़ की वार्षिक हिजरी बरसी, ३०-पारा पारिवारिक ख़त्म-ए-क़ुरआन और प्रामाणिक सुन्नी हनफ़ी तरीक़ा-ए-फ़ातिहा।",
+    tabSanctuary: "मरहूमीन स्मृति",
+    tabKhatm: "३०-पारा ख़त्म",
+    tabMethod: "तरीक़ा-ए-फ़ातिहा",
+    tabCalendar: "बरसी कैलेंडर व आदाब",
+    addLovedOne: "+ प्रिय मरहूम जोड़ें",
+    filterAll: "सभी",
+    filterFamily: "मेरा परिवार",
+    filterCommunity: "समुदाय",
+    allHijriMonths: "सभी १२ हिजरी महीने",
+    sendFatihaGift: "फ़ातिहा हदिया भेजें",
+    dedicating: "समर्पित हो रहा है…",
+    khatmProgress: "३०-पारा ख़त्म प्रगति",
+    claimCompletePara: "पारा चुनें / पूर्ण करें",
+    recitedBy: "तिलावतकर्ता",
+    recentGifts: "हालिया हदिया",
+    openProfile: "विवरण खोलें",
+    upcomingBarsi: "आगामी बरसी",
+    todayBarsi: "आज • यौम-ए-बरसी",
+    todaysGifts: "आज के हदिये",
+    totalHadiyah: "कुल हदिया",
+    profilesHeading: "मरहूमीन सूची",
+    readInMushaf: "मुसहफ़ में पढ़ें",
+    completeFatiha: "फ़ातिहा पूर्ण करें व हदिया भेजें",
+    reciteSalam: "सलाम पढ़ा गया",
+    noorAccepted: "इन-शा-अल्लाह नूर हदिया समर्पित",
+    currentMonth: "वर्तमान महीना",
+    noBarsisInMonth: "इस महीने कोई बरसी दर्ज नहीं",
+    saveChanges: "परिवर्तन सहेजें",
+  },
+  tr: {
+    subtitle:
+      "Vefat eden anne-baba, büyükler ve meşâyihin yıllık Hicrî vefat yıldönümü, 30 Cüz aile hatmi ve sahih Sünnî Hanefî Fâtiha व İsal-i Sevab rehberi.",
+    tabSanctuary: "Merhumlar Köşesi",
+    tabKhatm: "30 Cüz Hatim",
+    tabMethod: "Fâtiha Usûlü",
+    tabCalendar: "Vefat Takvimi ve Âdâb",
+    addLovedOne: "+ Merhum Ekle",
+    filterAll: "Tümü",
+    filterFamily: "Ailem",
+    filterCommunity: "Topluluk",
+    allHijriMonths: "Tüm 12 Hicrî Ay",
+    sendFatihaGift: "Fâtiha Hediyesi Gönder",
+    dedicating: "Bağışlanıyor…",
+    khatmProgress: "30 Cüz Hatim İlerlemesi",
+    claimCompletePara: "Cüz Al / Tamamla",
+    recitedBy: "Okuyan",
+    recentGifts: "Son Hediyeler",
+    openProfile: "Kaydı Aç",
+    upcomingBarsi: "Yaklaşan Yıldönümü",
+    todayBarsi: "Bugün • Vefat Yıldönümü",
+    todaysGifts: "Bugünkü Hediyeler",
+    totalHadiyah: "Toplam Hediye",
+    profilesHeading: "Merhumlar Rehberi",
+    readInMushaf: "Mushaf'ta Oku",
+    completeFatiha: "Fâtiha'yı Tamamla ve Bağışla",
+    reciteSalam: "Selâm Okundu",
+    noorAccepted: "Sevap Hediyesi İnşallah İletildi",
+    currentMonth: "Bu Ay",
+    noBarsisInMonth: "Bu ayda kayıtlı yıldönümü yok",
+    saveChanges: "Değişiklikleri Kaydet",
+  },
+  bn: {
+    subtitle:
+      "প্রয়াত পিতা-মাতা, মুরুব্বি ও মাশায়েখদের বার্ষিক হিজরি বারসি, ৩০-পারা পারিবারিক খতমে কুরআন এবং সহীহ সুন্নি হানাফি ফাতিহা ও ঈসালে সওয়াব।",
+    tabSanctuary: "মরহুমীন স্মৃতি",
+    tabKhatm: "৩০-পারা খতম",
+    tabMethod: "তরীকায়ে ফাতিহা",
+    tabCalendar: "বারসি ক্যালেন্ডার ও আদব",
+    addLovedOne: "+ প্রিয় মরহুম যোগ করুন",
+    filterAll: "সব",
+    filterFamily: "আমার পরিবার",
+    filterCommunity: "কমিউনিটি",
+    allHijriMonths: "সকল ১২ হিজরি মাস",
+    sendFatihaGift: "ফাতিহা হাদিয়া পাঠান",
+    dedicating: "নিবেদন করা হচ্ছে…",
+    khatmProgress: "৩০-পারা খতম অগ্রগতি",
+    claimCompletePara: "পারা নিন / সম্পন্ন করুন",
+    recitedBy: "তিলাওয়াতকারী",
+    recentGifts: "সাম্প্রতিক হাদিয়া",
+    openProfile: "প্রোফাইল খুলুন",
+    upcomingBarsi: "আসন্ন বারসি",
+    todayBarsi: "আজ • ইয়াওমে বারসি",
+    todaysGifts: "আজকের হাদিয়া",
+    totalHadiyah: "মোট হাদিয়া",
+    profilesHeading: "মরহুমীন তালিকা",
+    readInMushaf: "মুসহাফে পড়ুন",
+    completeFatiha: "ফাতিহা সম্পন্ন ও হাদিয়া নিবেদন করুন",
+    reciteSalam: "সালাম পাঠ সম্পন্ন",
+    noorAccepted: "হাদিয়া নিবেদিত হয়েছে ইনশাআল্লাহ",
+    currentMonth: "চলতি মাস",
+    noBarsisInMonth: "এই মাসে কোনো বারসি নথিভুক্ত নেই",
+    saveChanges: "পরিবর্তন সংরক্ষণ করুন",
+  },
+  fa: {
+    subtitle:
+      "گرامی‌داشت یاد والدین، بزرگان و مشایخ درگذشته با یادآور سالانه قمری، ختم ۳۰ جزء قرآن خانوادگی و روش اصیل فاتحه‌خوانی و ایصال ثواب حنفی.",
+    tabSanctuary: "یادمان درگذشتگان",
+    tabKhatm: "ختم ۳۰ جزء",
+    tabMethod: "طریقهٔ فاتحه",
+    tabCalendar: "تقویم سالگرد و آداب",
+    addLovedOne: "+ افزودن عزیز درگذشته",
+    filterAll: "همه",
+    filterFamily: "خانوادهٔ من",
+    filterCommunity: "عمومی",
+    allHijriMonths: "همهٔ ۱۲ ماه قمری",
+    sendFatihaGift: "اهدای ثواب فاتحه",
+    dedicating: "در حال اهدا…",
+    khatmProgress: "پیشرفت ختم ۳۰ جزء",
+    claimCompletePara: "انتخاب / تکمیل جزء",
+    recitedBy: "تلاوت‌کننده",
+    recentGifts: "هدایای اخیر",
+    openProfile: "مشاهدهٔ یادمان",
+    upcomingBarsi: "سالگرد پیشِ رو",
+    todayBarsi: "امروز • سالگرد وفات",
+    todaysGifts: "اهدائات امروز",
+    totalHadiyah: "مجموع هدایا",
+    profilesHeading: "فهرست درگذشتگان",
+    readInMushaf: "مطالعه در مصحف",
+    completeFatiha: "تکمیل فاتحه و اهدای ثواب",
+    reciteSalam: "سلام قبرستان خوانده شد",
+    noorAccepted: "هدیهٔ نور ان‌شاءالله تقدیم گردید",
+    currentMonth: "ماه جاری",
+    noBarsisInMonth: "سالگردی در این ماه ثبت نشده است",
+    saveChanges: "ذخیرهٔ تغییرات",
+  },
+  id: {
+    subtitle:
+      "Merawat kenangan penuh berkah orang tua, sesepuh, dan Masyayikh wafat melalui pengingat Haul Hijriah tahunan, Khataman 30 Juz keluarga, serta tuntunan Fatihah Sunni Hanafi.",
+    tabSanctuary: "Ruang Kenangan",
+    tabKhatm: "Khatam 30 Juz",
+    tabMethod: "Tata Cara Fatihah",
+    tabCalendar: "Kalender Haul & Adab",
+    addLovedOne: "+ Tambah Almarhum",
+    filterAll: "Semua",
+    filterFamily: "Keluarga Saya",
+    filterCommunity: "Komunitas",
+    allHijriMonths: "Semua 12 Bulan Hijriah",
+    sendFatihaGift: "Kirim Hadiah Fatihah",
+    dedicating: "Mengirim doa…",
+    khatmProgress: "Progres Khatam 30 Juz",
+    claimCompletePara: "Ambil / Selesaikan Juz",
+    recitedBy: "Dibaca oleh",
+    recentGifts: "Hadiah Doa Terbaru",
+    openProfile: "Buka Profil",
+    upcomingBarsi: "Haul Terdekat",
+    todayBarsi: "Hari Ini • Haul",
+    todaysGifts: "Hadiah Hari Ini",
+    totalHadiyah: "Total Hadiah Doa",
+    profilesHeading: "Daftar Almarhum",
+    readInMushaf: "Baca di Mushaf",
+    completeFatiha: "Selesaikan Fatihah & Kirim Pahala",
+    reciteSalam: "Tandai Salam Dibaca",
+    noorAccepted: "Hadiah Doa Terkirim InsyaAllah",
+    currentMonth: "Bulan Ini",
+    noBarsisInMonth: "Belum ada catatan Haul di bulan",
+    saveChanges: "Simpan Perubahan",
+  },
+  fr: {
+    subtitle:
+      "Préservez la mémoire bénie des parents, aînés et maîtres disparus grâce au rappel annuel hégirien, au Khatm familial de 30 Juz et à la méthode authentique de la Fatiha sunnite hanafite.",
+    tabSanctuary: "Sanctuaire Mémoriel",
+    tabKhatm: "Khatm 30 Juz",
+    tabMethod: "Méthode de la Fatiha",
+    tabCalendar: "Calendrier & Adab",
+    addLovedOne: "+ Ajouter un Proche",
+    filterAll: "Tous",
+    filterFamily: "Ma Famille",
+    filterCommunity: "Communauté",
+    allHijriMonths: "Les 12 Mois Hégiriens",
+    sendFatihaGift: "Offrir une Fatiha",
+    dedicating: "Dédicace en cours…",
+    khatmProgress: "Progression du Khatm (30 Juz)",
+    claimCompletePara: "Choisir / Compléter le Juz",
+    recitedBy: "Récité par",
+    recentGifts: "Dons Récents",
+    openProfile: "Ouvrir le Mémorial",
+    upcomingBarsi: "Prochaine Commémoration",
+    todayBarsi: "Aujourd'hui • Commémoration",
+    todaysGifts: "Dédicaces du Jour",
+    totalHadiyah: "Total des Dédicaces",
+    profilesHeading: "Répertoire Mémoriel",
+    readInMushaf: "Lire dans le Mushaf",
+    completeFatiha: "Compléter la Fatiha et Dédier",
+    reciteSalam: "Salam Récité",
+    noorAccepted: "Dédicace transmise In-Sha-Allah",
+    currentMonth: "Mois Actuel",
+    noBarsisInMonth: "Aucune commémoration enregistrée en",
+    saveChanges: "Enregistrer les modifications",
+  },
+};
 
 interface CompactAyah {
   n: number;
@@ -74,7 +434,6 @@ interface NoorCelebration {
   id: number;
   giftLabel: string;
   recipientName: string;
-  xpEarned: number;
 }
 
 interface BarsiFormDraft {
@@ -462,9 +821,10 @@ function BarsiSanctuaryInner() {
     lang,
     now,
     barsiFatihaToday,
-    currentRank,
-    totalXp,
   } = useApp();
+
+  const ui = BARSI_UI[lang] || BARSI_UI.en;
+  const preferUrduFirst = lang === "ur" || lang === "fa";
 
   const [activeTab, setActiveTab] = useState<BarsiTabId>(() => {
     const raw = searchParams.get("tab");
@@ -550,7 +910,6 @@ function BarsiSanctuaryInner() {
   }, [activeTab, quranSurahs]);
 
   const barsiRecords = backend.barsiRecords;
-  const xpPerGift = backend.gamificationConfig.xpRewards.barsiFatihaGift || 35;
 
   const defaultActorName = authUser?.name || user?.name || "Devoted Believer";
   const effectiveDonorName = customDonorName !== null ? customDonorName : defaultActorName;
@@ -646,24 +1005,20 @@ function BarsiSanctuaryInner() {
     return filteredBarsis[0] ?? barsiRecords[0] ?? null;
   }, [selectedBarsiId, barsiRecords, filteredBarsis]);
 
-  const triggerNoorBurst = useCallback(
-    (giftLabel: string, recipientName: string, xpEarned: number) => {
-      const nextBurst: NoorCelebration = {
-        id: Date.now(),
-        giftLabel,
-        recipientName,
-        xpEarned,
-      };
-      setNoorCelebration(nextBurst);
-      if (celebrationTimerRef.current) {
-        clearTimeout(celebrationTimerRef.current);
-      }
-      celebrationTimerRef.current = setTimeout(() => {
-        setNoorCelebration((curr) => (curr?.id === nextBurst.id ? null : curr));
-      }, 4500);
-    },
-    []
-  );
+  const triggerNoorBurst = useCallback((giftLabel: string, recipientName: string) => {
+    const nextBurst: NoorCelebration = {
+      id: Date.now(),
+      giftLabel,
+      recipientName,
+    };
+    setNoorCelebration(nextBurst);
+    if (celebrationTimerRef.current) {
+      clearTimeout(celebrationTimerRef.current);
+    }
+    celebrationTimerRef.current = setTimeout(() => {
+      setNoorCelebration((curr) => (curr?.id === nextBurst.id ? null : curr));
+    }, 4500);
+  }, []);
 
   const handleSendGift = useCallback(
     async (targetBarsi: BarsiRecord, option: GiftOptionMeta) => {
@@ -676,14 +1031,14 @@ function BarsiSanctuaryInner() {
           giftType: option.giftType,
           count: option.count,
         });
-        triggerNoorBurst(option.shortTitle, targetBarsi.personName, xpPerGift);
+        triggerNoorBurst(option.shortTitle, targetBarsi.personName);
       } catch (err) {
         setFormError(err instanceof Error ? err.message : "Could not log Isal-e-Sawab gift.");
       } finally {
         setSendingGiftType(null);
       }
     },
-    [cmsLogBarsiGift, effectiveDonorName, sendingGiftType, triggerNoorBurst, xpPerGift]
+    [cmsLogBarsiGift, effectiveDonorName, sendingGiftType, triggerNoorBurst]
   );
 
   const handleTogglePara = useCallback(
@@ -698,7 +1053,7 @@ function BarsiSanctuaryInner() {
           readerName: effectiveReaderName.trim() || "Family Reader",
         });
         if (!wasCompleted) {
-          triggerNoorBurst(`Khatm-e-Quran Para ${paraNumber}`, activeBarsi.personName, 30);
+          triggerNoorBurst(`Khatm-e-Quran Para ${paraNumber}`, activeBarsi.personName);
         }
       } catch (err) {
         setFormError(err instanceof Error ? err.message : "Could not update Khatm Para.");
@@ -879,12 +1234,11 @@ function BarsiSanctuaryInner() {
       awardXp(25, "Mukammal Tariqa-e-Fatiha Mastery Bonus");
       triggerNoorBurst(
         "Mukammal Tariqa-e-Fatiha & Dua-e-Bakhshish",
-        activeBarsi.personName,
-        xpPerGift + 25
+        activeBarsi.personName
       );
     } else {
       awardXp(35, "Completed Mukammal Tariqa-e-Fatiha");
-      triggerNoorBurst("Mukammal Tariqa-e-Fatiha", "All Marhumeen of the Ummah", 35);
+      triggerNoorBurst("Mukammal Tariqa-e-Fatiha", "All Marhumeen of the Ummah");
     }
   };
 
@@ -920,11 +1274,10 @@ function BarsiSanctuaryInner() {
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="badge-pill badge-emerald">Noor Hadiyah Accepted In-Sha-Allah</span>
-                  <span className="badge-pill badge-gold">+{noorCelebration.xpEarned} XP</span>
+                  <span className="badge-pill badge-emerald">{ui.noorAccepted}</span>
                 </div>
                 <p className="text-sm sm:text-base font-bold mt-1" style={{ color: "var(--text-primary)" }}>
-                  {noorCelebration.giftLabel} dedicated to{" "}
+                  {noorCelebration.giftLabel} —{" "}
                   <span style={{ color: "var(--accent-primary)" }}>
                     {noorCelebration.recipientName}
                   </span>
@@ -963,7 +1316,7 @@ function BarsiSanctuaryInner() {
         </div>
       )}
 
-      {/* ==================== 1. DRAMATIC HERO & LIVE HIJRI BARSI COUNTDOWN ==================== */}
+      {/* ==================== 1. SERENE MEMORIAL HERO & HIJRI BARSI COUNTDOWN ==================== */}
       <section className="twilight-hero-card relative overflow-hidden p-5 sm:p-7">
         {/* Decorative Celestial Glow Orbs */}
         <div
@@ -988,7 +1341,7 @@ function BarsiSanctuaryInner() {
               {hijri.isFriday && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-400/20 text-emerald-200 border border-emerald-300/30">
                   <Sparkles className="w-3 h-3" />
-                  Blessed Jumu&apos;ah — Prime Day for Fatiha &amp; Ziyarat
+                  Jumu&apos;ah Mubarak — Fatiha &amp; Ziyarat
                 </span>
               )}
               {hijri.isGyarhviSharif && (
@@ -1004,17 +1357,11 @@ function BarsiSanctuaryInner() {
             </p>
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-white/75 mb-1">
-                {t(lang, "navBarsi")} • Sunni Hanafi Isal-e-Sawab Sanctuary
-              </p>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white leading-tight">
-                Family Barsi, Marhumeen Sanctuary &amp; 30-Para Khatm-e-Quran
+                {t(lang, "navBarsi")}
               </h1>
               <p className="text-xs sm:text-sm text-white/80 mt-2 max-w-2xl leading-relaxed">
-                Preserve the blessed memory of departed parents, elders, and Mashaykh. Dedicate
-                1-tap Quranic &amp; Durood gifts, coordinate collaborative 30-Para family Khatms, and
-                recite the authentic <em>Ahkam-e-Shariat</em> / <em>Bahar-e-Shariat</em> Fatiha &amp;
-                Bakhshish Dua.
+                {tl(lang, "barsiSubtitle", ui.subtitle)}
               </p>
             </div>
 
@@ -1024,8 +1371,7 @@ function BarsiSanctuaryInner() {
                 onClick={openCreateModal}
                 className="btn-peach inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm cursor-pointer shadow-lg"
               >
-                <Plus className="w-4 h-4" />
-                <span>Add Beloved Marhum / Marhuma</span>
+                <span>{ui.addLovedOne}</span>
               </button>
               <button
                 type="button"
@@ -1033,7 +1379,7 @@ function BarsiSanctuaryInner() {
                 className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-white/14 hover:bg-white/22 text-white border border-white/20 transition-colors cursor-pointer"
               >
                 <BookOpen className="w-4 h-4 text-amber-300" />
-                <span>30-Para Khatm Board</span>
+                <span>{tl(lang, "barsiTabKhatm", ui.tabKhatm)}</span>
               </button>
               <button
                 type="button"
@@ -1041,7 +1387,7 @@ function BarsiSanctuaryInner() {
                 className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-white/14 hover:bg-white/22 text-white border border-white/20 transition-colors cursor-pointer"
               >
                 <HeartHandshake className="w-4 h-4 text-emerald-300" />
-                <span>Tariqa-e-Fatiha</span>
+                <span>{tl(lang, "barsiTabMethod", ui.tabMethod)}</span>
               </button>
             </div>
           </div>
@@ -1053,18 +1399,18 @@ function BarsiSanctuaryInner() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-amber-300">
                     <Clock className="w-3.5 h-3.5" />
-                    Next Upcoming Barsi
+                    {ui.upcomingBarsi}
                   </span>
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-xs font-bold tabular-nums ${
                       sanctuaryMetrics.nextBarsiDaysLeft === 0
-                        ? "bg-emerald-400/25 text-emerald-200 border border-emerald-300/40 animate-pulse"
+                        ? "bg-emerald-400/25 text-emerald-200 border border-emerald-300/40"
                         : "bg-amber-400/20 text-amber-200 border border-amber-300/35"
                     }`}
                   >
                     {sanctuaryMetrics.nextBarsiDaysLeft === 0
-                      ? "Today • Yaum-e-Barsi!"
-                      : `In ${sanctuaryMetrics.nextBarsiDaysLeft} Hijri Days`}
+                      ? ui.todayBarsi
+                      : `${sanctuaryMetrics.nextBarsiDaysLeft} ${tp(lang, "days")}`}
                   </span>
                 </div>
 
@@ -1087,7 +1433,7 @@ function BarsiSanctuaryInner() {
                         HIJRI_MONTHS[sanctuaryMetrics.nextBarsi.hijriMonth - 1]
                       )}
                       {sanctuaryMetrics.nextBarsi.hijriYear
-                        ? ` (${Math.max(1, hijri.year - sanctuaryMetrics.nextBarsi.hijriYear)} yrs)`
+                        ? ` (${Math.max(1, hijri.year - sanctuaryMetrics.nextBarsi.hijriYear)} AH)`
                         : ""}
                     </span>
                   </p>
@@ -1116,8 +1462,8 @@ function BarsiSanctuaryInner() {
                     }}
                     className="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-white text-slate-950 hover:opacity-95 transition-opacity cursor-pointer inline-flex items-center justify-center gap-1.5"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Gift Instant Fatiha (+{xpPerGift} XP)</span>
+                    <HeartHandshake className="w-3.5 h-3.5 text-amber-700" />
+                    <span>{ui.sendFatihaGift}</span>
                   </button>
                   <button
                     type="button"
@@ -1128,49 +1474,45 @@ function BarsiSanctuaryInner() {
                     }}
                     className="py-2 px-3 rounded-xl text-xs font-semibold bg-white/15 hover:bg-white/25 text-white border border-white/20 cursor-pointer"
                   >
-                    Open Profile
+                    {ui.openProfile}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="rounded-2xl p-5 bg-black/25 border border-white/15 text-center space-y-3">
                 <HeartHandshake className="w-8 h-8 text-amber-300 mx-auto" />
-                <p className="text-sm font-semibold text-white">
-                  Begin Your Family Marhumeen Sanctuary
-                </p>
-                <p className="text-xs text-white/75">
-                  Add departed parents or grandparents to track their annual Hijri Barsi and
-                  coordinate 30-Para Khatms.
-                </p>
+                <p className="text-sm font-semibold text-white">{t(lang, "navBarsi")}</p>
+                <p className="text-xs text-white/75">{tl(lang, "barsiSubtitle", ui.subtitle)}</p>
                 <button
                   type="button"
                   onClick={openCreateModal}
                   className="btn-peach px-4 py-2 rounded-xl text-xs cursor-pointer"
                 >
-                  + Add First Profile
+                  {ui.addLovedOne}
                 </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* 4 Live Sanctuary Aggregate KPI Strip */}
+        {/* 4 Serene Memorial Overview Metrics */}
         <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6 pt-5 border-t border-white/15">
           <div className="rounded-xl p-3 bg-white/10 backdrop-blur-sm border border-white/12">
             <p className="text-[11px] uppercase tracking-wider text-white/70 font-semibold">
-              Marhumeen Profiles
+              {ui.profilesHeading}
             </p>
             <p className="text-xl sm:text-2xl font-bold text-white tabular-nums mt-0.5">
               {sanctuaryMetrics.totalProfiles}
             </p>
             <p className="text-[11px] text-white/75 mt-0.5">
-              {sanctuaryMetrics.privateCount} Family • {sanctuaryMetrics.communityCount} Endowment
+              {sanctuaryMetrics.privateCount} {ui.filterFamily} • {sanctuaryMetrics.communityCount}{" "}
+              {ui.filterCommunity}
             </p>
           </div>
 
           <div className="rounded-xl p-3 bg-white/10 backdrop-blur-sm border border-white/12">
             <p className="text-[11px] uppercase tracking-wider text-white/70 font-semibold">
-              Total Hadiyah Gifts
+              {ui.totalHadiyah}
             </p>
             <p className="text-xl sm:text-2xl font-bold text-amber-200 tabular-nums mt-0.5">
               {sanctuaryMetrics.totalGiftsCombined.toLocaleString()}
@@ -1183,26 +1525,25 @@ function BarsiSanctuaryInner() {
 
           <div className="rounded-xl p-3 bg-white/10 backdrop-blur-sm border border-white/12">
             <p className="text-[11px] uppercase tracking-wider text-white/70 font-semibold">
-              Khatm-e-Quran Paras
+              {ui.khatmProgress}
             </p>
             <p className="text-xl sm:text-2xl font-bold text-emerald-200 tabular-nums mt-0.5">
-              {sanctuaryMetrics.totalParasCompleted}{" "}
-              <span className="text-xs font-normal text-white/75">Paras Recited</span>
+              {sanctuaryMetrics.totalParasCompleted}
             </p>
             <p className="text-[11px] text-white/75 mt-0.5">
-              {sanctuaryMetrics.completedFullKhatms} Complete 30/30 Khatms
+              {sanctuaryMetrics.completedFullKhatms} × 30/30 Khatm
             </p>
           </div>
 
           <div className="rounded-xl p-3 bg-white/10 backdrop-blur-sm border border-white/12">
             <p className="text-[11px] uppercase tracking-wider text-white/70 font-semibold">
-              Your Isal-e-Sawab Rank
+              {ui.todaysGifts}
             </p>
-            <p className="text-lg sm:text-xl font-bold text-white truncate mt-0.5">
-              {currentRank.title}
+            <p className="text-xl sm:text-2xl font-bold text-white tabular-nums mt-0.5">
+              {barsiFatihaToday}
             </p>
-            <p className="text-[11px] text-amber-200 mt-0.5 tabular-nums">
-              {barsiFatihaToday} Gifts Today • {totalXp.toLocaleString()} XP
+            <p className="text-[11px] text-amber-200 mt-0.5">
+              Surah Al-Fatihah &amp; Salawat
             </p>
           </div>
         </div>
@@ -1210,41 +1551,37 @@ function BarsiSanctuaryInner() {
 
       {/* ==================== FILTER, SEARCH & SUB-TAB NAVIGATION ==================== */}
       <div className="bento-card p-3.5 sm:p-4 space-y-3.5">
-        {/* Top Row: 4 Rich Sub-Tabs */}
+        {/* Top Row: 4 Localized Navigation Tabs */}
         <div
           role="tablist"
-          aria-label="Family Barsi & Isal-e-Sawab Views"
-          className="grid grid-cols-2 lg:grid-cols-4 gap-2"
+          aria-label={t(lang, "navBarsi")}
+          className="pill-tab-bar"
         >
           {(
             [
               {
                 id: "sanctuary",
-                label: "Marhumeen Sanctuary",
-                sub: "Profiles & Gift Studio",
+                label: tl(lang, "barsiTabSanctuary", ui.tabSanctuary),
                 icon: HeartHandshake,
                 badge: String(sanctuaryMetrics.totalProfiles),
               },
               {
                 id: "khatm",
-                label: "30-Para Khatm Board",
-                sub: "Family Juz 1–30 Grid",
+                label: tl(lang, "barsiTabKhatm", ui.tabKhatm),
                 icon: BookOpen,
-                badge: activeBarsi ? `${activeKhatmStats.completedCount}/30` : "30 Juz",
+                badge: activeBarsi ? `${activeKhatmStats.completedCount}/30` : "30",
               },
               {
                 id: "fatiha",
-                label: "Tariqa-e-Fatiha & Dua",
-                sub: "8-Step Hanafi Method",
+                label: tl(lang, "barsiTabMethod", ui.tabMethod),
                 icon: Sparkles,
                 badge: `${completedFatihaStepCount}/8`,
               },
               {
                 id: "calendar",
-                label: "Barsi Calendar & Adab",
-                sub: "12-Month & Qabrastan",
+                label: tl(lang, "barsiTabCalendar", ui.tabCalendar),
                 icon: Calendar,
-                badge: "12 Mo",
+                badge: "12",
               },
             ] as const
           ).map((tab) => {
@@ -1257,44 +1594,13 @@ function BarsiSanctuaryInner() {
                 role="tab"
                 aria-selected={isSelected}
                 onClick={() => setActiveTab(tab.id)}
-                className="flex items-center justify-between gap-2 p-2.5 sm:p-3 rounded-xl border text-start transition-all cursor-pointer"
-                style={{
-                  backgroundColor: isSelected ? "var(--accent-soft)" : "var(--bg-elevated)",
-                  borderColor: isSelected ? "var(--accent-primary)" : "var(--border-hairline)",
-                }}
+                className={`pill-tab-btn inline-flex items-center gap-2 cursor-pointer ${
+                  isSelected ? "pill-tab-btn-active" : ""
+                }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                    style={{
-                      backgroundColor: isSelected ? "var(--accent-primary)" : "var(--bg-surface)",
-                      color: isSelected ? "#ffffff" : "var(--accent-primary)",
-                    }}
-                  >
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p
-                      className="text-xs sm:text-sm font-bold truncate"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      {tab.label}
-                    </p>
-                    <p
-                      className="text-[10px] sm:text-[11px] truncate"
-                      style={{ color: "var(--text-muted)" }}
-                    >
-                      {tab.sub}
-                    </p>
-                  </div>
-                </div>
-                <span
-                  className="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 tabular-nums"
-                  style={{
-                    backgroundColor: isSelected ? "var(--accent-primary)" : "var(--bg-surface)",
-                    color: isSelected ? "#ffffff" : "var(--text-secondary)",
-                  }}
-                >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span>{tab.label}</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums opacity-80">
                   {tab.badge}
                 </span>
               </button>
@@ -1304,15 +1610,18 @@ function BarsiSanctuaryInner() {
 
         {/* Filter & Search Bar (Shown on Sanctuary, Khatm & Calendar tabs) */}
         {activeTab !== "fatiha" && (
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 pt-2 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+          <div
+            className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 pt-2 border-t"
+            style={{ borderColor: "var(--border-hairline)" }}
+          >
             {/* Visibility Pills */}
             <div className="flex flex-wrap items-center gap-1.5">
               <Filter className="w-3.5 h-3.5 me-1 hidden sm:inline" style={{ color: "var(--text-muted)" }} />
               {(
                 [
-                  { id: "all", label: "All", icon: Globe },
-                  { id: "private", label: "My Family (Private)", icon: Lock },
-                  { id: "community", label: "Community Endowment", icon: Users },
+                  { id: "all", label: ui.filterAll, icon: Globe },
+                  { id: "private", label: ui.filterFamily, icon: Lock },
+                  { id: "community", label: ui.filterCommunity, icon: Users },
                 ] as const
               ).map((vf) => {
                 const Icon = vf.icon;
@@ -1339,7 +1648,7 @@ function BarsiSanctuaryInner() {
             {/* Hijri Month Dropdown + Search Input + Add CTA */}
             <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
               <select
-                aria-label="Filter by Hijri Month"
+                aria-label={ui.allHijriMonths}
                 value={monthFilter}
                 onChange={(e) => setMonthFilter(Number(e.target.value))}
                 className="ui-select px-3 py-1.5 rounded-xl border text-xs font-semibold outline-none cursor-pointer"
@@ -1353,7 +1662,7 @@ function BarsiSanctuaryInner() {
                   value={0}
                   style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}
                 >
-                  All 12 Hijri Months
+                  {ui.allHijriMonths}
                 </option>
                 {HIJRI_MONTHS.map((mName, idx) => (
                   <option
@@ -1378,8 +1687,8 @@ function BarsiSanctuaryInner() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search name, relation, city…"
-                  aria-label="Search Marhumeen by name, relation, or city"
+                  placeholder={`${tp(lang, "Search")}…`}
+                  aria-label={tp(lang, "Search")}
                   className="w-full bg-transparent text-xs outline-none"
                   style={{ color: "var(--text-primary)" }}
                 />
@@ -1387,7 +1696,7 @@ function BarsiSanctuaryInner() {
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
-                    aria-label="Clear search query"
+                    aria-label={tp(lang, "Reset")}
                     className="ms-1 opacity-70 hover:opacity-100 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -1400,8 +1709,7 @@ function BarsiSanctuaryInner() {
                 onClick={openCreateModal}
                 className="btn-primary inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold shrink-0 cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Add Marhum</span>
+                <span>{ui.addLovedOne}</span>
               </button>
             </div>
           </div>
@@ -1424,7 +1732,7 @@ function BarsiSanctuaryInner() {
             <div className="lg:col-span-5 space-y-3">
               <div className="flex items-center justify-between px-1">
                 <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
-                  Marhumeen Directory ({filteredBarsis.length})
+                  {ui.profilesHeading} ({filteredBarsis.length})
                 </h2>
                 <button
                   type="button"
@@ -1432,8 +1740,7 @@ function BarsiSanctuaryInner() {
                   className="text-xs font-semibold inline-flex items-center gap-1 cursor-pointer hover:underline"
                   style={{ color: "var(--accent-primary)" }}
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  New Profile
+                  {ui.addLovedOne}
                 </button>
               </div>
 
@@ -1441,12 +1748,10 @@ function BarsiSanctuaryInner() {
                 <div className="bento-card p-6 text-center space-y-3">
                   <Heart className="w-8 h-8 mx-auto" style={{ color: "var(--accent-primary)" }} />
                   <h3 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
-                    No Matching Marhumeen Found
+                    {ui.profilesHeading}
                   </h3>
                   <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                    {visibilityFilter === "private"
-                      ? "You haven't added a private Family Barsi profile yet. Add beloved parents or elders to preserve their Hijri wisal date and start a 30-Para Khatm."
-                      : "Adjust your search or Hijri month filter, or add a beloved family Marhum / Marhuma."}
+                    {tl(lang, "barsiSubtitle", ui.subtitle)}
                   </p>
                   <div className="flex items-center justify-center gap-2 pt-1">
                     {(visibilityFilter !== "all" || monthFilter > 0 || searchQuery) && (
@@ -1463,7 +1768,7 @@ function BarsiSanctuaryInner() {
                           color: "var(--text-secondary)",
                         }}
                       >
-                        Reset Filters
+                        {tp(lang, "Reset")}
                       </button>
                     )}
                     <button
@@ -1471,7 +1776,7 @@ function BarsiSanctuaryInner() {
                       onClick={openCreateModal}
                       className="btn-primary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer"
                     >
-                      + Add Beloved Marhum
+                      {ui.addLovedOne}
                     </button>
                   </div>
                 </div>
@@ -1500,7 +1805,7 @@ function BarsiSanctuaryInner() {
                             setSelectedBarsiId(rec.id);
                           }
                         }}
-                        aria-label={`Select Barsi profile for ${rec.personName}`}
+                        aria-label={`${rec.personName}`}
                         className="bento-card bento-card-interactive p-4 cursor-pointer space-y-3"
                         style={{
                           borderColor: isSelected
@@ -1529,11 +1834,11 @@ function BarsiSanctuaryInner() {
                               >
                                 {rec.visibility === "private" ? (
                                   <>
-                                    <Lock className="w-2.5 h-2.5" /> Family
+                                    <Lock className="w-2.5 h-2.5" /> {ui.filterFamily}
                                   </>
                                 ) : (
                                   <>
-                                    <Users className="w-2.5 h-2.5" /> Endowment
+                                    <Users className="w-2.5 h-2.5" /> {ui.filterCommunity}
                                   </>
                                 )}
                               </span>
@@ -1542,7 +1847,7 @@ function BarsiSanctuaryInner() {
                                   daysLeft === 0 ? "badge-emerald" : "badge-gold"
                                 }`}
                               >
-                                {daysLeft === 0 ? "Today • Barsi!" : `${daysLeft}d left`}
+                                {daysLeft === 0 ? tp(lang, "Today") : `${daysLeft} ${tp(lang, "days")}`}
                               </span>
                             </div>
 
@@ -1579,7 +1884,7 @@ function BarsiSanctuaryInner() {
                               <button
                                 type="button"
                                 onClick={() => openEditModal(rec)}
-                                aria-label={`Edit ${rec.personName}`}
+                                aria-label={`${tp(lang, "Edit")} ${rec.personName}`}
                                 className="p-1.5 rounded-lg border cursor-pointer hover:opacity-80"
                                 style={{
                                   backgroundColor: "var(--bg-elevated)",
@@ -1597,7 +1902,8 @@ function BarsiSanctuaryInner() {
                         <div className="space-y-1.5 pt-1">
                           <div className="flex items-center justify-between text-[11px]">
                             <span style={{ color: "var(--text-muted)" }}>
-                              Khatm-e-Quran: <strong style={{ color: "var(--text-primary)" }}>{parasDone}/30 Paras</strong>
+                              {ui.khatmProgress}:{" "}
+                              <strong style={{ color: "var(--text-primary)" }}>{parasDone}/30</strong>
                             </span>
                             <span className="tabular-nums" style={{ color: "var(--text-secondary)" }}>
                               {rec.totalFatihaCount} Fatiha • {rec.totalYasinCount} Yasin •{" "}
@@ -1624,7 +1930,7 @@ function BarsiSanctuaryInner() {
               )}
             </div>
 
-            {/* Right 7 Cols: Active Profile Sanctuary + Gamified Isal-e-Sawab Gift Studio */}
+            {/* Right 7 Cols: Active Profile Sanctuary + Serene Isal-e-Sawab Dedication */}
             <div className="lg:col-span-7 space-y-5">
               {activeBarsi ? (
                 <>
@@ -1697,7 +2003,7 @@ function BarsiSanctuaryInner() {
                             }}
                           >
                             <Edit3 className="w-3.5 h-3.5" />
-                            Edit
+                            {tp(lang, "Edit")}
                           </button>
                           {confirmDeleteId === activeBarsi.id ? (
                             <div className="inline-flex items-center gap-1.5">
@@ -1708,7 +2014,7 @@ function BarsiSanctuaryInner() {
                                 className="px-3 py-1.5 rounded-xl text-xs font-bold text-white cursor-pointer"
                                 style={{ backgroundColor: "var(--accent-danger)" }}
                               >
-                                {deletingId === activeBarsi.id ? "Removing…" : "Confirm Delete"}
+                                {deletingId === activeBarsi.id ? tp(lang, "Loading…") : tp(lang, "Delete")}
                               </button>
                               <button
                                 type="button"
@@ -1719,14 +2025,14 @@ function BarsiSanctuaryInner() {
                                   color: "var(--text-muted)",
                                 }}
                               >
-                                Cancel
+                                {tp(lang, "Cancel")}
                               </button>
                             </div>
                           ) : (
                             <button
                               type="button"
                               onClick={() => setConfirmDeleteId(activeBarsi.id)}
-                              aria-label={`Delete ${activeBarsi.personName}`}
+                              aria-label={`${tp(lang, "Delete")} ${activeBarsi.personName}`}
                               className="p-1.5 rounded-xl border cursor-pointer hover:opacity-85"
                               style={{
                                 backgroundColor: "var(--bg-elevated)",
@@ -1784,7 +2090,7 @@ function BarsiSanctuaryInner() {
                         />
                         <div className="min-w-0">
                           <p className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
-                            Recommended / Favorite Wird
+                            Recommended Wird
                           </p>
                           <p
                             className="text-xs font-bold truncate"
@@ -1874,7 +2180,7 @@ function BarsiSanctuaryInner() {
                       >
                         <BookOpen className="w-3.5 h-3.5" />
                         <span>
-                          Open 30-Para Khatm ({activeKhatmStats.completedCount}/30 Completed)
+                          {ui.khatmProgress} ({activeKhatmStats.completedCount}/30)
                         </span>
                       </button>
                       <button
@@ -1888,21 +2194,21 @@ function BarsiSanctuaryInner() {
                         }}
                       >
                         <HeartHandshake className="w-3.5 h-3.5" style={{ color: "var(--accent-gold)" }} />
-                        <span>Personalize Dua-e-Bakhshish</span>
+                        <span>{tl(lang, "barsiTabMethod", ui.tabMethod)}</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Interactive Isal-e-Sawab Gift Launcher */}
+                  {/* Serene Isal-e-Sawab Gift Dedication */}
                   <div className="bento-card p-5 sm:p-6 space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
-                          <Flame className="w-3.5 h-3.5" />
-                          <span>Instant Isal-e-Sawab Gift Launcher</span>
+                          <HeartHandshake className="w-3.5 h-3.5" />
+                          <span>Isal-e-Sawab</span>
                         </div>
                         <h3 className="text-base sm:text-lg font-bold mt-0.5" style={{ color: "var(--text-primary)" }}>
-                          Recite &amp; Dedicate Hadiyah (+{xpPerGift} XP per Gift)
+                          {ui.sendFatihaGift}
                         </h3>
                       </div>
 
@@ -1913,7 +2219,7 @@ function BarsiSanctuaryInner() {
                           maxLength={45}
                           value={effectiveDonorName}
                           onChange={(e) => setCustomDonorName(e.target.value)}
-                          placeholder="Your name for gift log"
+                          placeholder="Name"
                           aria-label="Donor name for Isal-e-Sawab dedication"
                           className="px-3 py-1.5 rounded-xl border text-xs font-medium outline-none w-44 sm:w-48"
                           style={{
@@ -1943,12 +2249,6 @@ function BarsiSanctuaryInner() {
                             <div className="space-y-1.5">
                               <div className="flex items-center justify-between gap-2">
                                 <span className="badge-pill badge-gold">{opt.badgeText}</span>
-                                <span
-                                  className="text-[11px] font-bold"
-                                  style={{ color: "var(--accent-primary)" }}
-                                >
-                                  +{xpPerGift} XP
-                                </span>
                               </div>
                               <h4
                                 className="text-sm font-bold"
@@ -1978,10 +2278,8 @@ function BarsiSanctuaryInner() {
                                 onClick={() => handleSendGift(activeBarsi, opt)}
                                 className="btn-primary flex-1 py-2 px-3 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
                               >
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span>
-                                  {isSending ? "Dedicating…" : "Recited • Dedicate Gift"}
-                                </span>
+                                <HeartHandshake className="w-3.5 h-3.5" />
+                                <span>{isSending ? ui.dedicating : ui.sendFatihaGift}</span>
                               </button>
 
                               {opt.quickHref && (
@@ -2006,21 +2304,20 @@ function BarsiSanctuaryInner() {
                     </div>
                   </div>
 
-                  {/* Live Gift Dedication Feed */}
+                  {/* Recent Gifts Feed */}
                   <div className="bento-card p-5 space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
-                        Live Isal-e-Sawab Dedication Feed
+                        {ui.recentGifts}
                       </h3>
                       <span className="text-xs tabular-nums" style={{ color: "var(--text-muted)" }}>
-                        {activeBarsi.giftLogs.length} Recent Logs
+                        {activeBarsi.giftLogs.length}
                       </span>
                     </div>
 
                     {activeBarsi.giftLogs.length === 0 ? (
                       <p className="text-xs py-4 text-center" style={{ color: "var(--text-muted)" }}>
-                        Be the first today to recite Surah Al-Fatihah or Durood-e-Pak and dedicate
-                        its Noor to {activeBarsi.personName}.
+                        {ui.sendFatihaGift} — {activeBarsi.personName}
                       </p>
                     ) : (
                       <div className="space-y-2 max-h-64 overflow-y-auto pe-1">
@@ -2045,7 +2342,7 @@ function BarsiSanctuaryInner() {
                               </div>
                               <div className="min-w-0">
                                 <p className="truncate" style={{ color: "var(--text-primary)" }}>
-                                  <strong>{log.donorName}</strong> gifted{" "}
+                                  <strong>{log.donorName}</strong> •{" "}
                                   <span style={{ color: "var(--accent-gold)" }} className="font-semibold">
                                     {log.giftType}
                                   </span>
@@ -2067,10 +2364,9 @@ function BarsiSanctuaryInner() {
               ) : (
                 <div className="bento-card p-8 text-center space-y-3">
                   <HeartHandshake className="w-10 h-10 mx-auto" style={{ color: "var(--accent-primary)" }} />
-                  <h3 className="text-lg font-bold">Select or Add a Beloved Marhum / Marhuma</h3>
+                  <h3 className="text-lg font-bold">{ui.addLovedOne}</h3>
                   <p className="text-xs max-w-md mx-auto" style={{ color: "var(--text-muted)" }}>
-                    Choose any profile on the left or create a Family Sanctuary record to start
-                    gifting Surah Al-Fatihah, Yasin, and Durood-e-Pak.
+                    {tl(lang, "barsiSubtitle", ui.subtitle)}
                   </p>
                 </div>
               )}
@@ -2098,7 +2394,7 @@ function BarsiSanctuaryInner() {
                     className="block text-xs font-bold uppercase tracking-wider"
                     style={{ color: "var(--text-muted)" }}
                   >
-                    Dedicating 30-Para Khatm To
+                    {ui.khatmProgress}
                   </label>
                   <select
                     id="khatm-barsi-select"
@@ -2120,7 +2416,7 @@ function BarsiSanctuaryInner() {
                           color: "var(--text-primary)",
                         }}
                       >
-                        {b.personName} ({Object.keys(b.khatmParas || {}).length}/30 Paras)
+                        {b.personName} ({Object.keys(b.khatmParas || {}).length}/30)
                       </option>
                     ))}
                   </select>
@@ -2133,7 +2429,7 @@ function BarsiSanctuaryInner() {
                     className="block text-xs font-bold uppercase tracking-wider"
                     style={{ color: "var(--text-muted)" }}
                   >
-                    Reciter / Family Member Name
+                    {ui.recitedBy}
                   </label>
                   <input
                     id="khatm-reader-input"
@@ -2141,7 +2437,7 @@ function BarsiSanctuaryInner() {
                     maxLength={40}
                     value={effectiveReaderName}
                     onChange={(e) => setCustomReaderName(e.target.value)}
-                    placeholder="Enter reader name…"
+                    placeholder={ui.recitedBy}
                     className="w-full px-3.5 py-2.5 rounded-xl border text-sm font-medium outline-none"
                     style={{
                       backgroundColor: "var(--bg-surface)",
@@ -2155,9 +2451,9 @@ function BarsiSanctuaryInner() {
                 <div className="md:col-span-3 flex items-center gap-1.5">
                   {(
                     [
-                      { id: "all", label: "All 30" },
-                      { id: "available", label: `Open (${30 - activeKhatmStats.completedCount})` },
-                      { id: "completed", label: `Done (${activeKhatmStats.completedCount})` },
+                      { id: "all", label: `${ui.filterAll} (30)` },
+                      { id: "available", label: `${30 - activeKhatmStats.completedCount}` },
+                      { id: "completed", label: `${activeKhatmStats.completedCount}/30` },
                     ] as const
                   ).map((pf) => (
                     <button
@@ -2185,14 +2481,14 @@ function BarsiSanctuaryInner() {
                 <div className="space-y-2.5 pt-1">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <Award className="w-5 h-5" style={{ color: "var(--accent-gold)" }} />
+                      <BookOpen className="w-5 h-5" style={{ color: "var(--accent-gold)" }} />
                       <span className="text-sm sm:text-base font-bold" style={{ color: "var(--text-primary)" }}>
-                        {activeKhatmStats.completedCount} of 30 Paras Completed (
+                        {ui.khatmProgress}: {activeKhatmStats.completedCount} / 30 (
                         {activeKhatmStats.pct}%)
                       </span>
                     </div>
                     <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                      Tap any Para tile to mark recited (+30 XP) or open directly in the 604-page Mushaf
+                      {ui.claimCompletePara}
                     </span>
                   </div>
 
@@ -2212,7 +2508,7 @@ function BarsiSanctuaryInner() {
                   {activeKhatmStats.uniqueReaders.length > 0 && (
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
                       <span className="text-[11px] font-semibold me-1" style={{ color: "var(--text-muted)" }}>
-                        Participating Reciters:
+                        {ui.recitedBy}:
                       </span>
                       {activeKhatmStats.uniqueReaders.map((rName) => (
                         <span
@@ -2234,11 +2530,10 @@ function BarsiSanctuaryInner() {
                     <div className="quran-gradient-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-2">
                       <div className="space-y-0.5">
                         <p className="text-xs font-bold uppercase tracking-wider text-amber-200">
-                          Alhamdulillah • 30/30 Khatm-ul-Quran Complete!
+                          Alhamdulillah • 30/30 Khatm-ul-Quran
                         </p>
                         <p className="text-sm sm:text-base font-bold text-white">
-                          All 30 Paras have been completed for {activeBarsi.personName}. Proceed to
-                          recite Dua-e-Khatm &amp; Bakhshish!
+                          {activeBarsi.personName}
                         </p>
                       </div>
                       <button
@@ -2246,7 +2541,7 @@ function BarsiSanctuaryInner() {
                         onClick={() => setActiveTab("fatiha")}
                         className="btn-peach px-4 py-2 rounded-xl text-xs shrink-0 cursor-pointer"
                       >
-                        Recite Dua-e-Bakhshish →
+                        {tl(lang, "barsiTabMethod", ui.tabMethod)}
                       </button>
                     </div>
                   )}
@@ -2280,7 +2575,7 @@ function BarsiSanctuaryInner() {
                         type="button"
                         disabled={isBusy}
                         onClick={() => handleTogglePara(juz.juz)}
-                        aria-label={`Toggle Para ${juz.juz} (${juz.arabicTitle}) completion`}
+                        aria-label={`Para ${juz.juz} (${juz.arabicTitle})`}
                         className="text-start space-y-2 w-full cursor-pointer"
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -2299,10 +2594,10 @@ function BarsiSanctuaryInner() {
                             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                           ) : (
                             <span
-                              className="text-[10px] font-bold"
+                              className="text-[10px] font-semibold truncate max-w-[110px]"
                               style={{ color: "var(--accent-primary)" }}
                             >
-                              +30 XP
+                              {ui.claimCompletePara}
                             </span>
                           )}
                         </div>
@@ -2327,10 +2622,10 @@ function BarsiSanctuaryInner() {
                             style={{ color: isDone ? "#10B981" : "var(--text-muted)" }}
                           >
                             {isBusy
-                              ? "Updating…"
+                              ? tp(lang, "Loading…")
                               : isDone
-                              ? `✓ Recited by ${assignedReader}`
-                              : "Tap to mark completed"}
+                              ? `${ui.recitedBy}: ${assignedReader}`
+                              : ui.claimCompletePara}
                           </p>
                         </div>
                       </button>
@@ -2344,7 +2639,7 @@ function BarsiSanctuaryInner() {
                           color: "var(--accent-primary)",
                         }}
                       >
-                        <span>Read Para in Mushaf</span>
+                        <span>{ui.readInMushaf}</span>
                         <span className="inline-flex items-center gap-1 tabular-nums">
                           p.{juz.startPage}
                           <ExternalLink className="w-3 h-3" />
@@ -2357,7 +2652,7 @@ function BarsiSanctuaryInner() {
             ) : (
               <div className="bento-card p-8 text-center">
                 <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                  Add or select a Marhum / Marhuma profile first to launch a 30-Para Khatm board.
+                  {ui.addLovedOne}
                 </p>
               </div>
             )}
@@ -2380,14 +2675,14 @@ function BarsiSanctuaryInner() {
                 <div className="space-y-1">
                   <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider" style={{ color: "var(--accent-gold)" }}>
                     <ShieldCheck className="w-4 h-4" />
-                    <span>Ahkam-e-Shariat &amp; Bahar-e-Shariat Authentic Sunni Hanafi Method</span>
+                    <span>Ahkam-e-Shariat &amp; Bahar-e-Shariat</span>
                   </div>
                   <h2 className="text-xl sm:text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-                    Mukammal Tariqa-e-Fatiha &amp; Dua-e-Isal-e-Sawab
+                    {tl(lang, "barsiTabMethod", ui.tabMethod)}
                   </h2>
                   <p className="text-xs sm:text-sm max-w-3xl" style={{ color: "var(--text-secondary)" }}>
                     Follow all 8 Masnoon steps taught by Ala Hazrat Imam Ahmad Raza Khan (رحمه الله)
-                    and Sadr al-Shariah Mufti Amjad Ali A&apos;zami (رحمه الله). Select any Marhum
+                    and Sadr al-Shariah Mufti Amjad Ali A&apos;zami (رحمه الله). Select any memorial
                     below to weave their name directly into the concluding Bakhshish Dua.
                   </p>
                 </div>
@@ -2414,7 +2709,7 @@ function BarsiSanctuaryInner() {
                           color: "var(--text-primary)",
                         }}
                       >
-                        For: {b.personName}
+                        {b.personName}
                       </option>
                     ))}
                   </select>
@@ -2460,9 +2755,8 @@ function BarsiSanctuaryInner() {
               {/* Progress Strip */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t" style={{ borderColor: "var(--border-hairline)" }}>
                 <span className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                  Recitation Progress:{" "}
                   <strong style={{ color: "var(--accent-primary)" }}>
-                    {completedFatihaStepCount} / 8 Steps Checked
+                    {completedFatihaStepCount} / 8
                   </strong>
                 </span>
                 <div className="flex items-center gap-2">
@@ -2479,7 +2773,7 @@ function BarsiSanctuaryInner() {
                         color: "var(--text-muted)",
                       }}
                     >
-                      Reset Steps
+                      {tp(lang, "Reset")}
                     </button>
                   )}
                   <button
@@ -2487,8 +2781,8 @@ function BarsiSanctuaryInner() {
                     onClick={handleCompleteFullFatihaMethod}
                     className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Complete Fatiha &amp; Dedicate Hadiyah (+XP)</span>
+                    <HeartHandshake className="w-3.5 h-3.5" />
+                    <span>{ui.completeFatiha}</span>
                   </button>
                 </div>
               </div>
@@ -2508,7 +2802,7 @@ function BarsiSanctuaryInner() {
                       borderColor: isChecked ? "#10B981" : "var(--border-hairline)",
                     }}
                   >
-                    {/* Step Header */}
+                    {/* Step Header (Urdu/Persian displays step.urduTitle prominently first) */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-start sm:items-center gap-3">
                         <div
@@ -2522,18 +2816,36 @@ function BarsiSanctuaryInner() {
                           {isChecked ? <Check className="w-4 h-4" /> : step.stepNumber}
                         </div>
                         <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-base sm:text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-                              {step.title}
-                            </h3>
-                            <span
-                              className="font-urdu text-sm sm:text-base"
-                              style={{ color: "var(--accent-gold)" }}
-                              dir="rtl"
-                            >
-                              {step.urduTitle}
-                            </span>
-                          </div>
+                          {preferUrduFirst ? (
+                            <div className="flex flex-col gap-0.5">
+                              <h3
+                                className="font-urdu text-lg sm:text-xl font-bold leading-relaxed"
+                                style={{ color: "var(--text-primary)" }}
+                                dir="rtl"
+                              >
+                                {step.urduTitle}
+                              </h3>
+                              <span
+                                className="text-xs sm:text-sm font-semibold"
+                                style={{ color: "var(--accent-gold)" }}
+                              >
+                                {step.title}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="text-base sm:text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+                                {step.title}
+                              </h3>
+                              <span
+                                className="font-urdu text-sm sm:text-base"
+                                style={{ color: "var(--accent-gold)" }}
+                                dir="rtl"
+                              >
+                                {step.urduTitle}
+                              </span>
+                            </div>
+                          )}
                           <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
                             {step.fiqhNote}
                           </p>
@@ -2559,7 +2871,7 @@ function BarsiSanctuaryInner() {
                               color: "var(--accent-gold)",
                             }}
                           >
-                            Tap Count: {beadCount}/{step.repeatCount}
+                            {beadCount}/{step.repeatCount}
                           </button>
                         )}
 
@@ -2581,7 +2893,7 @@ function BarsiSanctuaryInner() {
                           }}
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>{isChecked ? "Recited" : "Mark Recited"}</span>
+                          <span>#{step.stepNumber}</span>
                         </button>
                       </div>
                     </div>
@@ -2674,7 +2986,7 @@ function BarsiSanctuaryInner() {
                                   className="text-[11px] font-semibold inline-flex items-center gap-1 hover:underline"
                                   style={{ color: "var(--accent-gold)" }}
                                 >
-                                  Open in Mushaf <ExternalLink className="w-3 h-3" />
+                                  {ui.readInMushaf} <ExternalLink className="w-3 h-3" />
                                 </Link>
                               </div>
 
@@ -2711,12 +3023,18 @@ function BarsiSanctuaryInner() {
                                     ))}
                                   </p>
 
-                                  {showUrduTranslation && (
+                                  {(preferUrduFirst || showUrduTranslation) && (
                                     <p
-                                      className="font-urdu text-base sm:text-lg leading-loose border-t pt-2.5"
+                                      className={`font-urdu leading-loose border-t pt-2.5 ${
+                                        preferUrduFirst
+                                          ? "text-lg sm:text-xl font-medium"
+                                          : "text-base sm:text-lg"
+                                      }`}
                                       style={{
                                         borderColor: "var(--border-hairline)",
-                                        color: "var(--text-secondary)",
+                                        color: preferUrduFirst
+                                          ? "var(--text-primary)"
+                                          : "var(--text-secondary)",
                                       }}
                                       dir="rtl"
                                     >
@@ -2738,7 +3056,7 @@ function BarsiSanctuaryInner() {
                                 </div>
                               ) : (
                                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                                  Loading sacred verses from Kanzul Iman Mushaf archive…
+                                  {tp(lang, "Loading…")}
                                 </p>
                               )}
                             </div>
@@ -2747,7 +3065,7 @@ function BarsiSanctuaryInner() {
                       </div>
                     )}
 
-                    {/* Step 8: Full Arabic, Transliteration, English & Urdu Dua-e-Isal-e-Sawab */}
+                    {/* Step 8: Full Arabic, Urdu (prominently first for ur/fa), Transliteration & English Dua */}
                     {step.id === "step-bakhshish-dua" && (
                       <div
                         className="p-4 sm:p-5 rounded-2xl border space-y-4"
@@ -2758,15 +3076,14 @@ function BarsiSanctuaryInner() {
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="badge-pill badge-gold">
-                            Dedicated Especially to:{" "}
-                            {activeBarsi ? activeBarsi.personName : "All Marhumeen"}
+                            {activeBarsi ? activeBarsi.personName : t(lang, "navBarsi")}
                           </span>
                           <button
                             type="button"
                             onClick={() =>
                               handleCopyText(
                                 "bakhshish",
-                                `${bakhshishDua.arabic}\n\n${bakhshishDua.english}\n\n${bakhshishDua.urdu}`
+                                `${bakhshishDua.arabic}\n\n${bakhshishDua.urdu}\n\n${bakhshishDua.english}`
                               )
                             }
                             className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border text-xs font-semibold cursor-pointer"
@@ -2778,11 +3095,12 @@ function BarsiSanctuaryInner() {
                           >
                             {copiedKey === "bakhshish" ? (
                               <>
-                                <Check className="w-3.5 h-3.5 text-emerald-500" /> Copied!
+                                <Check className="w-3.5 h-3.5 text-emerald-500" />{" "}
+                                {tp(lang, "Copied!")}
                               </>
                             ) : (
                               <>
-                                <Copy className="w-3.5 h-3.5" /> Copy Full Dua
+                                <Copy className="w-3.5 h-3.5" /> Copy
                               </>
                             )}
                           </button>
@@ -2796,6 +3114,19 @@ function BarsiSanctuaryInner() {
                           {bakhshishDua.arabic}
                         </p>
 
+                        {preferUrduFirst && (
+                          <p
+                            className="font-urdu text-lg sm:text-xl font-medium leading-loose border-t pt-3"
+                            style={{
+                              borderColor: "var(--border-hairline)",
+                              color: "var(--text-primary)",
+                            }}
+                            dir="rtl"
+                          >
+                            {bakhshishDua.urdu}
+                          </p>
+                        )}
+
                         <p
                           className="text-xs sm:text-sm italic leading-relaxed border-t pt-3"
                           style={{
@@ -2806,7 +3137,7 @@ function BarsiSanctuaryInner() {
                           {bakhshishDua.transliteration}
                         </p>
 
-                        {showUrduTranslation && (
+                        {!preferUrduFirst && showUrduTranslation && (
                           <p
                             className="font-urdu text-base sm:text-lg leading-loose border-t pt-3"
                             style={{
@@ -2854,10 +3185,10 @@ function BarsiSanctuaryInner() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
-                    12-Month Lunar Remembrance Schedule
+                    {ui.allHijriMonths}
                   </p>
                   <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-                    Annual Hijri Barsi Timeline ({hijri.year} AH)
+                    {tl(lang, "barsiTabCalendar", ui.tabCalendar)} ({hijri.year} AH)
                   </h2>
                 </div>
                 <button
@@ -2870,7 +3201,7 @@ function BarsiSanctuaryInner() {
                     color: "var(--text-secondary)",
                   }}
                 >
-                  {showEmptyMonths ? "Show Only Months with Barsis" : "Show All 12 Hijri Months"}
+                  {showEmptyMonths ? ui.profilesHeading : ui.allHijriMonths}
                 </button>
               </div>
 
@@ -2902,19 +3233,14 @@ function BarsiSanctuaryInner() {
                           <h3 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
                             {group.localizedName}
                           </h3>
-                          {group.localizedName !== group.enMonth && (
-                            <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                              {group.enMonth}
-                            </p>
-                          )}
                         </div>
                       </div>
 
                       {group.isCurrentMonth ? (
-                        <span className="badge-pill badge-emerald">Current Month</span>
+                        <span className="badge-pill badge-emerald">{ui.currentMonth}</span>
                       ) : (
-                        <span className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
-                          {group.records.length} {group.records.length === 1 ? "Barsi" : "Barsis"}
+                        <span className="text-[11px] font-semibold tabular-nums" style={{ color: "var(--text-muted)" }}>
+                          {group.records.length}
                         </span>
                       )}
                     </div>
@@ -2940,7 +3266,7 @@ function BarsiSanctuaryInner() {
                                   className="tabular-nums me-1.5"
                                   style={{ color: "var(--accent-gold)" }}
                                 >
-                                  {b.hijriDay} {group.enMonth.split(" ")[0]}:
+                                  {b.hijriDay} {group.localizedName}:
                                 </span>
                                 {b.personName}
                               </p>
@@ -2960,14 +3286,14 @@ function BarsiSanctuaryInner() {
                                 color: "var(--accent-primary)",
                               }}
                             >
-                              Fatiha →
+                              {ui.openProfile}
                             </button>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <p className="text-xs py-1" style={{ color: "var(--text-muted)" }}>
-                        No Family Barsis recorded in {group.enMonth}.
+                        {ui.noBarsisInMonth} {group.localizedName}.
                       </p>
                     )}
 
@@ -2999,7 +3325,7 @@ function BarsiSanctuaryInner() {
                     <span>Sunni Hanafi Ziyarat-e-Qubur Guide</span>
                   </div>
                   <h2 className="text-xl sm:text-2xl font-bold mt-0.5" style={{ color: "var(--text-primary)" }}>
-                    Adab-e-Qabrastan &amp; Masnoon Salam upon Entering Graves
+                    Adab-e-Qabrastan &amp; Masnoon Salam
                   </h2>
                 </div>
 
@@ -3010,14 +3336,13 @@ function BarsiSanctuaryInner() {
                       awardXp(15, "Practiced Masnoon Salam-e-Qabrastan");
                       triggerNoorBurst(
                         "Salam upon Ahl al-Qubur",
-                        "All Believing Dwellers of Graves",
-                        15
+                        "All Believing Dwellers of Graves"
                       );
                     }}
                     className="btn-primary px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Recited Salam (+15 XP)</span>
+                    <HeartHandshake className="w-3.5 h-3.5" />
+                    <span>{ui.reciteSalam}</span>
                   </button>
                   <button
                     type="button"
@@ -3036,11 +3361,11 @@ function BarsiSanctuaryInner() {
                   >
                     {copiedKey === "salam" ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-emerald-500" /> Copied
+                        <Check className="w-3.5 h-3.5 text-emerald-500" /> {tp(lang, "Copied!")}
                       </>
                     ) : (
                       <>
-                        <Copy className="w-3.5 h-3.5" /> Copy Salam
+                        <Copy className="w-3.5 h-3.5" /> Copy
                       </>
                     )}
                   </button>
@@ -3062,19 +3387,33 @@ function BarsiSanctuaryInner() {
                 >
                   {QABRASTAN_SALAM.arabic}
                 </p>
+                {preferUrduFirst && (
+                  <p
+                    className="font-urdu text-lg sm:text-xl leading-loose border-t pt-2.5"
+                    style={{
+                      borderColor: "var(--border-hairline)",
+                      color: "var(--text-primary)",
+                    }}
+                    dir="rtl"
+                  >
+                    {QABRASTAN_SALAM.urdu}
+                  </p>
+                )}
                 <p className="text-xs sm:text-sm italic" style={{ color: "var(--accent-gold)" }}>
                   {QABRASTAN_SALAM.transliteration}
                 </p>
-                <p
-                  className="font-urdu text-base sm:text-lg leading-loose border-t pt-2.5"
-                  style={{
-                    borderColor: "var(--border-hairline)",
-                    color: "var(--text-secondary)",
-                  }}
-                  dir="rtl"
-                >
-                  {QABRASTAN_SALAM.urdu}
-                </p>
+                {!preferUrduFirst && (
+                  <p
+                    className="font-urdu text-base sm:text-lg leading-loose border-t pt-2.5"
+                    style={{
+                      borderColor: "var(--border-hairline)",
+                      color: "var(--text-secondary)",
+                    }}
+                    dir="rtl"
+                  >
+                    {QABRASTAN_SALAM.urdu}
+                  </p>
+                )}
                 <p
                   className="text-xs sm:text-sm leading-relaxed border-t pt-2.5"
                   style={{
@@ -3085,7 +3424,7 @@ function BarsiSanctuaryInner() {
                   {QABRASTAN_SALAM.english}
                 </p>
                 <p className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
-                  Reference: {QABRASTAN_SALAM.source}
+                  {QABRASTAN_SALAM.source}
                 </p>
               </div>
 
@@ -3116,7 +3455,7 @@ function BarsiSanctuaryInner() {
                       ))}
                     </ul>
                     <p className="text-[11px] pt-1 font-medium" style={{ color: "var(--text-muted)" }}>
-                      Source: {card.source}
+                      {card.source}
                     </p>
                   </div>
                 ))}
@@ -3150,22 +3489,20 @@ function BarsiSanctuaryInner() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <span className="badge-pill badge-gold">
-                    <HeartHandshake className="w-3 h-3" /> Family Sanctuary Record
+                    <HeartHandshake className="w-3 h-3" /> {t(lang, "navBarsi")}
                   </span>
                   <h2
                     id="barsi-modal-title"
                     className="text-lg sm:text-xl font-bold mt-1"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    {formDraft.id
-                      ? "Edit Beloved Marhum / Marhuma"
-                      : "Add Beloved Marhum / Marhuma"}
+                    {formDraft.id ? tp(lang, "Edit") : ui.addLovedOne}
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  aria-label="Close modal"
+                  aria-label={tp(lang, "Cancel")}
                   className="p-1.5 rounded-lg opacity-75 hover:opacity-100 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
@@ -3190,7 +3527,7 @@ function BarsiSanctuaryInner() {
                   {/* English Name */}
                   <div className="space-y-1">
                     <label className="block text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Full Name (English) *
+                      Full Name *
                     </label>
                     <input
                       type="text"
@@ -3213,7 +3550,7 @@ function BarsiSanctuaryInner() {
                   {/* Urdu / Arabic Name */}
                   <div className="space-y-1">
                     <label className="block text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Urdu / Arabic Script Name (Optional)
+                      Urdu / Arabic Script Name
                     </label>
                     <input
                       type="text"
@@ -3309,7 +3646,7 @@ function BarsiSanctuaryInner() {
                             color: "var(--text-primary)",
                           }}
                         >
-                          {i + 1}. {m}
+                          {i + 1}. {formatLocalizedHijriMonth(lang, i + 1, m)}
                         </option>
                       ))}
                     </select>
@@ -3339,7 +3676,7 @@ function BarsiSanctuaryInner() {
 
                   <div className="space-y-1">
                     <label className="block text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Hijri Year (Opt.)
+                      Hijri Year
                     </label>
                     <input
                       type="number"
@@ -3361,7 +3698,7 @@ function BarsiSanctuaryInner() {
 
                   <div className="space-y-1 col-span-2 sm:col-span-1">
                     <label className="block text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Gregorian (Opt.)
+                      Gregorian
                     </label>
                     <input
                       type="date"
@@ -3427,7 +3764,7 @@ function BarsiSanctuaryInner() {
                 {/* Favorite Wird & Memory Note */}
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                    Favorite / Recommended Wird
+                    Recommended Wird
                   </label>
                   <input
                     type="text"
@@ -3470,7 +3807,7 @@ function BarsiSanctuaryInner() {
                 {/* Visibility Toggle */}
                 <div className="space-y-1.5">
                   <label className="block text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                    Sanctuary Visibility
+                    Visibility
                   </label>
                   <div className="grid sm:grid-cols-2 gap-2.5">
                     <button
@@ -3492,10 +3829,10 @@ function BarsiSanctuaryInner() {
                     >
                       <p className="text-xs font-bold flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
                         <Lock className="w-3.5 h-3.5" style={{ color: "var(--accent-primary)" }} />
-                        My Family (Private)
+                        {ui.filterFamily}
                       </p>
                       <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                        Kept private in your personal Family Sanctuary &amp; calendar.
+                        Kept private in your personal memorial calendar.
                       </p>
                     </button>
 
@@ -3519,12 +3856,12 @@ function BarsiSanctuaryInner() {
                     >
                       <p className="text-xs font-bold flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
                         <Users className="w-3.5 h-3.5" style={{ color: "var(--accent-gold)" }} />
-                        Community Endowment
+                        {ui.filterCommunity}
                       </p>
                       <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
                         {authUser
-                          ? "Shared with the Sanctuary Ummah for collective Khatm & Fatiha."
-                          : "Sign in via Control Center (/admin) to publish shared Community Endowments."}
+                          ? "Shared with the community for collective Khatm & Fatiha."
+                          : t(lang, "signIn")}
                       </p>
                     </button>
                   </div>
@@ -3540,7 +3877,7 @@ function BarsiSanctuaryInner() {
                       color: "var(--text-secondary)",
                     }}
                   >
-                    Cancel
+                    {tp(lang, "Cancel")}
                   </button>
                   <button
                     type="submit"
@@ -3548,10 +3885,10 @@ function BarsiSanctuaryInner() {
                     className="btn-primary px-5 py-2.5 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-60"
                   >
                     {savingDraft
-                      ? "Saving…"
+                      ? tp(lang, "Loading…")
                       : formDraft.id
-                      ? "Save Changes"
-                      : "Save to Sanctuary (+30 XP)"}
+                      ? ui.saveChanges
+                      : tp(lang, "Save")}
                   </button>
                 </div>
               </form>

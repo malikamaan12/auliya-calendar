@@ -29,7 +29,6 @@ import {
   Crown,
   Medal,
   Clock,
-  Layers,
   Radio,
   ShieldAlert,
   BookOpen,
@@ -40,10 +39,10 @@ import {
   pickAlternateQuestionForTier,
   pickRandomFastestFinger,
   QUIZ_BANK,
-  QUIZ_CATEGORIES,
   QuizCategory,
   QuizQuestion,
   SAFE_TIERS,
+  shuffleQuestionOptions,
   TIER_REWARDS,
   TIER_TITLES,
 } from "@/data/quiz";
@@ -68,12 +67,743 @@ import {
   StageMood,
 } from "@/components/QuizStageFx";
 import { useApp } from "@/lib/store";
+import { LangCode, t, tp } from "@/lib/i18n";
 
-type CategoryFilter = "all" | QuizCategory;
+type TopicFilter =
+  | "all"
+  | "aqidah"
+  | "fiqh"
+  | "seerah"
+  | "quran"
+  | "auliya"
+  | "history";
+
 type RunFormat = "ladder15" | "blitz20";
 
+interface QuizUiStrings {
+  sound: string;
+  atmosphere: string;
+  voice: string;
+  modeChampionship: string;
+  modeBlitz: string;
+  modeFastestFinger: string;
+  topicAll: string;
+  topicAqidah: string;
+  topicFiqh: string;
+  topicSeerah: string;
+  topicQuran: string;
+  topicAuliya: string;
+  topicHistory: string;
+  lifeline5050: string;
+  lifelineHint: string;
+  lifelinePoll: string;
+  lifelineSwitch: string;
+  lifelineDouble: string;
+  tierLabel: string;
+  safeMilestone: string;
+  lockAnswer: string;
+  sealingAnswer: string;
+  nextTier: string;
+  walkAwaySafely: string;
+  newChallenge: string;
+  shareScore: string;
+  copied: string;
+  viewSanad: string;
+  scholarlyExplanation: string;
+  reference: string;
+  correctAnswer: string;
+  championshipCompleted: string;
+  safeScoreBanked: string;
+  reviewExplanation: string;
+  timeExpired: string;
+  eliminated: string;
+  streak: string;
+  honorsTitle: string;
+  championshipsWon: string;
+  highestTier: string;
+  masteredCountLabel: string;
+  recentSessions: string;
+  Unlocked: string;
+  Locked: string;
+  consultingScholar: string;
+  secondChancePrompt: string;
+  dramaticReveal: string;
+  instantReveal: string;
+  fffPromptSubtitle: string;
+  fffReset: string;
+  fffNextTrial: string;
+  fffReturnStage: string;
+  hostReady: string;
+  hostUntimed: string;
+  hotkeysHint: string;
+}
+
+const QUIZ_UI: Record<LangCode, QuizUiStrings> = {
+  en: {
+    sound: "Sound",
+    atmosphere: "Atmosphere",
+    voice: "Voice",
+    modeChampionship: "15-Tier Championship",
+    modeBlitz: "20-Question Blitz",
+    modeFastestFinger: "Fastest Finger First",
+    topicAll: "All Topics",
+    topicAqidah: "Aqidah",
+    topicFiqh: "Hanafi Fiqh",
+    topicSeerah: "Seerah",
+    topicQuran: "Quran & Tafsir",
+    topicAuliya: "Auliya & Tasawwuf",
+    topicHistory: "Islamic History",
+    lifeline5050: "50:50",
+    lifelineHint: "Scholar Hint",
+    lifelinePoll: "Community Poll",
+    lifelineSwitch: "Switch Question",
+    lifelineDouble: "Double Chance",
+    tierLabel: "Tier",
+    safeMilestone: "Safe Milestone",
+    lockAnswer: "Lock Answer",
+    sealingAnswer: "Sealing Answer…",
+    nextTier: "Next Tier",
+    walkAwaySafely: "Walk Away Safely",
+    newChallenge: "New Challenge",
+    shareScore: "Share Score",
+    copied: "Copied",
+    viewSanad: "View Sanad Certificate",
+    scholarlyExplanation: "Scholarly Explanation",
+    reference: "Reference",
+    correctAnswer: "Correct Answer!",
+    championshipCompleted: "Championship Completed!",
+    safeScoreBanked: "Safe Score Banked",
+    reviewExplanation: "Review Explanation",
+    timeExpired: "Time Expired",
+    eliminated: "Eliminated",
+    streak: "Streak",
+    honorsTitle: "Honors & Scholarly Progress",
+    championshipsWon: "Championships",
+    highestTier: "Highest Tier",
+    masteredCountLabel: "Questions Mastered",
+    recentSessions: "Recent Challenges",
+    Unlocked: "Earned",
+    Locked: "Locked",
+    consultingScholar: "Requesting Scholarly Counsel…",
+    secondChancePrompt: "First choice eliminated — select your second choice.",
+    dramaticReveal: "Dramatic",
+    instantReveal: "Instant",
+    fffPromptSubtitle: "Arrange all four items in the correct scholarly order",
+    fffReset: "Reset Order",
+    fffNextTrial: "Another Round",
+    fffReturnStage: "Enter Championship",
+    hostReady: "Reflect carefully and lock your chosen answer.",
+    hostUntimed: "Advanced scholarly tier — take all the time you need to reflect.",
+    hotkeysHint: "Shortcuts: A–D select · Enter lock or advance · H scholar hint",
+  },
+  ur: {
+    sound: "آواز",
+    atmosphere: "ماحول",
+    voice: "میزبان",
+    modeChampionship: "۱۵ درجاتی مقابلہ",
+    modeBlitz: "۲۰ سوالی تیز مرحلہ",
+    modeFastestFinger: "تیز ترین ترتیب",
+    topicAll: "تمام موضوعات",
+    topicAqidah: "عقائد",
+    topicFiqh: "فقہِ حنفی",
+    topicSeerah: "سیرتِ طیبہ",
+    topicQuran: "قرآن و تفسیر",
+    topicAuliya: "اولیاء و تصوف",
+    topicHistory: "اسلامی تاریخ",
+    lifeline5050: "۵۰:۵۰",
+    lifelineHint: "عالم کا اشارہ",
+    lifelinePoll: "اجتماعی رائے",
+    lifelineSwitch: "سوال بدلیں",
+    lifelineDouble: "دو مواقع",
+    tierLabel: "درجہ",
+    safeMilestone: "محفوظ منزل",
+    lockAnswer: "جواب محفوظ کریں",
+    sealingAnswer: "تصدیق جاری ہے…",
+    nextTier: "اگلا درجہ",
+    walkAwaySafely: "محفوظ واپسی",
+    newChallenge: "نیا مقابلہ",
+    shareScore: "نتیجہ شیئر کریں",
+    copied: "کاپی ہو گیا",
+    viewSanad: "سندِ علم دیکھیں",
+    scholarlyExplanation: "علمی وضاحت و دلیل",
+    reference: "حوالہ",
+    correctAnswer: "درست جواب!",
+    championshipCompleted: "مقابلہ کامیابی سے مکمل!",
+    safeScoreBanked: "محفوظ اسکور جمع ہو گیا",
+    reviewExplanation: "علمی وضاحت ملاحظہ کریں",
+    timeExpired: "وقت ختم ہو گیا",
+    eliminated: "حذف شدہ",
+    streak: "تسلسل",
+    honorsTitle: "اعزازات اور علمی پیشرفت",
+    championshipsWon: "تاجِ علم",
+    highestTier: "بلند ترین درجہ",
+    masteredCountLabel: "مکمل کردہ مسائل",
+    recentSessions: "حالیہ مقابلے",
+    Unlocked: "حاصل شدہ",
+    Locked: "مقفل",
+    consultingScholar: "دارالافتاء سے رہنمائی لی جا رہی ہے…",
+    secondChancePrompt: "پہلا انتخاب درست نہیں تھا — اب اپنا دوسرا جواب منتخب کریں۔",
+    dramaticReveal: "وقار",
+    instantReveal: "فوری",
+    fffPromptSubtitle: "چاروں اجزاء کو درست تاریخی یا فقہی ترتیب میں چنیں",
+    fffReset: "ترتیب صاف کریں",
+    fffNextTrial: "اگلی مشق",
+    fffReturnStage: "مقابلے میں داخل ہوں",
+    hostReady: "غور و فکر کے ساتھ درست جواب منتخب کریں۔",
+    hostUntimed: "اعلیٰ علمی مرحلہ — وقت کی قید نہیں، اطمینان سے جواب دیں۔",
+    hotkeysHint: "کلیدیں: A–D انتخاب · Enter تصدیق · H عالم کا اشارہ",
+  },
+  ar: {
+    sound: "الصوت",
+    atmosphere: "الأجواء",
+    voice: "التعليق",
+    modeChampionship: "بطولة ١٥ مرتبة",
+    modeBlitz: "تحدي ٢٠ سؤالاً",
+    modeFastestFinger: "الأسرع ترتيباً",
+    topicAll: "جميع المواضيع",
+    topicAqidah: "العقيدة",
+    topicFiqh: "الفقه الحنفي",
+    topicSeerah: "السيرة النبوية",
+    topicQuran: "القرآن والتفسير",
+    topicAuliya: "الأولياء والتصوف",
+    topicHistory: "التاريخ الإسلامي",
+    lifeline5050: "٥٠:٥٠",
+    lifelineHint: "إشارة عالم",
+    lifelinePoll: "رأي الجمهور",
+    lifelineSwitch: "تبديل السؤال",
+    lifelineDouble: "فرصتان",
+    tierLabel: "المرتبة",
+    safeMilestone: "محطة آمنة",
+    lockAnswer: "تثبيت الإجابة",
+    sealingAnswer: "جارٍ التثبيت…",
+    nextTier: "المرتبة التالية",
+    walkAwaySafely: "انسحاب آمن",
+    newChallenge: "تحدٍ جديد",
+    shareScore: "مشاركة النتيجة",
+    copied: "تم النسخ",
+    viewSanad: "عرض شهادة السند",
+    scholarlyExplanation: "الشرح والدليل العلمي",
+    reference: "المرجع",
+    correctAnswer: "إجابة صحيحة!",
+    championshipCompleted: "اكتملت البطولة بنجاح!",
+    safeScoreBanked: "تم حفظ الرصيد الآمن",
+    reviewExplanation: "مراجعة الدليل العلمي",
+    timeExpired: "انتهى الوقت",
+    eliminated: "مستبعد",
+    streak: "تتابع",
+    honorsTitle: "الأوسمة والتقدم العلمي",
+    championshipsWon: "البطولات",
+    highestTier: "أعلى مرتبة",
+    masteredCountLabel: "المسائل المتقنة",
+    recentSessions: "الجولات الأخيرة",
+    Unlocked: "مكتسب",
+    Locked: "مقفل",
+    consultingScholar: "جارٍ طلب إشارة العالم…",
+    secondChancePrompt: "الخيار الأول غير صحيح — اختر محاولتك الثانية.",
+    dramaticReveal: "متأنٍ",
+    instantReveal: "فوري",
+    fffPromptSubtitle: "رتب العناصر الأربعة وفق التسلسل الصحيح",
+    fffReset: "إعادة الترتيب",
+    fffNextTrial: "جولة أخرى",
+    fffReturnStage: "دخول البطولة",
+    hostReady: "تأمل السؤال جيداً ثم ثبّت إجابتك.",
+    hostUntimed: "مرتبة علمية متقدمة — لا حد للوقت، أجب بتأنٍّ وتدبر.",
+    hotkeysHint: "اختصارات: A–D للاختيار · Enter للتثبيت · H لإشارة العالم",
+  },
+  ro_ur: {
+    sound: "Awaz",
+    atmosphere: "Mahol",
+    voice: "Mezban",
+    modeChampionship: "15-Darjati Championship",
+    modeBlitz: "20-Sawal Blitz",
+    modeFastestFinger: "Tez Tareen Tarteeb",
+    topicAll: "Tamam Mauzuat",
+    topicAqidah: "Aqidah",
+    topicFiqh: "Fiqh-e-Hanafi",
+    topicSeerah: "Seerat-e-Tayyiba",
+    topicQuran: "Quran & Tafsir",
+    topicAuliya: "Auliya & Tasawwuf",
+    topicHistory: "Islami Tareekh",
+    lifeline5050: "50:50",
+    lifelineHint: "Aalim Ishara",
+    lifelinePoll: "Ijma' Rai",
+    lifelineSwitch: "Sawal Badlein",
+    lifelineDouble: "Do Mauqe",
+    tierLabel: "Darja",
+    safeMilestone: "Mehfooz Padav",
+    lockAnswer: "Jawab Lock Karein",
+    sealingAnswer: "Lock Ho Raha Hai…",
+    nextTier: "Agla Darja",
+    walkAwaySafely: "Mehfooz Wapsi",
+    newChallenge: "Naya Muqabla",
+    shareScore: "Score Share Karein",
+    copied: "Copy Ho Gaya",
+    viewSanad: "Sanad Certificate Dekhein",
+    scholarlyExplanation: "Ilmi Wazahat & Dalil",
+    reference: "Hawala",
+    correctAnswer: "Durust Jawab!",
+    championshipCompleted: "Championship Mukammal!",
+    safeScoreBanked: "Mehfooz Score Jama Ho Gaya",
+    reviewExplanation: "Ilmi Wazahat Parhein",
+    timeExpired: "Waqt Khatam",
+    eliminated: "Kharij",
+    streak: "Tasalsul",
+    honorsTitle: "Tamghe & Ilmi Taraqqi",
+    championshipsWon: "Taj-e-Ilm",
+    highestTier: "Aala Darja",
+    masteredCountLabel: "Maharat Hasil Sawalat",
+    recentSessions: "Haliya Muqable",
+    Unlocked: "Hasil",
+    Locked: "Muqaffal",
+    consultingScholar: "Aalim-e-Deen se rabta ho raha hai…",
+    secondChancePrompt: "Pehla intekhab durust nahi tha — apna doosra jawab chunein.",
+    dramaticReveal: "Dramatic",
+    instantReveal: "Fauri",
+    fffPromptSubtitle: "Charon ajza ko sahi tareekhi ya fiqhi tarteeb mein chunein",
+    fffReset: "Dobara Chunein",
+    fffNextTrial: "Agla Sawal",
+    fffReturnStage: "Championship Mein Jayein",
+    hostReady: "Ghaur o fikr ke saath apna jawab muntakhab karein.",
+    hostUntimed: "Aala ilmi marhala — waqt ki koi qaid nahi, sukoon se jawab dein.",
+    hotkeysHint: "Shortcuts: A–D chunein · Enter lock/agla · H aalim ishara",
+  },
+  hi: {
+    sound: "ध्वनि",
+    atmosphere: "माहौल",
+    voice: "वाचन",
+    modeChampionship: "15-स्तरीय चैंपियनशिप",
+    modeBlitz: "20-प्रश्न ब्लिट्ज़",
+    modeFastestFinger: "सबसे तेज़ क्रम",
+    topicAll: "सभी विषय",
+    topicAqidah: "अक़ीदा",
+    topicFiqh: "हनफ़ी फ़िक़्ह",
+    topicSeerah: "सीरत-ए-नबवी",
+    topicQuran: "क़ुरआन व तफ़्सीर",
+    topicAuliya: "औलिया व तसव्वुफ़",
+    topicHistory: "इस्लामी इतिहास",
+    lifeline5050: "50:50",
+    lifelineHint: "आलिम संकेत",
+    lifelinePoll: "सामूहिक राय",
+    lifelineSwitch: "प्रश्न बदलें",
+    lifelineDouble: "दो अवसर",
+    tierLabel: "स्तर",
+    safeMilestone: "सुरक्षित पड़ाव",
+    lockAnswer: "उत्तर लॉक करें",
+    sealingAnswer: "लॉक हो रहा है…",
+    nextTier: "अगला स्तर",
+    walkAwaySafely: "सुरक्षित वापसी",
+    newChallenge: "नई चुनौती",
+    shareScore: "स्कोर साझा करें",
+    copied: "कॉपी हो गया",
+    viewSanad: "सनद प्रमाणपत्र देखें",
+    scholarlyExplanation: "इल्मी व्याख्या व दलील",
+    reference: "संदर्भ",
+    correctAnswer: "सही उत्तर!",
+    championshipCompleted: "चैंपियनशिप पूर्ण!",
+    safeScoreBanked: "सुरक्षित स्कोर संचित",
+    reviewExplanation: "व्याख्या देखें",
+    timeExpired: "समय समाप्त",
+    eliminated: "हटाया गया",
+    streak: "क्रम",
+    honorsTitle: "पदक व इल्मी प्रगति",
+    championshipsWon: "चैंपियनशिप",
+    highestTier: "सर्वोच्च स्तर",
+    masteredCountLabel: "सिद्ध प्रश्न",
+    recentSessions: "हाल के सत्र",
+    Unlocked: "प्राप्त",
+    Locked: "लॉक",
+    consultingScholar: "आलिम संकेत प्राप्त किया जा रहा है…",
+    secondChancePrompt: "पहला विकल्प ग़लत था — अपना दूसरा विकल्प चुनें।",
+    dramaticReveal: "नाटकीय",
+    instantReveal: "तुरंत",
+    fffPromptSubtitle: "चारों विकल्पों को सही क्रम में चुनें",
+    fffReset: "रीसेट करें",
+    fffNextTrial: "अगला अभ्यास",
+    fffReturnStage: "चैंपियनशिप में जाएं",
+    hostReady: "ध्यानपूर्वक विचार करें और अपना उत्तर लॉक करें।",
+    hostUntimed: "उच्च इल्मी स्तर — समय सीमा नहीं है, इत्मीनान से उत्तर दें।",
+    hotkeysHint: "शॉर्टकट: A–D चुनें · Enter लॉक/अगला · H आलिम संकेत",
+  },
+  tr: {
+    sound: "Ses",
+    atmosphere: "Atmosfer",
+    voice: "Sunucu",
+    modeChampionship: "15 Seviye Şampiyona",
+    modeBlitz: "20 Soru Hızlı Tur",
+    modeFastestFinger: "En Hızlı Sıralama",
+    topicAll: "Tüm Konular",
+    topicAqidah: "Akâid",
+    topicFiqh: "Hanefî Fıkhı",
+    topicSeerah: "Siyer-i Nebî",
+    topicQuran: "Kur'ân ve Tefsir",
+    topicAuliya: "Evliya ve Tasavvuf",
+    topicHistory: "İslâm Tarihi",
+    lifeline5050: "50:50",
+    lifelineHint: "Âlim İpucu",
+    lifelinePoll: "Cemaat Görüşü",
+    lifelineSwitch: "Soruyu Değiştir",
+    lifelineDouble: "Çift Hakkı",
+    tierLabel: "Seviye",
+    safeMilestone: "Güvenli Baraj",
+    lockAnswer: "Cevabı Kilitle",
+    sealingAnswer: "Kilitleniyor…",
+    nextTier: "Sonraki Seviye",
+    walkAwaySafely: "Güvenle Çekil",
+    newChallenge: "Yeni Yarışma",
+    shareScore: "Skoru Paylaş",
+    copied: "Kopyalandı",
+    viewSanad: "İcâzet / Senedi Gör",
+    scholarlyExplanation: "İlmî Açıklama ve Delil",
+    reference: "Kaynak",
+    correctAnswer: "Doğru Cevap!",
+    championshipCompleted: "Şampiyona Tamamlandı!",
+    safeScoreBanked: "Güvenli Puan Kaydedildi",
+    reviewExplanation: "Açıklamayı İncele",
+    timeExpired: "Süre Doldu",
+    eliminated: "Elendi",
+    streak: "Seri",
+    honorsTitle: "Madalyalar ve İlmî İlerleme",
+    championshipsWon: "Şampiyonluk",
+    highestTier: "En Yüksek Seviye",
+    masteredCountLabel: "Öğrenilen Sorular",
+    recentSessions: "Son Yarışmalar",
+    Unlocked: "Kazanıldı",
+    Locked: "Kilitli",
+    consultingScholar: "Âlim görüşüne başvuruluyor…",
+    secondChancePrompt: "İlk tercih yanlıştı — ikinci cevabınızı seçin.",
+    dramaticReveal: "Heyecanlı",
+    instantReveal: "Hızlı",
+    fffPromptSubtitle: "Dört seçeneği doğru tarihî veya fıkhî sırayla dizin",
+    fffReset: "Sıfırla",
+    fffNextTrial: "Yeni Sıralama",
+    fffReturnStage: "Şampiyonaya Dön",
+    hostReady: "Dikkatlice tefekkür edin ve cevabınızı kilitleyin.",
+    hostUntimed: "İleri ilmî seviye — süre sınırı yoktur, huzurla cevaplayın.",
+    hotkeysHint: "Kısayollar: A–D seç · Enter kilitle/ilerle · H âlim ipucu",
+  },
+  bn: {
+    sound: "শব্দ",
+    atmosphere: "আবহ",
+    voice: "কণ্ঠ",
+    modeChampionship: "১৫-স্তর চ্যাম্পিয়নশিপ",
+    modeBlitz: "২০-প্রশ্ন ব্লিটজ",
+    modeFastestFinger: "দ্রুততম ক্রম",
+    topicAll: "সকল বিষয়",
+    topicAqidah: "আকিদা",
+    topicFiqh: "হানাফি ফিকহ",
+    topicSeerah: "সীরাতুন্নবী ﷺ",
+    topicQuran: "কুরআন ও তাফসির",
+    topicAuliya: "আউলিয়া ও তাসাউফ",
+    topicHistory: "ইসলামি ইতিহাস",
+    lifeline5050: "৫০:৫০",
+    lifelineHint: "আলেম সংকেত",
+    lifelinePoll: "জনমত জরিপ",
+    lifelineSwitch: "প্রশ্ন পরিবর্তন",
+    lifelineDouble: "দুই সুযোগ",
+    tierLabel: "স্তর",
+    safeMilestone: "নিরাপদ ধাপ",
+    lockAnswer: "উত্তর লক করুন",
+    sealingAnswer: "লক হচ্ছে…",
+    nextTier: "পরবর্তী স্তর",
+    walkAwaySafely: "নিরাপদে বিরতি",
+    newChallenge: "নতুন প্রতিযোগিতা",
+    shareScore: "স্কোর শেয়ার",
+    copied: "কপি হয়েছে",
+    viewSanad: "সনদপত্র দেখুন",
+    scholarlyExplanation: "ইলমি ব্যাখ্যা ও দলিল",
+    reference: "সূত্র",
+    correctAnswer: "সঠিক উত্তর!",
+    championshipCompleted: "চ্যাম্পিয়নশিপ সম্পন্ন!",
+    safeScoreBanked: "নিরাপদ স্কোর সংরক্ষিত",
+    reviewExplanation: "ব্যাখ্যা দেখুন",
+    timeExpired: "সময় সমাপ্ত",
+    eliminated: "বাতিল",
+    streak: "ধারাবাহিক",
+    honorsTitle: "পদক ও ইলমি অগ্রগতি",
+    championshipsWon: "চ্যাম্পিয়নশিপ",
+    highestTier: "সর্বোচ্চ স্তর",
+    masteredCountLabel: "আয়ত্তকৃত প্রশ্ন",
+    recentSessions: "সাম্প্রতিক পর্ব",
+    Unlocked: "অর্জিত",
+    Locked: "লক",
+    consultingScholar: "আলেমের পরামর্শ নেওয়া হচ্ছে…",
+    secondChancePrompt: "প্রথম পছন্দটি সঠিক ছিল না — দ্বিতীয় উত্তর নির্বাচন করুন।",
+    dramaticReveal: "নাটকীয়",
+    instantReveal: "তাৎক্ষণিক",
+    fffPromptSubtitle: "চারটি বিষয় সঠিক ক্রমানুসারে সাজান",
+    fffReset: "পুনরায় সাজান",
+    fffNextTrial: "পরবর্তী অনুশীলন",
+    fffReturnStage: "মূল পর্বে ফিরুন",
+    hostReady: "মনোযোগসহ চিন্তা করে সঠিক উত্তর লক করুন।",
+    hostUntimed: "উচ্চতর ইলমি স্তর — সময়ের সীমা নেই, ধীরস্থিরভাবে উত্তর দিন।",
+    hotkeysHint: "শর্টকাট: A–D নির্বাচন · Enter লক/পরবর্তী · H আলেম সংকেত",
+  },
+  fa: {
+    sound: "صدا",
+    atmosphere: "فضاسازی",
+    voice: "گوینده",
+    modeChampionship: "مسابقه ۱۵ مرحله‌ای",
+    modeBlitz: "رقابت سریع ۲۰ سؤال",
+    modeFastestFinger: "سریع‌ترین چیدمان",
+    topicAll: "همه موضوعات",
+    topicAqidah: "عقاید",
+    topicFiqh: "فقه حنفی",
+    topicSeerah: "سیره نبوی",
+    topicQuran: "قرآن و تفسیر",
+    topicAuliya: "اولیاء و تصوف",
+    topicHistory: "تاریخ اسلام",
+    lifeline5050: "۵۰:۵۰",
+    lifelineHint: "راهنمایی عالم",
+    lifelinePoll: "نظرسنجی جمع",
+    lifelineSwitch: "تعویض سؤال",
+    lifelineDouble: "دو فرصت",
+    tierLabel: "مرحله",
+    safeMilestone: "ایستگاه امن",
+    lockAnswer: "ثبت نهایی پاسخ",
+    sealingAnswer: "در حال ثبت…",
+    nextTier: "مرحله بعد",
+    walkAwaySafely: "خروج امن با امتیاز",
+    newChallenge: "رقابت جدید",
+    shareScore: "اشتراک امتیاز",
+    copied: "کپی شد",
+    viewSanad: "مشاهده گواهی سند",
+    scholarlyExplanation: "توضیح و دلیل علمی",
+    reference: "منبع",
+    correctAnswer: "پاسخ صحیح!",
+    championshipCompleted: "مسابقه با موفقیت کامل شد!",
+    safeScoreBanked: "امتیاز امن ذخیره شد",
+    reviewExplanation: "بررسی توضیح علمی",
+    timeExpired: "پایان زمان",
+    eliminated: "حذف‌شده",
+    streak: "پیوستگی",
+    honorsTitle: "نشان‌ها و پیشرفت علمی",
+    championshipsWon: "قهرمانی‌ها",
+    highestTier: "بالاترین مرحله",
+    masteredCountLabel: "پرسش‌های آموخته‌شده",
+    recentSessions: "رقابت‌های اخیر",
+    Unlocked: "کسب‌شده",
+    Locked: "قفل",
+    consultingScholar: "در حال دریافت راهنمایی علمی…",
+    secondChancePrompt: "انتخاب اول نادرست بود — گزینه دوم خود را برگزینید.",
+    dramaticReveal: "با مکث",
+    instantReveal: "فوری",
+    fffPromptSubtitle: "هر چهار مورد را به ترتیب صحیح علمی بچینید",
+    fffReset: "بازنشانی",
+    fffNextTrial: "چیدمان دیگر",
+    fffReturnStage: "ورود به مسابقه اصلی",
+    hostReady: "با تأمل بیندیشید و پاسخ نهایی را ثبت کنید.",
+    hostUntimed: "مرحله عالی علمی — بدون محدودیت زمانی با آرامش پاسخ دهید.",
+    hotkeysHint: "کلیدها: A–D انتخاب · Enter ثبت/بعدی · H راهنمایی عالم",
+  },
+  id: {
+    sound: "Suara",
+    atmosphere: "Atmosfer",
+    voice: "Narator",
+    modeChampionship: "Kejuaraan 15 Tingkat",
+    modeBlitz: "Blitz 20 Soal",
+    modeFastestFinger: "Urutan Tercepat",
+    topicAll: "Semua Topik",
+    topicAqidah: "Aqidah",
+    topicFiqh: "Fiqih Hanafi",
+    topicSeerah: "Sirah Nabawiyah",
+    topicQuran: "Al-Qur'an & Tafsir",
+    topicAuliya: "Auliya & Tasawuf",
+    topicHistory: "Sejarah Islam",
+    lifeline5050: "50:50",
+    lifelineHint: "Petunjuk Ulama",
+    lifelinePoll: "Jajak Komunitas",
+    lifelineSwitch: "Ganti Soal",
+    lifelineDouble: "Dua Kesempatan",
+    tierLabel: "Tingkat",
+    safeMilestone: "Batas Aman",
+    lockAnswer: "Kunci Jawaban",
+    sealingAnswer: "Mengunci…",
+    nextTier: "Tingkat Berikutnya",
+    walkAwaySafely: "Amankan Skor",
+    newChallenge: "Tantangan Baru",
+    shareScore: "Bagikan Skor",
+    copied: "Tersalin",
+    viewSanad: "Lihat Sertifikat Sanad",
+    scholarlyExplanation: "Penjelasan & Dalil Ilmiah",
+    reference: "Referensi",
+    correctAnswer: "Jawaban Benar!",
+    championshipCompleted: "Kejuaraan Selesai!",
+    safeScoreBanked: "Skor Aman Tersimpan",
+    reviewExplanation: "Tinjau Penjelasan",
+    timeExpired: "Waktu Habis",
+    eliminated: "Dieliminasi",
+    streak: "Beruntun",
+    honorsTitle: "Medali & Kemajuan Ilmu",
+    championshipsWon: "Gelar Juara",
+    highestTier: "Tingkat Tertinggi",
+    masteredCountLabel: "Soal Dikuasai",
+    recentSessions: "Sesi Terakhir",
+    Unlocked: "Diraih",
+    Locked: "Terkunci",
+    consultingScholar: "Meminta petunjuk keilmuan…",
+    secondChancePrompt: "Pilihan pertama kurang tepat — pilih jawaban kedua Anda.",
+    dramaticReveal: "Dramatis",
+    instantReveal: "Instan",
+    fffPromptSubtitle: "Susun keempat pilihan sesuai urutan yang benar",
+    fffReset: "Atur Ulang",
+    fffNextTrial: "Soal Urutan Lain",
+    fffReturnStage: "Masuk Kejuaraan",
+    hostReady: "Renungkan dengan saksama lalu kunci jawaban Anda.",
+    hostUntimed: "Tingkat ilmu lanjut — tanpa batas waktu, jawab dengan tenang.",
+    hotkeysHint: "Pintasan: A–D pilih · Enter kunci/lanjut · H petunjuk ulama",
+  },
+  fr: {
+    sound: "Son",
+    atmosphere: "Atmosphère",
+    voice: "Voix",
+    modeChampionship: "Championnat 15 Paliers",
+    modeBlitz: "Blitz 20 Questions",
+    modeFastestFinger: "Rapidité d'Ordre",
+    topicAll: "Tous les Sujets",
+    topicAqidah: "Aqida",
+    topicFiqh: "Fiqh Hanafite",
+    topicSeerah: "Sîra Prophétique",
+    topicQuran: "Coran & Tafsîr",
+    topicAuliya: "Auliya & Tasawwuf",
+    topicHistory: "Histoire Islamique",
+    lifeline5050: "50:50",
+    lifelineHint: "Indice Savant",
+    lifelinePoll: "Vote du Public",
+    lifelineSwitch: "Changer la Question",
+    lifelineDouble: "Double Chance",
+    tierLabel: "Palier",
+    safeMilestone: "Palier Sécurisé",
+    lockAnswer: "Verrouiller la Réponse",
+    sealingAnswer: "Validation…",
+    nextTier: "Palier Suivant",
+    walkAwaySafely: "Conserver le Score",
+    newChallenge: "Nouveau Défi",
+    shareScore: "Partager le Score",
+    copied: "Copié",
+    viewSanad: "Voir le Certificat Sanad",
+    scholarlyExplanation: "Explication & Preuve Savante",
+    reference: "Référence",
+    correctAnswer: "Bonne Réponse !",
+    championshipCompleted: "Championnat Terminé !",
+    safeScoreBanked: "Score Sécurisé Enregistré",
+    reviewExplanation: "Consulter l'Explication",
+    timeExpired: "Temps Écoulé",
+    eliminated: "Éliminé",
+    streak: "Série",
+    honorsTitle: "Distinctions & Progression",
+    championshipsWon: "Victoires",
+    highestTier: "Meilleur Palier",
+    masteredCountLabel: "Questions Maîtrisées",
+    recentSessions: "Sessions Récentes",
+    Unlocked: "Obtenu",
+    Locked: "Verrouillé",
+    consultingScholar: "Consultation de l'indice savant…",
+    secondChancePrompt: "Premier choix incorrect — sélectionnez votre seconde réponse.",
+    dramaticReveal: "Dramatique",
+    instantReveal: "Instantané",
+    fffPromptSubtitle: "Classez les quatre éléments dans l'ordre exact",
+    fffReset: "Réinitialiser",
+    fffNextTrial: "Autre Séquence",
+    fffReturnStage: "Rejoindre le Championnat",
+    hostReady: "Méditez attentivement puis verrouillez votre réponse.",
+    hostUntimed: "Palier supérieur sans limite de temps — répondez avec sérénité.",
+    hotkeysHint: "Raccourcis : A–D choisir · Entrée valider · H indice savant",
+  },
+};
+
+function matchesScholarlyTopic(q: QuizQuestion, topic: TopicFilter): boolean {
+  if (topic === "all") return true;
+  if (topic === "fiqh") return q.category === "Hanafi Fiqh";
+  if (topic === "quran") return q.category === "Quran & Kanzul Iman";
+  if (topic === "auliya") return q.category === "Lives of the Auliya";
+  if (topic === "aqidah") {
+    return (
+      q.category === "Aqaid & Seerah" &&
+      !/badr|uhud|khandaq|hijrah|hudaybi|expedition|battle of/i.test(q.question)
+    );
+  }
+  if (topic === "seerah") {
+    return (
+      q.category === "Aqaid & Seerah" &&
+      /prophet|rasul|nabi|madinah|makkah|badr|uhud|hijr|sahab|compan|abu bakr|umar|uthman|ali|khadij|aishah|fatim|hasan|husayn|miraj|seerah|cave|hudaybi/i.test(
+        `${q.question} ${q.proofExplanation}`
+      )
+    );
+  }
+  // Islamic History
+  return (
+    (q.category === "Lives of the Auliya" || q.category === "Aqaid & Seerah") &&
+    /ah\b|ce\b|century|caliph|khilaf|baghdad|damascus|ajmer|delhi|lahore|sirhind|bareilly|era|dynasty|sultan|battle|treaty|compiled|founded/i.test(
+      `${q.question} ${q.proofExplanation}`
+    )
+  );
+}
+
+function toBaseQuizCategory(topic: TopicFilter): "all" | QuizCategory {
+  if (topic === "fiqh") return "Hanafi Fiqh";
+  if (topic === "quran") return "Quran & Kanzul Iman";
+  if (topic === "auliya") return "Lives of the Auliya";
+  if (topic === "aqidah" || topic === "seerah") return "Aqaid & Seerah";
+  return "all";
+}
+
+function buildTopicDeck(
+  topic: TopicFilter,
+  seenIds: string[] = [],
+  format: RunFormat = "ladder15"
+): QuizQuestion[] {
+  if (topic === "all" || topic === "fiqh" || topic === "quran" || topic === "auliya") {
+    return buildRandomizedDeck(toBaseQuizCategory(topic), seenIds, format);
+  }
+
+  const seenSet = new Set(seenIds);
+  const baseCat = toBaseQuizCategory(topic);
+
+  if (format === "ladder15") {
+    return Array.from({ length: 15 }, (_, idx) => {
+      const tierNum = idx + 1;
+      const strictPool = QUIZ_BANK.filter(
+        (q) => q.tier === tierNum && matchesScholarlyTopic(q, topic)
+      );
+      const catPool =
+        strictPool.length > 0
+          ? strictPool
+          : QUIZ_BANK.filter(
+              (q) =>
+                q.tier === tierNum &&
+                (baseCat === "all" || q.category === baseCat)
+            );
+      const fallbackPool =
+        catPool.length > 0 ? catPool : QUIZ_BANK.filter((q) => q.tier === tierNum);
+      const unseen = fallbackPool.filter((q) => !seenSet.has(q.id));
+      const candidates = unseen.length > 0 ? unseen : fallbackPool;
+      const picked =
+        candidates[Math.floor(Math.random() * candidates.length)] ||
+        QUIZ_BANK[idx % QUIZ_BANK.length];
+      return shuffleQuestionOptions(picked);
+    });
+  }
+
+  const matched = QUIZ_BANK.filter((q) => matchesScholarlyTopic(q, topic));
+  const pool = matched.length >= 20 ? matched : QUIZ_BANK;
+  const unseen = [...pool.filter((q) => !seenSet.has(q.id))].sort(
+    () => Math.random() - 0.5
+  );
+  const seen = [...pool.filter((q) => seenSet.has(q.id))].sort(
+    () => Math.random() - 0.5
+  );
+  const combined = [...unseen, ...seen].slice(0, 20);
+  combined.sort((a, b) => a.tier - b.tier);
+  return combined.map(shuffleQuestionOptions);
+}
+
+function stripLeadingSymbols(raw: string): string {
+  return raw.replace(/^[^A-Za-z0-9]+/, "").trim();
+}
+
 export default function QuizPage() {
-  const { addIlmPoints, ilmPoints, bestQuizTier, user } = useApp();
+  const { lang, addIlmPoints, ilmPoints, bestQuizTier, user } = useApp();
+  const ui = QUIZ_UI[lang] || QUIZ_UI.en;
 
   // Persistent Gamification Vault (seen questions, mastered questions, medals, history)
   const [vault, setVault] = useState<QuizVaultProfile>(DEFAULT_VAULT_PROFILE);
@@ -87,10 +817,10 @@ export default function QuizPage() {
   const droneRef = useRef<HotSeatDrone | null>(null);
 
   // Game Mode & Deck State
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [topicFilter, setTopicFilter] = useState<TopicFilter>("all");
   const [runFormat, setRunFormat] = useState<RunFormat>("ladder15");
   const [deck, setDeck] = useState<QuizQuestion[]>(() =>
-    buildRandomizedDeck("all", [], "ladder15")
+    buildTopicDeck("all", [], "ladder15")
   );
   const [tierIdx, setTierIdx] = useState(0);
   const [selectedOpt, setSelectedOpt] = useState<number | null>(null);
@@ -153,11 +883,11 @@ export default function QuizPage() {
     Promise.resolve().then(() => {
       setVault(loaded);
       setVaultHydrated(true);
-      setDeck(buildRandomizedDeck("all", loaded.seenQuestionIds, "ladder15"));
+      setDeck(buildTopicDeck("all", loaded.seenQuestionIds, "ladder15"));
     });
   }, []);
 
-  // Manage Studio Tension Drone
+  // Manage Studio Atmosphere Drone
   useEffect(() => {
     if (!droneRef.current) droneRef.current = new HotSeatDrone();
     const shouldPlay =
@@ -177,7 +907,7 @@ export default function QuizPage() {
       const id = Date.now() + Math.floor(Math.random() * 10000);
       setToasts((prev) => [...prev.slice(-3), { id, label, sublabel, tone }]);
       setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
+        setToasts((prev) => prev.filter((item) => item.id !== id));
       }, 2800);
     },
     []
@@ -191,6 +921,9 @@ export default function QuizPage() {
   const isLadder = runFormat === "ladder15";
   const totalSteps = deck.length;
   const question = swappedQuestion || deck[tierIdx] || QUIZ_BANK[0];
+  const questionId = question.id;
+  const questionCorrectIdx = question.correctIdx;
+  const questionCommunityPoll = question.communityPoll;
   const stepReward = isLadder
     ? TIER_REWARDS[Math.min(tierIdx, TIER_REWARDS.length - 1)]
     : (question.tier || 1) * 200;
@@ -208,20 +941,54 @@ export default function QuizPage() {
   const totalSeconds = getClockForStep(tierIdx, runFormat);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(30);
 
-  // Record current question as "seen" in Vault so future runs pick fresh questions
+  // Record current question as "seen" so future runs prioritize unseen questions
   useEffect(() => {
-    if (!vaultHydrated || !question.id) return;
-    const qid = question.id;
+    if (!vaultHydrated || !questionId) return;
     Promise.resolve().then(() => {
       setVault((prev) => {
-        if (prev.seenQuestionIds.includes(qid)) return prev;
-        const nextSeen = [...prev.seenQuestionIds, qid].slice(-280);
+        if (prev.seenQuestionIds.includes(questionId)) return prev;
+        const nextSeen = [...prev.seenQuestionIds, questionId].slice(-280);
         const updated = { ...prev, seenQuestionIds: nextSeen };
         saveQuizVault(updated);
         return updated;
       });
     });
-  }, [question.id, vaultHydrated]);
+  }, [questionId, vaultHydrated]);
+
+  const getTopicLabel = useCallback(
+    (topic: TopicFilter): string => {
+      switch (topic) {
+        case "all":
+          return ui.topicAll;
+        case "aqidah":
+          return ui.topicAqidah;
+        case "fiqh":
+          return ui.topicFiqh;
+        case "seerah":
+          return ui.topicSeerah;
+        case "quran":
+          return ui.topicQuran;
+        case "auliya":
+          return ui.topicAuliya;
+        case "history":
+          return ui.topicHistory;
+      }
+    },
+    [ui]
+  );
+
+  const getQuestionCategoryLabel = (cat: QuizCategory): string => {
+    switch (cat) {
+      case "Hanafi Fiqh":
+        return ui.topicFiqh;
+      case "Quran & Kanzul Iman":
+        return ui.topicQuran;
+      case "Lives of the Auliya":
+        return ui.topicAuliya;
+      case "Aqaid & Seerah":
+        return `${ui.topicAqidah} · ${ui.topicSeerah}`;
+    }
+  };
 
   const updateVaultEndOfRun = useCallback(
     (
@@ -240,11 +1007,11 @@ export default function QuizPage() {
           id: `run-${Date.now()}`,
           date: new Date().toLocaleDateString(),
           mode:
-            categoryFilter === "all"
+            topicFilter === "all"
               ? isLadder
-                ? "15-Tier KBC Ladder"
-                : "20-Q Rapid Blitz"
-              : `${categoryFilter}`,
+                ? ui.modeChampionship
+                : ui.modeBlitz
+              : getTopicLabel(topicFilter),
           tierReached: achievedSteps,
           totalSteps,
           xpEarned: finalXp,
@@ -265,7 +1032,7 @@ export default function QuizPage() {
         return updated;
       });
     },
-    [categoryFilter, isLadder, totalSteps]
+    [topicFilter, isLadder, totalSteps, ui, getTopicLabel]
   );
 
   const commitPoints = useCallback(
@@ -290,7 +1057,7 @@ export default function QuizPage() {
     [addIlmPoints, speedBonusTotal, peakStreak, updateVaultEndOfRun, answeredCount]
   );
 
-  // Main Hot-Seat Countdown Clock + Heartbeat FX
+  // Main Countdown Clock + Heartbeat FX
   useEffect(() => {
     if (
       fffOpen ||
@@ -359,9 +1126,9 @@ export default function QuizPage() {
     };
   }, []);
 
-  // Compute dynamic Audience Poll adjusted for 50:50 eliminations
+  // Compute dynamic Poll adjusted for 50:50 eliminations
   const effectivePoll = useMemo(() => {
-    const raw = question.communityPoll;
+    const raw = questionCommunityPoll;
     if (eliminatedOpts.length === 0) return raw;
     const activeIndices = [0, 1, 2, 3].filter((i) => !eliminatedOpts.includes(i));
     const sumActive = activeIndices.reduce((acc, idx) => acc + raw[idx], 0) || 1;
@@ -377,7 +1144,7 @@ export default function QuizPage() {
       }
     });
     return out;
-  }, [question.communityPoll, eliminatedOpts]);
+  }, [questionCommunityPoll, eliminatedOpts]);
 
   const lifelinesUsedCount = Object.values(usedLifelines).filter(Boolean).length;
 
@@ -385,7 +1152,7 @@ export default function QuizPage() {
     (idx: number) => {
       setIsLocking(false);
 
-      if (idx === question.correctIdx) {
+      if (idx === questionCorrectIdx) {
         setDoubleDipActive(false);
         setDoubleDipSecondChance(false);
 
@@ -395,7 +1162,6 @@ export default function QuizPage() {
         setPeakStreak(nextPeak);
         setAnsweredCount((c) => c + 1);
 
-        // Speed Bonus Calculation (fast answers earn bonus XP + combo multiplier!)
         let speedBonus = 0;
         if (secondsLeft !== null && totalSeconds !== null) {
           const ratio = secondsLeft / totalSeconds;
@@ -405,18 +1171,15 @@ export default function QuizPage() {
             speedBonus = Math.round(25 * Math.min(3, nextStreak));
           }
         } else {
-          // Tiers 11-15 streak bonus
           speedBonus = 150 * Math.min(5, nextStreak);
         }
         setSpeedBonusTotal((s) => s + speedBonus);
 
-        // Unlock Time Boost at 3x streak!
         if (nextStreak === 3 && !timeBoostUsed && !timeBoostAvailable) {
           setTimeBoostAvailable(true);
-          pushToast("⏳ Waqt +20s Power-Up Unlocked!", "3x Noor Streak Reward", "violet");
+          pushToast("+20s", `3x ${ui.streak}`, "violet");
         }
 
-        // Check newly earned medals & record mastered question
         const newlyEarnedMedals: string[] = [];
         if (nextStreak >= 5) newlyEarnedMedals.push("streak-5");
         if (nextStreak >= 10) newlyEarnedMedals.push("streak-10");
@@ -427,9 +1190,9 @@ export default function QuizPage() {
         }
 
         setVault((prev) => {
-          const mastered = prev.masteredQuestionIds.includes(question.id)
+          const mastered = prev.masteredQuestionIds.includes(questionId)
             ? prev.masteredQuestionIds
-            : [...prev.masteredQuestionIds, question.id];
+            : [...prev.masteredQuestionIds, questionId];
           const medals = new Set([...prev.unlockedMedals, ...newlyEarnedMedals]);
           if (mastered.length >= 50) medals.add("vault-50");
           const updated = {
@@ -448,30 +1211,22 @@ export default function QuizPage() {
           const hitSafe = SAFE_TIERS.includes(tierIdx);
           if (hitSafe) setSafeXp(earned);
 
-          // Unlock 5th Lifeline (Double Dip / Do Mauqe) at Tier 5 Safe Padav!
           if (tierIdx === 4 && !doubleDipUnlocked) {
             setDoubleDipUnlocked(true);
             pushToast(
-              "🛡️ Safe Padav #1 + Double Dip Unlocked!",
-              "1,000 XP Locked Safely • 5th Lifeline Ready",
+              `${ui.safeMilestone} · 1,000 XP`,
+              ui.lifelineDouble,
               "gold"
             );
           } else if (tierIdx === 9) {
-            pushToast(
-              "⚔️ Safe Padav #2 Conquered!",
-              "32,000 Ilm XP Guaranteed!",
-              "gold"
-            );
+            pushToast(ui.safeMilestone, "32,000 XP", "gold");
           }
 
           if (tierIdx === totalSteps - 1) {
             setOutcome("won");
             playQuizSfx("win", muted);
             fireConfetti("grand_crown");
-            speakHostLine(
-              "MashaAllah! Adbhut! Aapne pandrah ke pandrah sawal jeet kar Taj-e-Sahib-e-Ilm haasil kar liya!",
-              hostVoiceOn
-            );
+            speakHostLine(ui.championshipCompleted, hostVoiceOn);
             commitPoints(earned, "won", 15, nextPeak, [
               ...newlyEarnedMedals,
               "grand-crown",
@@ -483,7 +1238,7 @@ export default function QuizPage() {
               playQuizSfx("milestone", muted);
               fireConfetti("padav");
               speakHostLine(
-                `Mubarak ho! Safe Padav mukammal hua. ${earned.toLocaleString()} Ilm XP ab bilkul mehfooz hain!`,
+                `${ui.safeMilestone}. ${earned.toLocaleString()} XP.`,
                 hostVoiceOn
               );
             } else {
@@ -491,25 +1246,26 @@ export default function QuizPage() {
               if (nextStreak >= 2) playQuizSfx("combo", muted, nextStreak);
               fireConfetti("sparkle");
               pushToast(
-                `+${earned.toLocaleString()} XP Tier${
-                  speedBonus > 0 ? ` (+${speedBonus} Speed)` : ""
+                `+${earned.toLocaleString()} XP${
+                  speedBonus > 0 ? ` (+${speedBonus})` : ""
                 }`,
-                nextStreak >= 2 ? `🔥 Noor Streak x${nextStreak}!` : "Sahi Jawab!",
+                nextStreak >= 2
+                  ? `${nextStreak}x ${ui.streak}`
+                  : ui.correctAnswer,
                 "emerald"
               );
-              speakHostLine("MashaAllah, bilkul sahi jawab!", hostVoiceOn);
+              speakHostLine(ui.correctAnswer, hostVoiceOn);
             }
           }
         } else {
-          // 20-Q Rapid Blitz Mode
           const comboMult = Math.min(3, 1 + Math.floor(nextStreak / 3) * 0.5);
           const stepEarned = Math.round(stepReward * comboMult);
           const earned = runXp + stepEarned;
           setRunXp(earned);
           setSafeXp(earned);
           pushToast(
-            `+${stepEarned.toLocaleString()} Blitz XP`,
-            `🔥 ${nextStreak}x Combo (${comboMult}x Multiplier)`,
+            `+${stepEarned.toLocaleString()} XP`,
+            `${nextStreak}x ${ui.streak}`,
             "emerald"
           );
 
@@ -526,21 +1282,13 @@ export default function QuizPage() {
           }
         }
       } else {
-        // Check if Double Dip (Do Mauqe) gives a second chance!
         if (doubleDipActive && !doubleDipSecondChance) {
           setDoubleDipSecondChance(true);
           setEliminatedOpts((prev) => [...prev, idx]);
           setSelectedOpt(null);
           playQuizSfx("lifeline", muted);
-          pushToast(
-            "⚡ Do Mauqe Saved You!",
-            `Option ${String.fromCharCode(65 + idx)} eliminated — Pick your 2nd choice!`,
-            "gold"
-          );
-          speakHostLine(
-            "Woh jawab sahi nahi tha, magar Do Mauqe ki wajah se aapke paas ek aur mauqa hai!",
-            hostVoiceOn
-          );
+          pushToast(ui.lifelineDouble, ui.secondChancePrompt, "gold");
+          speakHostLine(ui.secondChancePrompt, hostVoiceOn);
           return;
         }
 
@@ -550,10 +1298,7 @@ export default function QuizPage() {
         setOutcome("wrong");
         setShakeKey((k) => k + 1);
         playQuizSfx("wrong", muted);
-        speakHostLine(
-          "Afsos, yeh galat jawab hai. Aaiye sahi dalil dekhte hain.",
-          hostVoiceOn
-        );
+        speakHostLine(ui.reviewExplanation, hostVoiceOn);
         commitPoints(
           safeXp,
           "wrong",
@@ -562,8 +1307,8 @@ export default function QuizPage() {
       }
     },
     [
-      question.correctIdx,
-      question.id,
+      questionCorrectIdx,
+      questionId,
       streak,
       peakStreak,
       secondsLeft,
@@ -571,6 +1316,7 @@ export default function QuizPage() {
       timeBoostUsed,
       timeBoostAvailable,
       pushToast,
+      ui,
       isLadder,
       tierIdx,
       lifelinesUsedCount,
@@ -594,17 +1340,17 @@ export default function QuizPage() {
       setIsLocking(true);
       playQuizSfx("lock", muted);
       speakHostLine(
-        `Computer ji, Option ${String.fromCharCode(65 + idx)} ko lock kiya jaye!`,
+        `${ui.lockAnswer}: ${String.fromCharCode(65 + idx)}`,
         hostVoiceOn
       );
       lockTimerRef.current = setTimeout(
         () => {
           revealAnswer(idx);
         },
-        dramaticMode ? 1450 : 480
+        dramaticMode ? 1350 : 450
       );
     },
-    [outcome, isLocking, muted, hostVoiceOn, dramaticMode, revealAnswer]
+    [outcome, isLocking, muted, ui, hostVoiceOn, dramaticMode, revealAnswer]
   );
 
   const handleOptionSelect = useCallback(
@@ -634,14 +1380,14 @@ export default function QuizPage() {
   }, [totalSteps, tierIdx, getClockForStep, runFormat, muted]);
 
   const startNewRun = useCallback(
-    (cat: CategoryFilter, fmt: RunFormat = runFormat) => {
+    (topic: TopicFilter, fmt: RunFormat = runFormat) => {
       if (lockTimerRef.current) clearTimeout(lockTimerRef.current);
       const currentSeen = loadQuizVault().seenQuestionIds;
-      const freshDeck = buildRandomizedDeck(cat, currentSeen, fmt);
+      const freshDeck = buildTopicDeck(topic, currentSeen, fmt);
 
       setFffOpen(false);
       setSanadOpen(false);
-      setCategoryFilter(cat);
+      setTopicFilter(topic);
       setRunFormat(fmt);
       setDeck(freshDeck);
       setTierIdx(0);
@@ -677,14 +1423,12 @@ export default function QuizPage() {
 
       playQuizSfx("intro", muted);
       pushToast(
-        "🎲 Fresh Randomized Seat Ready!",
-        fmt === "ladder15"
-          ? "15 Levels • Drawn from 300-Question Vault"
-          : "20-Question High-Speed Blitz",
+        ui.newChallenge,
+        fmt === "ladder15" ? ui.modeChampionship : ui.modeBlitz,
         "violet"
       );
     },
-    [runFormat, getClockForStep, muted, pushToast]
+    [runFormat, getClockForStep, muted, pushToast, ui]
   );
 
   // Fastest Finger First Handlers
@@ -713,8 +1457,8 @@ export default function QuizPage() {
         fireConfetti("padav");
         addIlmPoints(fastBonus);
         pushToast(
-          `⚡ Fastest Finger Won (+${fastBonus} XP)!`,
-          `Completed with ${fffTimeLeft}s remaining`,
+          `${ui.modeFastestFinger} (+${fastBonus} XP)`,
+          `${fffTimeLeft}s`,
           "gold"
         );
         if (fffTimeLeft >= 15) {
@@ -757,7 +1501,7 @@ export default function QuizPage() {
     setTimeout(() => setSanadOpen(true), 650);
   };
 
-  // Lifeline 1: 50:50 (Nisf)
+  // Lifeline 1: 50:50
   const triggerNisf = () => {
     if (usedLifelines.nisf || outcome !== "playing" || isLocking) return;
     const wrongIndices = [0, 1, 2, 3].filter(
@@ -769,10 +1513,10 @@ export default function QuizPage() {
     if (selectedOpt !== null && removed.includes(selectedOpt)) setSelectedOpt(null);
     setUsedLifelines((u) => ({ ...u, nisf: true }));
     playQuizSfx("lifeline", muted);
-    pushToast("✂️ 50:50 Nisf Activated", "Two incorrect options eliminated", "gold");
+    pushToast(ui.lifeline5050, undefined, "gold");
   };
 
-  // Lifeline 2: Phone a Scholar (Ishara) with Realistic Ringing Drama
+  // Lifeline 2: Scholar Hint
   const triggerIshara = useCallback(() => {
     if (usedLifelines.ishara || outcome !== "playing" || isLocking) return;
     setUsedLifelines((u) => ({ ...u, ishara: true }));
@@ -785,23 +1529,23 @@ export default function QuizPage() {
     }, 900);
   }, [usedLifelines.ishara, outcome, isLocking, muted]);
 
-  // Lifeline 3: Audience Poll (Ijma')
+  // Lifeline 3: Community Poll
   const triggerPoll = () => {
     if (usedLifelines.poll || outcome !== "playing" || isLocking) return;
     setShowPoll(true);
     setUsedLifelines((u) => ({ ...u, poll: true }));
     playQuizSfx("lifeline", muted);
-    pushToast("📊 Ijma' Poll Live!", "Community congregation votes tallied", "violet");
+    pushToast(ui.lifelinePoll, undefined, "violet");
   };
 
-  // Lifeline 4: Flip Question (Tabdeeli) — draws from the other 19 questions in the SAME tier!
+  // Lifeline 4: Switch Question
   const triggerTabdeeli = () => {
     if (usedLifelines.tabdeeli || outcome !== "playing" || isLocking) return;
     const exclude = [...deck.map((d) => d.id), ...vault.seenQuestionIds.slice(-40)];
     const replacement = pickAlternateQuestionForTier(
       question.id,
       question.tier,
-      categoryFilter,
+      toBaseQuizCategory(topicFilter),
       exclude
     );
     setSwappedQuestion(replacement);
@@ -815,14 +1559,10 @@ export default function QuizPage() {
     if (totalSeconds !== null) setSecondsLeft(totalSeconds);
     setUsedLifelines((u) => ({ ...u, tabdeeli: true }));
     playQuizSfx("lifeline", muted);
-    pushToast(
-      "🔄 Sawal Tabdeel!",
-      `Fresh Tier ${question.tier} question drawn from 20-Q pool`,
-      "violet"
-    );
+    pushToast(ui.lifelineSwitch, `${ui.tierLabel} ${question.tier}`, "violet");
   };
 
-  // Lifeline 5: Double Dip (Do Mauqe) — Unlocked at Tier 5 Safe Padav!
+  // Lifeline 5: Double Chance (Unlocked at Tier 5 Milestone)
   const triggerDoubleDip = () => {
     if (
       !doubleDipUnlocked ||
@@ -835,14 +1575,10 @@ export default function QuizPage() {
     setDoubleDipActive(true);
     setUsedLifelines((u) => ({ ...u, doubleDip: true }));
     playQuizSfx("lifeline", muted);
-    pushToast(
-      "🛡️ Do Mauqe Armed!",
-      "You have 2 attempts on this question (Cannot Walk Away)",
-      "gold"
-    );
+    pushToast(ui.lifelineDouble, undefined, "gold");
   };
 
-  // Streak Power-Up: Waqt +20s
+  // Streak Power-Up: +20s
   const triggerTimeBoost = () => {
     if (
       !timeBoostAvailable ||
@@ -857,7 +1593,7 @@ export default function QuizPage() {
     setTimeBoostUsed(true);
     setTimeBoostAvailable(false);
     playQuizSfx("lifeline", muted);
-    pushToast("⏳ +20 Seconds Added!", "Noor Streak Time Extension Activated", "emerald");
+    pushToast("+20s", undefined, "emerald");
   };
 
   // Keyboard Shortcuts (A/B/C/D, 1-4, Enter, H)
@@ -916,34 +1652,30 @@ export default function QuizPage() {
   const rankInfo = useMemo(() => getIlmRank(ilmPoints), [ilmPoints]);
 
   const hostLine = useMemo(() => {
-    if (isLocking)
-      return "Computer ji, is jawab par tala lagaya jaye... Dil tham kar baithiye!";
-    if (doubleDipSecondChance)
-      return "Pehla intekhab galat tha — Do Mauqe ki barkat se apna doosra jawab chuniye!";
-    if (outcome === "won")
-      return "MashaAllah! Aapne tamam marahil sar karke Taj-e-Sahib-e-Ilm apne naam kiya!";
+    if (isLocking) return ui.sealingAnswer;
+    if (doubleDipSecondChance) return ui.secondChancePrompt;
+    if (outcome === "won") return ui.championshipCompleted;
     if (outcome === "walked")
-      return `Hikmat bhara faisla! Aapne ${(bankedXp ?? 0).toLocaleString()} Ilm XP mehfooz kar liye.`;
+      return `${ui.safeScoreBanked}: +${(bankedXp ?? 0).toLocaleString()} XP`;
     if (outcome === "wrong") {
       return safeXp > 0
-        ? `Afsos, galat jawab — magar Safe Padav ki wajah se ${safeXp.toLocaleString()} XP aapke mehfooz hain!`
-        : "Ilm ka har sawal ek nayi seekh hai — dalil padhein aur naye sawalon ke sath phir aayein!";
+        ? `${ui.safeScoreBanked}: ${safeXp.toLocaleString()} XP · ${ui.reviewExplanation}`
+        : ui.reviewExplanation;
     }
     if (outcome === "correct") {
       if (isLadder && SAFE_TIERS.includes(tierIdx)) {
-        return `Mubarak! Safe Padav #${SAFE_TIERS.indexOf(tierIdx) + 1} fatah hua — ${runXp.toLocaleString()} XP ab bilkul mehfooz hain!`;
+        return `${ui.safeMilestone} · ${runXp.toLocaleString()} XP`;
       }
-      return `SubhanAllah, bilkul durust jawab! ${
-        streak >= 2 ? `Noor Streak ${streak}x par hai!` : "Agle marhale ke liye taiyar!"
-      }`;
-    }
-    if (isLadder && SAFE_TIERS.includes(tierIdx)) {
-      return `Sawal #${tierIdx + 1} (${TIER_TITLES[tierIdx]}) — Yeh Safe Padav hai (${stepReward.toLocaleString()} XP)!`;
+      return `${ui.correctAnswer} ${
+        streak >= 2 ? `(${streak}x ${ui.streak})` : ""
+      }`.trim();
     }
     if (isLadder && tierIdx >= 10) {
-      return `Sawal #${tierIdx + 1} (${TIER_TITLES[tierIdx]}) — Waqt ki koi qaid nahi, sukoon aur tadabbur se jawab dein.`;
+      return ui.hostUntimed;
     }
-    return `Sawal #${tierIdx + 1} — ${stepReward.toLocaleString()} Ilm XP ke liye aapki screen par!`;
+    return `${ui.tierLabel} ${tierIdx + 1} · ${stepReward.toLocaleString()} XP — ${
+      ui.hostReady
+    }`;
   }, [
     isLocking,
     doubleDipSecondChance,
@@ -955,49 +1687,57 @@ export default function QuizPage() {
     runXp,
     streak,
     stepReward,
+    ui,
   ]);
 
   const copyCertificate = () => {
     const modeName =
-      categoryFilter === "all"
+      topicFilter === "all"
         ? isLadder
-          ? "15-Tier KBC Ladder"
-          : "20-Q Blitz"
-        : categoryFilter;
-    const text = `👑 Sahib-e-Ilm Hot Seat (${modeName}): Reached ${answeredCount}/${totalSteps} • Peak Streak 🔥 ${peakStreak}x • Rank: ${rankInfo.current.title} • Banked +${(
+          ? ui.modeChampionship
+          : ui.modeBlitz
+        : getTopicLabel(topicFilter);
+    const text = `${t(lang, "navQuiz")} (${modeName}): ${answeredCount}/${totalSteps} · ${
+      ui.streak
+    } ${peakStreak}x · ${rankInfo.current.title} · +${(
       bankedXp ?? runXp
-    ).toLocaleString()} Ilm XP!`;
+    ).toLocaleString()} XP`;
     navigator.clipboard?.writeText(text).then(() => {
       setCopiedScore(true);
       setTimeout(() => setCopiedScore(false), 2000);
     });
   };
 
-  // Count questions per tier dynamically so user can verify 20+ per level
   const totalBankSize = QUIZ_BANK.length;
-  const perTierCount = useMemo(
-    () => QUIZ_BANK.filter((q) => q.tier === question.tier).length,
-    [question.tier]
-  );
+
+  const topicOptions: { id: TopicFilter; label: string }[] = [
+    { id: "all", label: ui.topicAll },
+    { id: "aqidah", label: ui.topicAqidah },
+    { id: "fiqh", label: ui.topicFiqh },
+    { id: "seerah", label: ui.topicSeerah },
+    { id: "quran", label: ui.topicQuran },
+    { id: "auliya", label: ui.topicAuliya },
+    { id: "history", label: ui.topicHistory },
+  ];
 
   return (
     <div className="space-y-5 relative">
-      {/* Canvas Confetti / Fireworks Particle Engine */}
+      {/* Canvas Confetti / Particle Engine */}
       <QuizConfettiCanvas burstKind={burstKind} burstId={burstId} />
       <FloatingXpBursts items={toasts} />
 
-      {/* Royal Sanad-e-Ilm Certificate Modal */}
+      {/* Sanad Certificate Modal */}
       <SanadCertificateModal
         open={sanadOpen}
         onClose={() => setSanadOpen(false)}
-        playerName={user?.name || "Hot-Seat Contender"}
+        playerName={user?.name || tp(lang, "Guest")}
         rank={rankInfo.current}
         modeLabel={
-          categoryFilter === "all"
+          topicFilter === "all"
             ? isLadder
-              ? "15-Tier KBC Ladder"
-              : "20-Q Rapid Blitz"
-            : categoryFilter
+              ? ui.modeChampionship
+              : ui.modeBlitz
+            : getTopicLabel(topicFilter)
         }
         outcome={
           outcome === "won" ? "won" : outcome === "walked" ? "walked" : "wrong"
@@ -1011,177 +1751,160 @@ export default function QuizPage() {
         unlockedMedals={vault.unlockedMedals}
         onCopyShare={copyCertificate}
         copied={copiedScore}
-        onPlayAgain={() => startNewRun(categoryFilter, runFormat)}
+        onPlayAgain={() => startNewRun(topicFilter, runFormat)}
       />
 
-      {/* Top Broadcast Studio Banner + Gamified Rank Progress */}
-      <section
-        className="bento-card p-5 sm:p-6 relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(71, 30, 138, 0.42) 0%, rgba(18, 25, 49, 0.96) 55%, rgba(245, 158, 11, 0.12) 100%)",
-        }}
-      >
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+      {/* Top Editorial Stage Header + Compact Audio/FX Pill Cluster */}
+      <header className="bento-card p-5 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-amber-400/15 border border-amber-400/40 text-amber-300">
-                <Crown className="w-3.5 h-3.5" />
-                Sahib-e-Ilm Championship Studio
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#A44AFF]/15 border border-[#A44AFF]/35 text-[#DF98FA]">
-                <Layers className="w-3 h-3" />
-                {totalBankSize} Questions • {perTierCount} Qs/Level Randomized
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Kaun Banega <span style={{ color: "var(--accent-gold)" }}>Sahib-e-Ilm</span>
+            <h1
+              className="text-2xl sm:text-3xl font-bold tracking-tight"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {t(lang, "navQuiz")}
             </h1>
-            <p className="text-xs sm:text-sm" style={{ color: "var(--text-muted)" }}>
-              15-Tier KBC Hot Seat • 20 Unique Questions per Level • Shuffled Options, 5 Lifelines, Combos &amp; Broadcast FX
+            <p
+              className="text-xs sm:text-sm"
+              style={{ color: "var(--text-muted)" }}
+            >
+              {t(lang, "quizSubtitle")}
             </p>
           </div>
 
-          {/* Scholarly Rank Card + Broadcast Audio/FX Controls */}
+          {/* Right Column: Compact Audio/FX Pill Cluster + Rank Strip */}
           <div className="flex flex-col sm:items-end gap-2.5">
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={openFastestFinger}
-                className="px-3.5 py-2 rounded-xl border font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer hover:brightness-110 transition-all"
+              {/* Compact Sleek Audio/FX Pill Cluster: Sound | Atmosphere | Voice */}
+              <div
+                className="inline-flex items-center rounded-full p-1 border"
                 style={{
-                  borderColor: "#F59E0B",
-                  backgroundColor: "rgba(245, 158, 11, 0.16)",
-                  color: "#FBBF24",
+                  backgroundColor: "var(--bg-muted)",
+                  borderColor: "var(--border-hairline)",
                 }}
               >
-                <Zap className="w-3.5 h-3.5" />
-                <span>Fastest Finger (+500 XP)</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setMuted((m) => !m)}
+                  className="px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: !muted ? "var(--accent-soft)" : "transparent",
+                    color: !muted ? "var(--accent-primary)" : "var(--text-muted)",
+                  }}
+                >
+                  {muted ? (
+                    <VolumeX className="w-3.5 h-3.5" />
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>{ui.sound}</span>
+                </button>
 
+                <button
+                  type="button"
+                  onClick={() => setDroneOn((d) => !d)}
+                  className="px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: droneOn ? "var(--gold-soft)" : "transparent",
+                    color: droneOn ? "var(--accent-gold)" : "var(--text-muted)",
+                  }}
+                >
+                  <Radio className="w-3.5 h-3.5" />
+                  <span>{ui.atmosphere}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setHostVoiceOn((v) => !v)}
+                  className="px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: hostVoiceOn
+                      ? "var(--accent-soft)"
+                      : "transparent",
+                    color: hostVoiceOn
+                      ? "var(--accent-primary)"
+                      : "var(--text-muted)",
+                  }}
+                >
+                  {hostVoiceOn ? (
+                    <Mic className="w-3.5 h-3.5" />
+                  ) : (
+                    <MicOff className="w-3.5 h-3.5" />
+                  )}
+                  <span>{ui.voice}</span>
+                </button>
+              </div>
+
+              {/* Discreet Honors & Progress Toggle */}
               <button
                 type="button"
                 onClick={() => setVaultDrawerOpen((v) => !v)}
-                className="px-3 py-2 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer hover:brightness-110"
+                className="px-3 py-1.5 rounded-full border text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
                 style={{
                   borderColor: vaultDrawerOpen
                     ? "var(--accent-primary)"
                     : "var(--border-hairline)",
-                  backgroundColor: "var(--bg-muted)",
-                }}
-              >
-                <Medal className="w-3.5 h-3.5 text-amber-400" />
-                <span>
-                  Medals ({vault.unlockedMedals.length}/{QUIZ_MEDALS.length}) &amp; Vault
-                </span>
-              </button>
-
-              {/* Host Voice Toggle */}
-              <button
-                type="button"
-                onClick={() => setHostVoiceOn((v) => !v)}
-                title="Toggle Spoken Host Commentary"
-                className="p-2 rounded-xl border cursor-pointer transition-all"
-                style={{
-                  borderColor: hostVoiceOn ? "#4ADE80" : "var(--border-hairline)",
-                  backgroundColor: hostVoiceOn
-                    ? "rgba(74, 222, 128, 0.14)"
+                  backgroundColor: vaultDrawerOpen
+                    ? "var(--accent-soft)"
                     : "var(--bg-muted)",
+                  color: "var(--text-primary)",
                 }}
               >
-                {hostVoiceOn ? (
-                  <Mic className="w-4 h-4 text-emerald-400" />
-                ) : (
-                  <MicOff className="w-4 h-4 opacity-60" />
-                )}
-              </button>
-
-              {/* Studio Tension Drone Toggle */}
-              <button
-                type="button"
-                onClick={() => setDroneOn((d) => !d)}
-                title="Toggle Hot-Seat Studio Tension Ambience"
-                className="p-2 rounded-xl border cursor-pointer transition-all"
-                style={{
-                  borderColor: droneOn ? "#F59E0B" : "var(--border-hairline)",
-                  backgroundColor: droneOn
-                    ? "rgba(245, 158, 11, 0.15)"
-                    : "var(--bg-muted)",
-                }}
-              >
-                <Radio
-                  className={`w-4 h-4 ${
-                    droneOn ? "text-amber-400 animate-pulse" : "opacity-60"
-                  }`}
+                <Medal
+                  className="w-3.5 h-3.5"
+                  style={{ color: "var(--accent-gold)" }}
                 />
-              </button>
-
-              {/* Master SFX Mute */}
-              <button
-                type="button"
-                onClick={() => setMuted((m) => !m)}
-                aria-label={muted ? "Unmute quiz audio" : "Mute quiz audio"}
-                className="p-2 rounded-xl border cursor-pointer"
-                style={{
-                  borderColor: "var(--border-hairline)",
-                  backgroundColor: "var(--bg-muted)",
-                }}
-              >
-                {muted ? (
-                  <VolumeX className="w-4 h-4 text-red-400" />
-                ) : (
-                  <Volume2
-                    className="w-4 h-4"
-                    style={{ color: "var(--accent-secondary)" }}
-                  />
-                )}
+                <span className="tabular-nums">
+                  {vault.unlockedMedals.length}/{QUIZ_MEDALS.length}
+                </span>
               </button>
             </div>
 
-            {/* Rank & XP Progress Strip */}
+            {/* Compact Scholarly Rank Strip */}
             <div
-              className="w-full sm:w-80 p-2.5 rounded-2xl border flex flex-col gap-1.5"
+              className="w-full sm:w-80 px-3.5 py-2 rounded-2xl border flex flex-col gap-1"
               style={{
                 borderColor: "var(--border-hairline)",
-                backgroundColor: "rgba(4, 12, 35, 0.55)",
+                backgroundColor: "var(--bg-muted)",
               }}
             >
               <div className="flex items-center justify-between text-[11px]">
-                <span className="font-extrabold flex items-center gap-1.5">
-                  <span style={{ color: rankInfo.current.color }}>
-                    ● {rankInfo.current.title}
-                  </span>
-                  <span className="font-arabic text-xs opacity-80">
+                <span
+                  className="font-bold flex items-center gap-1.5"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  <span>{rankInfo.current.title}</span>
+                  <span
+                    className="font-arabic text-xs"
+                    style={{ color: "var(--text-muted)" }}
+                  >
                     ({rankInfo.current.arabicTitle})
                   </span>
                 </span>
-                <span className="font-bold tabular-nums text-amber-300">
+                <span
+                  className="font-bold tabular-nums"
+                  style={{ color: "var(--accent-gold)" }}
+                >
                   {ilmPoints.toLocaleString()} XP
                 </span>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-1.5 w-full rounded-full overflow-hidden"
+                style={{ backgroundColor: "var(--bg-surface)" }}
+              >
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${rankInfo.progressPct}%` }}
-                  className="h-full rounded-full bg-gradient-to-r from-[#DF98FA] via-[#9055FF] to-amber-400"
+                  className="h-full rounded-full"
+                  style={{ backgroundImage: "var(--gradient-brand)" }}
                 />
-              </div>
-              <div className="flex items-center justify-between text-[10px] opacity-75">
-                <span>
-                  Vault: {vault.masteredQuestionIds.length}/{totalBankSize} Mastered
-                </span>
-                <span>
-                  {rankInfo.next
-                    ? `Next: ${rankInfo.next.title} (${rankInfo.next.minXp.toLocaleString()} XP)`
-                    : "Max Rank Achieved!"}
-                </span>
               </div>
             </div>
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* Expandable Medals, Per-Level 20-Q Pool Stats & Hall of Fame Drawer */}
+      {/* Expandable Honors & Scholarly Progress Drawer */}
       <AnimatePresence>
         {vaultDrawerOpen && (
           <motion.section
@@ -1191,29 +1914,63 @@ export default function QuizPage() {
             className="bento-card p-5 space-y-5 overflow-hidden"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h2 className="text-base font-extrabold flex items-center gap-2">
-                  <Medal className="w-4 h-4 text-amber-400" />
-                  <span>Scholarly Medals, 300-Question Vault &amp; Recent Runs</span>
-                </h2>
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  Unseen questions are automatically prioritized every run so you never see repeats until exhausting a level&apos;s 20-question pool!
-                </p>
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="px-3 py-1 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-300 font-bold">
-                  Crowns Won: {vault.crownsWon}
+              <h2
+                className="text-base font-bold flex items-center gap-2"
+                style={{ color: "var(--text-primary)" }}
+              >
+                <Medal
+                  className="w-4 h-4"
+                  style={{ color: "var(--accent-gold)" }}
+                />
+                <span>{ui.honorsTitle}</span>
+              </h2>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span
+                  className="px-3 py-1 rounded-xl border font-semibold tabular-nums inline-flex items-center gap-1.5"
+                  style={{
+                    backgroundColor: "var(--bg-muted)",
+                    borderColor: "var(--border-hairline)",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  <Crown
+                    className="w-3.5 h-3.5"
+                    style={{ color: "var(--accent-gold)" }}
+                  />
+                  <span>
+                    {ui.championshipsWon}: {vault.crownsWon}
+                  </span>
                 </span>
-                <span className="px-3 py-1 rounded-xl bg-orange-400/10 border border-orange-400/30 text-orange-300 font-bold">
-                  Best Streak: 🔥 {vault.bestStreak}x
+                <span
+                  className="px-3 py-1 rounded-xl border font-semibold tabular-nums inline-flex items-center gap-1.5"
+                  style={{
+                    backgroundColor: "var(--bg-muted)",
+                    borderColor: "var(--border-hairline)",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  <Flame
+                    className="w-3.5 h-3.5"
+                    style={{ color: "var(--accent-gold)" }}
+                  />
+                  <span>
+                    {ui.streak}: {vault.bestStreak}x
+                  </span>
                 </span>
-                <span className="px-3 py-1 rounded-xl bg-emerald-400/10 border border-emerald-400/30 text-emerald-300 font-bold">
-                  Best Tier: {bestQuizTier}/15
+                <span
+                  className="px-3 py-1 rounded-xl border font-semibold tabular-nums"
+                  style={{
+                    backgroundColor: "var(--bg-muted)",
+                    borderColor: "var(--border-hairline)",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {ui.highestTier}: {bestQuizTier}/15
                 </span>
               </div>
             </div>
 
-            {/* 8 Unlockable Medals Grid */}
+            {/* 8 Unlockable Medals Grid (Zero Raw Emojis) */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {QUIZ_MEDALS.map((m) => {
                 const unlocked = vault.unlockedMedals.includes(m.id);
@@ -1221,23 +1978,46 @@ export default function QuizPage() {
                   <div
                     key={m.id}
                     className={`p-3 rounded-2xl border transition-all ${
-                      unlocked ? "opacity-100" : "opacity-45 grayscale"
+                      unlocked ? "opacity-100" : "opacity-50"
                     }`}
                     style={{
-                      borderColor: unlocked ? "#F59E0B" : "var(--border-hairline)",
+                      borderColor: unlocked
+                        ? "var(--accent-gold)"
+                        : "var(--border-hairline)",
                       backgroundColor: unlocked
-                        ? "rgba(245, 158, 11, 0.1)"
+                        ? "var(--gold-soft)"
                         : "var(--bg-muted)",
                     }}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xl">{m.badgeEmoji}</span>
-                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-black/25">
-                        {unlocked ? "Unlocked" : "Locked"}
+                      <Award
+                        className="w-4 h-4"
+                        style={{
+                          color: unlocked
+                            ? "var(--accent-gold)"
+                            : "var(--text-muted)",
+                        }}
+                      />
+                      <span
+                        className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
+                        style={{
+                          backgroundColor: "var(--bg-surface)",
+                          color: "var(--text-muted)",
+                        }}
+                      >
+                        {unlocked ? ui.Unlocked : ui.Locked}
                       </span>
                     </div>
-                    <div className="text-xs font-extrabold mt-1.5">{m.title}</div>
-                    <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                    <div
+                      className="text-xs font-bold mt-1.5"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {m.title}
+                    </div>
+                    <div
+                      className="text-[10px]"
+                      style={{ color: "var(--text-muted)" }}
+                    >
                       {m.subtitle}
                     </div>
                   </div>
@@ -1245,33 +2025,43 @@ export default function QuizPage() {
               })}
             </div>
 
-            {/* 15-Level Pool Breakdown (Proving 20 Questions per Level + Mastery Count) */}
+            {/* 15-Tier Mastery Progress */}
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--accent-secondary)" }}>
-                15 Levels Question Pool Mastery (20 Questions Per Level = {totalBankSize} Total)
+              <div
+                className="text-xs font-bold uppercase tracking-wider mb-2"
+                style={{ color: "var(--text-muted)" }}
+              >
+                {ui.masteredCountLabel} ({vault.masteredQuestionIds.length}/
+                {totalBankSize})
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-15 gap-1.5">
                 {Array.from({ length: 15 }, (_, i) => {
-                  const t = i + 1;
-                  const pool = QUIZ_BANK.filter((q) => q.tier === t);
+                  const tierNum = i + 1;
+                  const pool = QUIZ_BANK.filter((q) => q.tier === tierNum);
                   const mast = pool.filter((q) =>
                     vault.masteredQuestionIds.includes(q.id)
                   ).length;
                   return (
                     <div
-                      key={t}
+                      key={tierNum}
                       className="p-2 rounded-xl border text-center"
                       style={{
                         borderColor: SAFE_TIERS.includes(i)
-                          ? "rgba(245,158,11,0.45)"
+                          ? "var(--accent-gold)"
                           : "var(--border-hairline)",
                         backgroundColor: "var(--bg-muted)",
                       }}
                     >
-                      <div className="text-[10px] font-bold text-amber-300">
-                        L{t} {SAFE_TIERS.includes(i) ? "★" : ""}
+                      <div
+                        className="text-[10px] font-bold tabular-nums"
+                        style={{ color: "var(--accent-gold)" }}
+                      >
+                        {tierNum}
                       </div>
-                      <div className="text-xs font-extrabold tabular-nums mt-0.5">
+                      <div
+                        className="text-xs font-bold tabular-nums mt-0.5"
+                        style={{ color: "var(--text-primary)" }}
+                      >
                         {mast}/{pool.length}
                       </div>
                     </div>
@@ -1283,26 +2073,40 @@ export default function QuizPage() {
             {/* Recent Runs History */}
             {vault.recentRuns.length > 0 && (
               <div className="space-y-1.5">
-                <div className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                  Recent Hot-Seat Sessions
+                <div
+                  className="text-xs font-bold uppercase tracking-wider"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {ui.recentSessions}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                   {vault.recentRuns.slice(0, 4).map((r) => (
                     <div
                       key={r.id}
-                      className="p-2.5 rounded-xl border text-xs flex items-center justify-between"
+                      className="p-3 rounded-xl border text-xs flex items-center justify-between gap-2"
                       style={{
                         borderColor: "var(--border-hairline)",
                         backgroundColor: "var(--bg-muted)",
                       }}
                     >
-                      <div>
-                        <div className="font-bold">{r.mode}</div>
-                        <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                          {r.date} • Tier {r.tierReached}/{r.totalSteps} • 🔥 {r.maxStreak}x
+                      <div className="min-w-0">
+                        <div
+                          className="font-bold truncate"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {r.mode}
+                        </div>
+                        <div
+                          className="text-[10px] tabular-nums"
+                          style={{ color: "var(--text-muted)" }}
+                        >
+                          {r.date} · {r.tierReached}/{r.totalSteps} · {r.maxStreak}x
                         </div>
                       </div>
-                      <span className="font-extrabold text-amber-300 tabular-nums">
+                      <span
+                        className="font-bold tabular-nums shrink-0"
+                        style={{ color: "var(--accent-gold)" }}
+                      >
                         +{r.xpEarned.toLocaleString()}
                       </span>
                     </div>
@@ -1314,135 +2118,159 @@ export default function QuizPage() {
         )}
       </AnimatePresence>
 
-      {/* Mode, Category & Format Switcher Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => startNewRun("all", runFormat)}
-            className="px-3 py-1.5 rounded-xl border font-bold cursor-pointer transition-all"
-            style={{
-              borderColor:
-                categoryFilter === "all" && !fffOpen
-                  ? "#F59E0B"
-                  : "var(--border-hairline)",
-              backgroundColor:
-                categoryFilter === "all" && !fffOpen
-                  ? "rgba(245, 158, 11, 0.18)"
-                  : "var(--bg-muted)",
-              color:
-                categoryFilter === "all" && !fffOpen ? "#FBBF24" : "var(--text-muted)",
-            }}
-          >
-            All Categories (300 Qs)
-          </button>
-          {QUIZ_CATEGORIES.map((cat) => {
-            const active = categoryFilter === cat && !fffOpen;
-            return (
+      {/* Game Mode Pill Bar & Topic Filter Strip */}
+      <div className="space-y-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="overflow-x-auto pb-0.5">
+            <div className="pill-tab-bar min-w-max">
               <button
-                key={cat}
                 type="button"
-                onClick={() => startNewRun(cat, runFormat)}
-                className="px-3 py-1.5 rounded-xl border font-semibold cursor-pointer transition-all"
-                style={{
-                  borderColor: active
-                    ? "var(--accent-secondary)"
-                    : "var(--border-hairline)",
-                  backgroundColor: active
-                    ? "rgba(164, 74, 255, 0.18)"
-                    : "var(--bg-muted)",
-                  color: active ? "var(--accent-secondary)" : "var(--text-muted)",
-                }}
+                data-active={!fffOpen && runFormat === "ladder15"}
+                onClick={() => startNewRun(topicFilter, "ladder15")}
+                className="pill-tab-btn inline-flex items-center gap-1.5 whitespace-nowrap"
               >
-                {cat}
+                <Crown className="w-3.5 h-3.5" />
+                <span>{ui.modeChampionship}</span>
               </button>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          {/* Format Toggle: 15-Tier Ladder vs 20-Q Rapid Blitz */}
-          <div
-            className="inline-flex p-0.5 rounded-xl border"
-            style={{
-              borderColor: "var(--border-hairline)",
-              backgroundColor: "var(--bg-muted)",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => startNewRun(categoryFilter, "ladder15")}
-              className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-all ${
-                runFormat === "ladder15"
-                  ? "bg-amber-500 text-slate-950"
-                  : "text-[#A19CC5]"
-              }`}
-            >
-              15-Tier KBC
-            </button>
-            <button
-              type="button"
-              onClick={() => startNewRun(categoryFilter, "blitz20")}
-              className={`px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-all ${
-                runFormat === "blitz20"
-                  ? "bg-purple-500 text-white"
-                  : "text-[#A19CC5]"
-              }`}
-            >
-              20-Q Blitz
-            </button>
+              <button
+                type="button"
+                data-active={!fffOpen && runFormat === "blitz20"}
+                onClick={() => startNewRun(topicFilter, "blitz20")}
+                className="pill-tab-btn inline-flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{ui.modeBlitz}</span>
+              </button>
+              <button
+                type="button"
+                data-active={fffOpen}
+                onClick={openFastestFinger}
+                className="pill-tab-btn inline-flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>{ui.modeFastestFinger}</span>
+              </button>
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setDramaticMode((d) => !d)}
-            className="px-2.5 py-1.5 rounded-xl border font-semibold cursor-pointer"
-            style={{
-              borderColor: "var(--border-hairline)",
-              backgroundColor: "var(--bg-muted)",
-              color: dramaticMode ? "#FBBF24" : "var(--text-muted)",
-            }}
-            title="Toggle Dramatic 1.5s KBC Suspense Lock vs Fast Lock"
-          >
-            {dramaticMode ? "🎬 Dramatic Lock" : "⚡ Fast Lock"}
-          </button>
+          {!fffOpen && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setDramaticMode((d) => !d)}
+                className="px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-colors"
+                style={{
+                  borderColor: "var(--border-hairline)",
+                  backgroundColor: "var(--bg-surface)",
+                  color: dramaticMode
+                    ? "var(--accent-gold)"
+                    : "var(--text-muted)",
+                }}
+              >
+                {dramaticMode ? ui.dramaticReveal : ui.instantReveal}
+              </button>
 
-          <button
-            type="button"
-            onClick={() => startNewRun(categoryFilter, runFormat)}
-            className="px-3 py-1.5 rounded-xl border font-bold inline-flex items-center gap-1 cursor-pointer hover:brightness-110"
-            style={{
-              borderColor: "var(--border-hairline)",
-              backgroundColor: "var(--bg-muted)",
-            }}
-          >
-            <Shuffle className="w-3.5 h-3.5 text-[#DF98FA]" />
-            <span>Deal Random Deck</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => startNewRun(topicFilter, runFormat)}
+                className="px-3.5 py-1.5 rounded-full border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                style={{
+                  borderColor: "var(--border-hairline)",
+                  backgroundColor: "var(--bg-surface)",
+                  color: "var(--text-primary)",
+                }}
+              >
+                <RotateCcw
+                  className="w-3.5 h-3.5"
+                  style={{ color: "var(--accent-primary)" }}
+                />
+                <span>{ui.newChallenge}</span>
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* 7 Scholarly Topic Filters */}
+        {!fffOpen && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            {topicOptions.map((topic) => {
+              const active = topicFilter === topic.id;
+              return (
+                <button
+                  key={topic.id}
+                  type="button"
+                  onClick={() => startNewRun(topic.id, runFormat)}
+                  className="px-3 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors"
+                  style={{
+                    borderColor: active
+                      ? "var(--accent-primary)"
+                      : "var(--border-hairline)",
+                    backgroundColor: active
+                      ? "var(--accent-soft)"
+                      : "var(--bg-surface)",
+                    color: active
+                      ? "var(--accent-primary)"
+                      : "var(--text-muted)",
+                  }}
+                >
+                  {topic.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* FASTEST FINGER FIRST QUALIFIER STAGE */}
+      {/* FASTEST FINGER FIRST STAGE */}
       {fffOpen ? (
         <motion.section
           key={`fff-${shakeKey}`}
-          animate={shakeKey > 0 && fffStatus === "lost" ? { x: [0, -10, 10, -6, 6, 0] } : {}}
+          animate={
+            shakeKey > 0 && fffStatus === "lost"
+              ? { x: [0, -10, 10, -6, 6, 0] }
+              : {}
+          }
           className="bento-card p-6 space-y-5 max-w-3xl mx-auto relative overflow-hidden"
         >
-          <KbcStudioBeams mood={fffStatus === "won" ? "milestone" : fffTimeLeft <= 7 ? "urgent" : "normal"} />
+          <KbcStudioBeams
+            mood={
+              fffStatus === "won"
+                ? "milestone"
+                : fffTimeLeft <= 7
+                ? "urgent"
+                : "normal"
+            }
+          />
           <div className="relative z-10 space-y-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <span className="text-xs font-extrabold uppercase tracking-wider text-amber-400">
-                  ⚡ Fastest Finger First • 16 Randomized Sequence Trials
+                <span
+                  className="text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5"
+                  style={{ color: "var(--accent-gold)" }}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>{ui.modeFastestFinger}</span>
                 </span>
-                <h2 className="text-lg sm:text-xl font-bold mt-1">{fffChallenge.prompt}</h2>
+                <p
+                  className="text-xs mt-0.5"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {ui.fffPromptSubtitle}
+                </p>
+                <h2
+                  className="text-lg sm:text-xl font-bold mt-1.5"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {fffChallenge.prompt}
+                </h2>
               </div>
               <div
                 className="w-14 h-14 rounded-full border-2 flex items-center justify-center text-sm font-extrabold tabular-nums shrink-0"
                 style={{
-                  borderColor: fffTimeLeft <= 7 ? "#EF4444" : "#F59E0B",
-                  color: fffTimeLeft <= 7 ? "#F87171" : "#FBBF24",
+                  borderColor:
+                    fffTimeLeft <= 7 ? "var(--accent-danger)" : "var(--accent-gold)",
+                  color:
+                    fffTimeLeft <= 7 ? "var(--accent-danger)" : "var(--accent-gold)",
                 }}
               >
                 {fffTimeLeft}s
@@ -1461,21 +2289,28 @@ export default function QuizPage() {
                     type="button"
                     disabled={fffStatus !== "playing" || picked}
                     onClick={() => handleFffPick(idx)}
-                    className="p-4 rounded-2xl border-2 text-start text-sm font-semibold flex items-center justify-between gap-3 cursor-pointer disabled:opacity-80 transition-all"
+                    className="p-4 rounded-2xl border-2 text-start text-sm font-semibold flex items-center justify-between gap-3 cursor-pointer disabled:opacity-85 transition-all"
                     style={{
-                      borderColor: picked ? "#F59E0B" : "var(--border-hairline)",
+                      borderColor: picked
+                        ? "var(--accent-gold)"
+                        : "var(--border-hairline)",
                       backgroundColor: picked
-                        ? "rgba(245, 158, 11, 0.18)"
+                        ? "var(--gold-soft)"
                         : "var(--bg-muted)",
+                      color: "var(--text-primary)",
                     }}
                   >
                     <span>{item}</span>
                     <span
-                      className="w-7 h-7 rounded-full border flex items-center justify-center text-xs font-extrabold shrink-0"
+                      className="w-7 h-7 rounded-full border flex items-center justify-center text-xs font-extrabold shrink-0 tabular-nums"
                       style={{
-                        borderColor: picked ? "#F59E0B" : "var(--border-hairline)",
-                        backgroundColor: picked ? "#F59E0B" : "transparent",
-                        color: picked ? "#000" : "var(--text-muted)",
+                        borderColor: picked
+                          ? "var(--accent-gold)"
+                          : "var(--border-hairline)",
+                        backgroundColor: picked
+                          ? "var(--accent-gold)"
+                          : "transparent",
+                        color: picked ? "#091945" : "var(--text-muted)",
                       }}
                     >
                       {picked ? orderPos + 1 : String.fromCharCode(65 + idx)}
@@ -1495,23 +2330,25 @@ export default function QuizPage() {
                   backgroundColor: "var(--bg-muted)",
                 }}
               >
-                <div className="font-bold text-sm flex items-center gap-2">
+                <div
+                  className="font-bold text-sm flex items-center gap-2"
+                  style={{ color: "var(--text-primary)" }}
+                >
                   {fffStatus === "won" ? (
                     <>
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                       <span>
-                        MashaAllah! Fastest Finger Qualified (+
-                        {fffTimeLeft >= 15 ? 500 : 250} Bonus Ilm XP)!
+                        {ui.correctAnswer} (+{fffTimeLeft >= 15 ? 500 : 250} XP)
                       </span>
                     </>
                   ) : (
                     <>
-                      <XCircle className="w-5 h-5 text-red-400" />
-                      <span>Sequence mismatch — Read the proof below &amp; try another!</span>
+                      <XCircle className="w-5 h-5 text-red-500" />
+                      <span>{ui.reviewExplanation}</span>
                     </>
                   )}
                 </div>
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
                   {fffChallenge.explanation}
                 </p>
               </motion.div>
@@ -1523,32 +2360,39 @@ export default function QuizPage() {
                 onClick={() => setFffPickOrder([])}
                 disabled={fffStatus !== "playing" || fffPickOrder.length === 0}
                 className="px-4 py-2 rounded-xl border text-xs font-semibold cursor-pointer disabled:opacity-40"
-                style={{ borderColor: "var(--border-hairline)" }}
+                style={{
+                  borderColor: "var(--border-hairline)",
+                  color: "var(--text-primary)",
+                }}
               >
-                Reset Picks
+                {ui.fffReset}
               </button>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={openFastestFinger}
                   className="px-4 py-2 rounded-xl border text-xs font-semibold cursor-pointer"
-                  style={{ borderColor: "var(--border-hairline)" }}
+                  style={{
+                    borderColor: "var(--border-hairline)",
+                    color: "var(--text-primary)",
+                  }}
                 >
-                  Next Random Trial
+                  {ui.fffNextTrial}
                 </button>
                 <button
                   type="button"
                   onClick={() => startNewRun("all", "ladder15")}
-                  className="btn-primary px-4 py-2 rounded-xl text-xs font-extrabold cursor-pointer"
+                  className="btn-primary px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  Enter Hot Seat →
+                  <span>{ui.fffReturnStage}</span>
+                  <ArrowRight className="w-3.5 h-3.5 rtl-mirror" />
                 </button>
               </div>
             </div>
           </div>
         </motion.section>
       ) : (
-        /* MAIN KBC HOT-SEAT BROADCAST STAGE + 15-TIER PRIZE LADDER */
+        /* MAIN CHAMPIONSHIP STAGE + 15-TIER LADDER */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           <motion.section
             key={`stage-shake-${shakeKey}`}
@@ -1561,14 +2405,13 @@ export default function QuizPage() {
             className="lg:col-span-8 bento-card p-5 sm:p-6 space-y-5 relative overflow-hidden"
             style={{
               background:
-                "radial-gradient(ellipse 95% 65% at 50% 0%, rgba(245, 158, 11, 0.11), rgba(164, 74, 255, 0.06) 45%, transparent 75%), var(--bg-surface-elevated)",
+                "radial-gradient(ellipse 95% 65% at 50% 0%, rgba(245, 158, 11, 0.09), rgba(164, 74, 255, 0.05) 45%, transparent 75%), var(--bg-surface)",
             }}
           >
-            {/* Animated Sweeping KBC Studio Spotlights */}
             <KbcStudioBeams mood={stageMood} />
 
             <div className="relative z-10 space-y-5">
-              {/* 5 KBC Lifelines Bar (including Tier-5 Unlockable Double Dip!) */}
+              {/* 5 Lifelines Bar */}
               <div
                 className="grid grid-cols-2 sm:grid-cols-5 gap-2 pb-4 border-b"
                 style={{ borderColor: "var(--border-hairline)" }}
@@ -1576,8 +2419,8 @@ export default function QuizPage() {
                 {[
                   {
                     id: "nisf",
-                    label: "50:50",
-                    sub: "Nisf",
+                    label: ui.lifeline5050,
+                    sub: "",
                     icon: Split,
                     used: usedLifelines.nisf,
                     locked: false,
@@ -1586,8 +2429,8 @@ export default function QuizPage() {
                   },
                   {
                     id: "ishara",
-                    label: "Scholar Call",
-                    sub: "Ishara",
+                    label: ui.lifelineHint,
+                    sub: "",
                     icon: PhoneCall,
                     used: usedLifelines.ishara,
                     locked: false,
@@ -1596,8 +2439,8 @@ export default function QuizPage() {
                   },
                   {
                     id: "poll",
-                    label: "Ijma' Poll",
-                    sub: "Audience",
+                    label: ui.lifelinePoll,
+                    sub: "",
                     icon: Users,
                     used: usedLifelines.poll,
                     locked: false,
@@ -1606,8 +2449,8 @@ export default function QuizPage() {
                   },
                   {
                     id: "tabdeeli",
-                    label: "Flip Sawal",
-                    sub: "Tabdeeli",
+                    label: ui.lifelineSwitch,
+                    sub: "",
                     icon: Shuffle,
                     used: usedLifelines.tabdeeli,
                     locked: false,
@@ -1616,8 +2459,8 @@ export default function QuizPage() {
                   },
                   {
                     id: "doubleDip",
-                    label: "Do Mauqe",
-                    sub: doubleDipUnlocked ? "2x Try" : "Padav 1 ★",
+                    label: ui.lifelineDouble,
+                    sub: doubleDipUnlocked ? "2x" : `${ui.tierLabel} 5`,
                     icon: ShieldAlert,
                     used: usedLifelines.doubleDip,
                     locked: !doubleDipUnlocked,
@@ -1629,32 +2472,28 @@ export default function QuizPage() {
                   return (
                     <motion.button
                       key={lf.id}
-                      whileHover={!lf.used && !lf.locked ? { y: -2, scale: 1.02 } : {}}
-                      whileTap={!lf.used && !lf.locked ? { scale: 0.96 } : {}}
+                      whileHover={!lf.used && !lf.locked ? { y: -1.5 } : {}}
+                      whileTap={!lf.used && !lf.locked ? { scale: 0.97 } : {}}
                       type="button"
                       disabled={
                         lf.used || lf.locked || outcome !== "playing" || isLocking
                       }
                       onClick={lf.onClick}
-                      title={
-                        lf.locked
-                          ? "Conquer Tier 5 Safe Padav to unlock Double Dip (Do Mauqe)!"
-                          : lf.label
-                      }
                       className={`relative px-2.5 py-2 rounded-2xl border flex items-center gap-2 text-start cursor-pointer transition-all disabled:opacity-35 ${
                         lf.activeNow ? "ring-2 ring-amber-400 animate-pulse" : ""
                       }`}
                       style={{
                         borderColor: lf.activeNow
-                          ? "#FBBF24"
+                          ? "var(--accent-gold)"
                           : lf.used || lf.locked
                           ? "var(--border-hairline)"
-                          : "rgba(245, 158, 11, 0.48)",
+                          : "color-mix(in srgb, var(--accent-gold) 45%, var(--border-hairline))",
                         backgroundColor: lf.activeNow
-                          ? "rgba(245, 158, 11, 0.25)"
+                          ? "var(--gold-soft)"
                           : lf.used || lf.locked
                           ? "var(--bg-muted)"
-                          : "rgba(245, 158, 11, 0.09)",
+                          : "var(--bg-surface)",
+                        color: "var(--text-primary)",
                       }}
                     >
                       <span
@@ -1676,81 +2515,80 @@ export default function QuizPage() {
                       </span>
                       <div className="min-w-0 leading-tight">
                         <div
-                          className={`text-[11px] font-extrabold truncate ${
+                          className={`text-[11px] font-bold truncate ${
                             lf.used ? "line-through" : ""
                           }`}
                         >
                           {lf.label}
                         </div>
-                        <div
-                          className="text-[10px] truncate"
-                          style={{ color: "var(--text-muted)" }}
-                        >
-                          {lf.sub}
-                        </div>
+                        {lf.sub ? (
+                          <div
+                            className="text-[10px] truncate"
+                            style={{ color: "var(--text-muted)" }}
+                          >
+                            {lf.sub}
+                          </div>
+                        ) : null}
                       </div>
                     </motion.button>
                   );
                 })}
               </div>
 
-              {/* Stage Telemetry Row: Sawal Tier, Streak Flame, Time Boost & Animated KBC Clock */}
+              {/* Stage Telemetry Row */}
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="badge-pill badge-gold tabular-nums">
+                    {isLadder
+                      ? `${ui.tierLabel} ${tierIdx + 1}/15 · ${stepReward.toLocaleString()} XP`
+                      : `${tierIdx + 1}/${totalSteps} · +${stepReward} XP`}
+                  </span>
+
                   <span
-                    className="px-3 py-1 rounded-full font-extrabold"
+                    className="px-2.5 py-1 rounded-full border text-[11px] font-medium"
                     style={{
-                      backgroundColor: "rgba(245, 158, 11, 0.2)",
-                      color: "#FBBF24",
-                      border: "1px solid rgba(245, 158, 11, 0.4)",
+                      borderColor: "var(--border-hairline)",
+                      color: "var(--text-secondary)",
                     }}
                   >
-                    {isLadder
-                      ? `Level ${tierIdx + 1}/15 • ${stepReward.toLocaleString()} XP`
-                      : `Blitz ${tierIdx + 1}/${totalSteps} • +${stepReward} XP`}
+                    {getQuestionCategoryLabel(question.category)}
                   </span>
 
-                  <span
-                    className="px-2.5 py-1 rounded-full border text-[11px] font-semibold"
-                    style={{ borderColor: "var(--border-hairline)" }}
-                  >
-                    {question.category}
-                  </span>
-
-                  {/* Active Streak Flame Badge */}
                   {streak > 0 && (
                     <motion.span
                       key={streak}
-                      initial={{ scale: 0.7 }}
+                      initial={{ scale: 0.8 }}
                       animate={{ scale: 1 }}
-                      className="px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-400/50 text-orange-300 text-[11px] font-extrabold inline-flex items-center gap-1"
+                      className="badge-pill badge-gold inline-flex items-center gap-1 tabular-nums"
                     >
-                      <Flame className="w-3.5 h-3.5 text-orange-400" />
-                      <span>{streak}x Streak</span>
+                      <Flame className="w-3 h-3" />
+                      <span>
+                        {streak}x {ui.streak}
+                      </span>
                     </motion.span>
                   )}
 
                   {safeXp > 0 && isLadder && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-500 tabular-nums">
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      Safe: {safeXp.toLocaleString()}
+                      <span>{safeXp.toLocaleString()} XP</span>
                     </span>
                   )}
                 </div>
 
-                {/* Right Controls: Waqt +20s, Walk Away, Circular Clock */}
+                {/* Right Controls: +20s, Walk Away Safely, Circular Countdown */}
                 <div className="flex items-center gap-2.5 shrink-0">
                   {timeBoostAvailable &&
                     secondsLeft !== null &&
                     outcome === "playing" &&
                     !isLocking && (
                       <motion.button
-                        initial={{ scale: 0.85 }}
-                        animate={{ scale: [1, 1.06, 1] }}
+                        initial={{ scale: 0.9 }}
+                        animate={{ scale: [1, 1.05, 1] }}
                         transition={{ duration: 1.2, repeat: Infinity }}
                         type="button"
                         onClick={triggerTimeBoost}
-                        className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-500 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer tabular-nums"
                       >
                         <Clock className="w-3.5 h-3.5" />
                         <span>+20s</span>
@@ -1764,28 +2602,30 @@ export default function QuizPage() {
                       <button
                         type="button"
                         onClick={walkAway}
-                        className="px-3 py-1.5 rounded-xl border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer hover:brightness-110"
+                        className="px-3 py-1.5 rounded-xl border text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
                         style={{
-                          borderColor: "#F59E0B",
-                          color: "#FBBF24",
+                          borderColor: "var(--accent-gold)",
+                          color: "var(--accent-gold)",
                         }}
                       >
-                        <LogOut className="w-3.5 h-3.5" />
-                        <span>Walk Away ({runXp.toLocaleString()})</span>
+                        <LogOut className="w-3.5 h-3.5 rtl-mirror" />
+                        <span>
+                          {ui.walkAwaySafely} ({runXp.toLocaleString()})
+                        </span>
                       </button>
                     )}
 
-                  {/* KBC Animated Circular Countdown Gauge */}
+                  {/* Circular Countdown Gauge */}
                   {(() => {
-                    const size = 58;
-                    const r = 24;
+                    const size = 54;
+                    const r = 22;
                     const c = 2 * Math.PI * r;
                     const urgent = secondsLeft !== null && secondsLeft <= 8;
                     return (
                       <motion.div
                         animate={
                           urgent && outcome === "playing"
-                            ? { scale: [1, 1.1, 1] }
+                            ? { scale: [1, 1.08, 1] }
                             : { scale: 1 }
                         }
                         transition={{ duration: 0.75, repeat: urgent ? Infinity : 0 }}
@@ -1797,9 +2637,9 @@ export default function QuizPage() {
                             cx={size / 2}
                             cy={size / 2}
                             r={r}
-                            fill="rgba(4, 12, 35, 0.7)"
+                            fill="var(--bg-muted)"
                             stroke="var(--border-hairline)"
-                            strokeWidth="4"
+                            strokeWidth="3.5"
                           />
                           <circle
                             cx={size / 2}
@@ -1811,9 +2651,9 @@ export default function QuizPage() {
                                 ? "#EF4444"
                                 : isLocking
                                 ? "#F59E0B"
-                                : "#FBBF24"
+                                : "var(--accent-gold)"
                             }
-                            strokeWidth="4.5"
+                            strokeWidth="4"
                             strokeLinecap="round"
                             strokeDasharray={c}
                             strokeDashoffset={c * (1 - timerPct / 100)}
@@ -1822,7 +2662,9 @@ export default function QuizPage() {
                         </svg>
                         <span
                           className="absolute text-xs font-extrabold tabular-nums"
-                          style={{ color: urgent ? "#F87171" : "#FBBF24" }}
+                          style={{
+                            color: urgent ? "#EF4444" : "var(--text-primary)",
+                          }}
                         >
                           {secondsLeft !== null ? (
                             secondsLeft
@@ -1836,49 +2678,51 @@ export default function QuizPage() {
                 </div>
               </div>
 
-              {/* Host Commentary Strip */}
+              {/* Host Prompt Strip */}
               <div
                 className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl border text-xs"
                 style={{
                   borderColor: "var(--border-hairline)",
-                  backgroundColor: "rgba(4, 12, 35, 0.42)",
-                  color: "var(--text-muted)",
+                  backgroundColor: "var(--bg-muted)",
+                  color: "var(--text-secondary)",
                 }}
               >
-                <div className="flex items-center gap-2 italic">
-                  <Mic
+                <div className="flex items-center gap-2">
+                  <Sparkles
                     className="w-3.5 h-3.5 shrink-0"
-                    style={{ color: "#FBBF24" }}
+                    style={{ color: "var(--accent-gold)" }}
                   />
                   <span>{hostLine}</span>
                 </div>
                 {isLadder && (
-                  <span className="text-[10px] font-bold text-[#DF98FA] shrink-0 hidden sm:inline">
-                    {TIER_TITLES[tierIdx]}
+                  <span
+                    className="text-[11px] font-semibold shrink-0 hidden sm:inline"
+                    style={{ color: "var(--accent-primary)" }}
+                  >
+                    {stripLeadingSymbols(TIER_TITLES[tierIdx] || "")}
                   </span>
                 )}
               </div>
 
-              {/* AUTHENTIC KBC QUESTION POD WITH HORIZONTAL CONNECTOR RAILS */}
+              {/* DRAMATIC STAGE QUESTION POD */}
               <AnimatePresence mode="wait">
                 <motion.div
                   key={question.id}
-                  initial={{ opacity: 0, y: 14, scale: 0.98 }}
+                  initial={{ opacity: 0, y: 12, scale: 0.99 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -12, scale: 0.98 }}
-                  transition={{ duration: 0.28 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.99 }}
+                  transition={{ duration: 0.25 }}
                   className="relative flex items-center"
                 >
-                  {/* KBC Horizontal Gold Stage Rail */}
                   <div
-                    className="absolute inset-x-0 h-[2px] pointer-events-none"
+                    className="absolute inset-x-0 h-[1.5px] pointer-events-none"
                     style={{
                       background:
                         "linear-gradient(90deg, transparent 0%, #F59E0B 15%, #DF98FA 50%, #F59E0B 85%, transparent 100%)",
                     }}
                   />
                   <div
-                    className="relative z-10 w-full mx-2 sm:mx-4 p-5 sm:p-6 rounded-2xl border-2 text-center shadow-xl"
+                    className="relative z-10 w-full mx-1 sm:mx-3 p-5 sm:p-6 rounded-2xl border-2 text-center shadow-xl"
                     style={{
                       borderColor: isLocking
                         ? "#F59E0B"
@@ -1890,31 +2734,40 @@ export default function QuizPage() {
                       background:
                         "linear-gradient(180deg, rgba(18, 25, 49, 0.98) 0%, rgba(9, 25, 69, 0.96) 100%)",
                       boxShadow: isLocking
-                        ? "0 0 32px rgba(245, 158, 11, 0.35)"
-                        : "0 10px 28px -8px rgba(0,0,0,0.65)",
+                        ? "0 0 32px rgba(245, 158, 11, 0.32)"
+                        : "0 10px 28px -8px rgba(0,0,0,0.55)",
                     }}
                   >
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-amber-300/80 mb-1.5">
-                      Tier {question.tier} Vault • ID #{question.id.toUpperCase()}
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-300/85 mb-1.5">
+                      {ui.tierLabel} {question.tier} ·{" "}
+                      {getQuestionCategoryLabel(question.category)}
                     </div>
-                    <h2 className="text-base sm:text-xl font-extrabold leading-snug text-white">
+                    <h2 className="text-base sm:text-xl font-bold leading-snug text-white">
                       {question.question}
                     </h2>
                   </div>
                 </motion.div>
               </AnimatePresence>
 
-              {/* LIFELINE DRAMATIC OVERLAYS: Scholar Phone Ringing / Answer & Live Ijma' Poll */}
+              {/* LIFELINE OVERLAYS: Scholar Hint & Community Poll */}
               <AnimatePresence>
                 {isharaRinging && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
+                    initial={{ opacity: 0, scale: 0.97 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
-                    className="p-4 rounded-2xl border border-amber-400/50 bg-amber-500/10 text-amber-300 text-xs font-bold flex items-center gap-3"
+                    className="p-4 rounded-2xl border text-xs font-bold flex items-center gap-3"
+                    style={{
+                      borderColor: "var(--accent-gold)",
+                      backgroundColor: "var(--gold-soft)",
+                      color: "var(--text-primary)",
+                    }}
                   >
-                    <PhoneCall className="w-4 h-4 animate-bounce" />
-                    <span>Dialing Dar-ul-Ifta Scholar on the Hot-Seat Line...</span>
+                    <PhoneCall
+                      className="w-4 h-4 animate-bounce shrink-0"
+                      style={{ color: "var(--accent-gold)" }}
+                    />
+                    <span>{ui.consultingScholar}</span>
                   </motion.div>
                 )}
 
@@ -1924,20 +2777,31 @@ export default function QuizPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="p-4 rounded-2xl border text-xs flex items-start gap-3"
                     style={{
-                      borderColor: "#F59E0B",
-                      backgroundColor: "rgba(245, 158, 11, 0.13)",
+                      borderColor: "var(--accent-gold)",
+                      backgroundColor: "var(--gold-soft)",
                     }}
                   >
-                    <div className="w-9 h-9 rounded-full bg-amber-400/20 border border-amber-400 flex items-center justify-center shrink-0 text-base">
-                      👳‍♂️
+                    <div
+                      className="w-9 h-9 rounded-full border flex items-center justify-center shrink-0"
+                      style={{
+                        borderColor: "var(--accent-gold)",
+                        color: "var(--accent-gold)",
+                      }}
+                    >
+                      <BookOpen className="w-4 h-4" />
                     </div>
                     <div className="space-y-0.5">
-                      <div className="font-extrabold text-amber-300 uppercase tracking-wider text-[11px]">
-                        Mufti Sahib&apos;s Ishara (Phone-a-Scholar)
+                      <div
+                        className="font-bold uppercase tracking-wider text-[11px]"
+                        style={{ color: "var(--accent-gold)" }}
+                      >
+                        {ui.lifelineHint}
                       </div>
-                      <p className="text-white/95 leading-relaxed">
-                        &ldquo;Assalamu Alaikum! Reflect on this key clue:{" "}
-                        <strong>{question.isharaHint}</strong>&rdquo;
+                      <p
+                        className="leading-relaxed"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        &ldquo;{question.isharaHint}&rdquo;
                       </p>
                     </div>
                   </motion.div>
@@ -1950,12 +2814,15 @@ export default function QuizPage() {
                     className="p-4 rounded-2xl border space-y-2.5"
                     style={{
                       borderColor: "var(--border-hairline)",
-                      backgroundColor: "rgba(4, 12, 35, 0.65)",
+                      backgroundColor: "var(--bg-muted)",
                     }}
                   >
-                    <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-[#DF98FA]">
-                      <span>📊 Live Ijma&apos; Studio Audience Poll</span>
-                      <span>100% Verified Votes</span>
+                    <div
+                      className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider"
+                      style={{ color: "var(--accent-primary)" }}
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      <span>{ui.lifelinePoll}</span>
                     </div>
                     <div className="grid grid-cols-4 gap-3 items-end h-28 pt-2">
                       {effectivePoll.map((pct, i) => {
@@ -1967,18 +2834,28 @@ export default function QuizPage() {
                               elim ? "opacity-25" : ""
                             }`}
                           >
-                            <span className="text-xs font-extrabold tabular-nums text-amber-300">
+                            <span
+                              className="text-xs font-bold tabular-nums"
+                              style={{ color: "var(--accent-gold)" }}
+                            >
                               {pct}%
                             </span>
-                            <div className="w-full max-w-[42px] bg-white/10 rounded-t-lg overflow-hidden flex items-end h-16">
+                            <div
+                              className="w-full max-w-[42px] rounded-t-lg overflow-hidden flex items-end h-16"
+                              style={{ backgroundColor: "var(--bg-surface)" }}
+                            >
                               <motion.div
                                 initial={{ height: 0 }}
                                 animate={{ height: `${pct}%` }}
                                 transition={{ duration: 0.75, ease: "easeOut" }}
-                                className="w-full rounded-t-lg bg-gradient-to-t from-[#9055FF] to-[#DF98FA]"
+                                className="w-full rounded-t-lg"
+                                style={{ backgroundImage: "var(--gradient-brand)" }}
                               />
                             </div>
-                            <span className="text-xs font-extrabold text-white">
+                            <span
+                              className="text-xs font-bold"
+                              style={{ color: "var(--text-primary)" }}
+                            >
                               {String.fromCharCode(65 + i)}
                             </span>
                           </div>
@@ -1989,14 +2866,14 @@ export default function QuizPage() {
                 )}
               </AnimatePresence>
 
-              {/* KBC 2x2 BEVELED OPTION PODS WITH STAGGERED ENTRANCE */}
+              {/* 2x2 STAGE OPTION PODS */}
               <motion.div
                 key={`opts-${question.id}`}
                 initial="hidden"
                 animate="visible"
                 variants={{
                   hidden: {},
-                  visible: { transition: { staggerChildren: 0.08 } },
+                  visible: { transition: { staggerChildren: 0.06 } },
                 }}
                 className="grid grid-cols-1 sm:grid-cols-2 gap-3"
               >
@@ -2005,50 +2882,50 @@ export default function QuizPage() {
                   const isSel = selectedOpt === idx;
                   const isCorr = idx === question.correctIdx;
 
-                  let borderCol = "rgba(161, 156, 197, 0.25)";
-                  let bgCol = "rgba(9, 25, 69, 0.78)";
-                  let badgeBg = "rgba(245, 158, 11, 0.14)";
+                  let borderCol = "rgba(161, 156, 197, 0.28)";
+                  let bgCol = "rgba(9, 25, 69, 0.9)";
+                  let badgeBg = "rgba(245, 158, 11, 0.16)";
                   let badgeText = "#FBBF24";
                   let glowShadow = "none";
 
                   if (outcome !== "playing" && outcome !== "walked") {
                     if (isCorr) {
                       borderCol = "#10B981";
-                      bgCol = "rgba(16, 185, 129, 0.24)";
+                      bgCol = "rgba(6, 78, 59, 0.92)";
                       badgeBg = "#10B981";
                       badgeText = "#FFFFFF";
-                      glowShadow = "0 0 24px rgba(16, 185, 129, 0.4)";
+                      glowShadow = "0 0 22px rgba(16, 185, 129, 0.35)";
                     } else if (isSel) {
                       borderCol = "#EF4444";
-                      bgCol = "rgba(239, 68, 68, 0.24)";
+                      bgCol = "rgba(127, 29, 29, 0.92)";
                       badgeBg = "#EF4444";
                       badgeText = "#FFFFFF";
                     }
                   } else if (isSel) {
                     borderCol = "#F59E0B";
                     bgCol = isLocking
-                      ? "rgba(245, 158, 11, 0.36)"
-                      : "rgba(245, 158, 11, 0.2)";
+                      ? "rgba(120, 53, 15, 0.92)"
+                      : "rgba(30, 41, 82, 0.96)";
                     badgeBg = "#F59E0B";
-                    badgeText = "#000000";
-                    glowShadow = "0 0 22px rgba(245, 158, 11, 0.35)";
+                    badgeText = "#091945";
+                    glowShadow = "0 0 20px rgba(245, 158, 11, 0.3)";
                   }
 
                   return (
                     <motion.button
                       key={`${question.id}-${idx}`}
                       variants={{
-                        hidden: { opacity: 0, y: 10 },
+                        hidden: { opacity: 0, y: 8 },
                         visible: { opacity: 1, y: 0 },
                       }}
                       whileHover={
                         !isElim && outcome === "playing" && !isLocking
-                          ? { scale: 1.015 }
+                          ? { scale: 1.01 }
                           : {}
                       }
                       whileTap={
                         !isElim && outcome === "playing" && !isLocking
-                          ? { scale: 0.98 }
+                          ? { scale: 0.985 }
                           : {}
                       }
                       type="button"
@@ -2060,7 +2937,7 @@ export default function QuizPage() {
                           lockInAnswer(idx);
                         }
                       }}
-                      className={`relative p-3.5 sm:p-4 rounded-2xl border-2 text-start text-sm font-semibold flex items-center gap-3.5 cursor-pointer disabled:opacity-20 transition-colors overflow-hidden ${
+                      className={`relative p-3.5 sm:p-4 rounded-2xl border-2 text-start text-sm font-semibold flex items-center gap-3.5 cursor-pointer disabled:opacity-25 transition-colors overflow-hidden ${
                         isLocking && isSel ? "animate-pulse" : ""
                       }`}
                       style={{
@@ -2069,7 +2946,6 @@ export default function QuizPage() {
                         boxShadow: glowShadow,
                       }}
                     >
-                      {/* Diamond KBC Letter Badge */}
                       <span
                         className="w-7 h-7 rounded-lg rotate-45 flex items-center justify-center shrink-0 border transition-colors"
                         style={{
@@ -2084,7 +2960,7 @@ export default function QuizPage() {
                       </span>
 
                       <span className="leading-snug text-white flex-1">
-                        {isElim ? "— Eliminated —" : opt}
+                        {isElim ? `— ${ui.eliminated} —` : opt}
                       </span>
 
                       {outcome !== "playing" && outcome !== "walked" && isCorr && (
@@ -2095,7 +2971,7 @@ export default function QuizPage() {
                 })}
               </motion.div>
 
-              {/* DRAMATIC "COMPUTER JI, LOCK KIYA JAYE!" SUSPENSE BAR */}
+              {/* LOCK ANSWER SUSPENSE BAR */}
               <AnimatePresence>
                 {outcome === "playing" && selectedOpt !== null && (
                   <motion.div
@@ -2104,52 +2980,52 @@ export default function QuizPage() {
                     exit={{ opacity: 0, y: 6 }}
                     className="p-4 rounded-2xl border-2 space-y-2.5 relative overflow-hidden"
                     style={{
-                      borderColor: "#F59E0B",
-                      backgroundColor: "rgba(245, 158, 11, 0.14)",
+                      borderColor: "var(--accent-gold)",
+                      backgroundColor: "var(--gold-soft)",
                     }}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="text-xs sm:text-sm font-extrabold text-white">
-                        {isLocking ? (
-                          <span className="text-amber-300">
-                            🔒 Computer ji Option{" "}
-                            {String.fromCharCode(65 + selectedOpt)} lock kar rahe hain...
-                          </span>
-                        ) : (
-                          <>
-                            Option{" "}
-                            <span className="text-amber-300">
-                              {String.fromCharCode(65 + selectedOpt)}
-                            </span>{" "}
-                            selected —{" "}
-                            <span className="text-amber-300">
-                              Computer ji, Lock Kiya Jaye?
-                            </span>
-                          </>
-                        )}
+                      <div
+                        className="text-xs sm:text-sm font-bold flex items-center gap-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        <Lock
+                          className="w-4 h-4 shrink-0"
+                          style={{ color: "var(--accent-gold)" }}
+                        />
+                        <span>
+                          {isLocking
+                            ? `${ui.sealingAnswer} (${String.fromCharCode(
+                                65 + selectedOpt
+                              )})`
+                            : `${String.fromCharCode(65 + selectedOpt)} — ${
+                                ui.lockAnswer
+                              }?`}
+                        </span>
                       </div>
                       <button
                         type="button"
                         disabled={isLocking}
                         onClick={() => lockInAnswer(selectedOpt)}
-                        className="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 cursor-pointer inline-flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all disabled:opacity-60 shadow-lg"
+                        className="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 cursor-pointer inline-flex items-center gap-1.5 hover:brightness-105 active:scale-95 transition-all disabled:opacity-60 shadow-md"
                       >
                         <Lock className="w-3.5 h-3.5" />
-                        <span>{isLocking ? "Suspense..." : "Lock Kiya Jaye!"}</span>
+                        <span>
+                          {isLocking ? ui.sealingAnswer : ui.lockAnswer}
+                        </span>
                       </button>
                     </div>
 
-                    {/* Animated Suspense Laser Progress Bar while locking */}
                     {isLocking && (
-                      <div className="h-1.5 w-full rounded-full bg-black/40 overflow-hidden">
+                      <div className="h-1.5 w-full rounded-full bg-black/20 overflow-hidden">
                         <motion.div
                           initial={{ width: "0%" }}
                           animate={{ width: "100%" }}
                           transition={{
-                            duration: dramaticMode ? 1.4 : 0.45,
+                            duration: dramaticMode ? 1.3 : 0.4,
                             ease: "easeInOut",
                           }}
-                          className="h-full bg-gradient-to-r from-amber-300 via-orange-400 to-emerald-400"
+                          className="h-full bg-gradient-to-r from-amber-400 via-orange-400 to-emerald-400"
                         />
                       </div>
                     )}
@@ -2157,58 +3033,62 @@ export default function QuizPage() {
                 )}
               </AnimatePresence>
 
-              {/* SCHOLARLY DALIL & OUTCOME REVEAL PANEL */}
+              {/* OUTCOME BANNER & SCHOLARLY EXPLANATION PANEL */}
               <AnimatePresence>
                 {outcome !== "playing" && (
                   <motion.div
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-5 rounded-2xl border-2 space-y-3"
+                    className="p-5 rounded-2xl border-2 space-y-3.5"
                     style={{
                       borderColor:
                         outcome === "wrong"
                           ? "rgba(239, 68, 68, 0.55)"
                           : outcome === "won"
-                          ? "#FBBF24"
+                          ? "var(--accent-gold)"
                           : "rgba(16, 185, 129, 0.55)",
-                      backgroundColor: "rgba(4, 12, 35, 0.78)",
+                      backgroundColor: "var(--bg-muted)",
                     }}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 font-extrabold text-sm sm:text-base">
+                      <div className="flex items-center gap-2 font-bold text-sm sm:text-base">
                         {outcome === "wrong" ? (
                           <>
-                            <XCircle className="w-5 h-5 text-red-400 shrink-0" />
-                            <span className="text-red-300">
-                              {secondsLeft === 0 ? "Waqt Khatam!" : "Galat Jawab"} —
-                              Banked {(bankedXp ?? 0).toLocaleString()} XP
+                            <XCircle className="w-5 h-5 text-red-500 shrink-0" />
+                            <span style={{ color: "var(--text-primary)" }}>
+                              {secondsLeft === 0
+                                ? ui.timeExpired
+                                : ui.reviewExplanation}{" "}
+                              · {(bankedXp ?? 0).toLocaleString()} XP
                             </span>
                           </>
                         ) : outcome === "walked" ? (
                           <>
-                            <Award className="w-5 h-5 text-amber-400 shrink-0" />
-                            <span className="text-amber-300">
-                              Mubarak! +{(bankedXp ?? 0).toLocaleString()} Ilm XP
-                              Safely Claimed
+                            <Award
+                              className="w-5 h-5 shrink-0"
+                              style={{ color: "var(--accent-gold)" }}
+                            />
+                            <span style={{ color: "var(--text-primary)" }}>
+                              {ui.safeScoreBanked} (+
+                              {(bankedXp ?? 0).toLocaleString()} XP)
                             </span>
                           </>
                         ) : outcome === "won" ? (
                           <>
-                            <Crown className="w-5 h-5 text-amber-400 shrink-0" />
-                            <span className="text-amber-300">
-                              Taj-e-Sahib-e-Ilm Won! +
-                              {(bankedXp ?? 0).toLocaleString()} Total XP!
+                            <Crown
+                              className="w-5 h-5 shrink-0"
+                              style={{ color: "var(--accent-gold)" }}
+                            />
+                            <span style={{ color: "var(--text-primary)" }}>
+                              {ui.championshipCompleted} (+
+                              {(bankedXp ?? 0).toLocaleString()} XP)
                             </span>
                           </>
                         ) : (
                           <>
-                            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                            <span className="text-emerald-300">
-                              Sahi Jawab!{" "}
-                              {isLadder && SAFE_TIERS.includes(tierIdx)
-                                ? "★ Safe Padav Secured • "
-                                : ""}
-                              {runXp.toLocaleString()} XP
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                            <span style={{ color: "var(--text-primary)" }}>
+                              {ui.correctAnswer} · {runXp.toLocaleString()} XP
                             </span>
                           </>
                         )}
@@ -2217,38 +3097,57 @@ export default function QuizPage() {
                       {(outcome === "won" ||
                         outcome === "walked" ||
                         outcome === "wrong") && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
                             type="button"
                             onClick={() => setSanadOpen(true)}
-                            className="px-3 py-1.5 rounded-xl bg-amber-400/15 border border-amber-400/40 text-amber-300 text-xs font-bold inline-flex items-center gap-1 cursor-pointer hover:brightness-110"
+                            className="px-3 py-1.5 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                            style={{
+                              backgroundColor: "var(--gold-soft)",
+                              borderColor: "var(--accent-gold)",
+                              color: "var(--accent-gold)",
+                            }}
                           >
                             <Award className="w-3.5 h-3.5" />
-                            <span>View Sanad</span>
+                            <span>{ui.viewSanad}</span>
                           </button>
                           <button
                             type="button"
                             onClick={copyCertificate}
-                            className="px-2.5 py-1.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1 cursor-pointer"
-                            style={{ borderColor: "var(--border-hairline)" }}
+                            className="px-3 py-1.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                            style={{
+                              backgroundColor: "var(--bg-surface)",
+                              borderColor: "var(--border-hairline)",
+                              color: "var(--text-primary)",
+                            }}
                           >
                             {copiedScore ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <Check className="w-3.5 h-3.5 text-emerald-500" />
                             ) : (
                               <Copy className="w-3.5 h-3.5" />
                             )}
-                            <span>{copiedScore ? "Copied" : "Share"}</span>
+                            <span>{copiedScore ? ui.copied : ui.shareScore}</span>
                           </button>
                         </div>
                       )}
                     </div>
 
                     {outcome !== "walked" && (
-                      <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs leading-relaxed text-white/90 flex items-start gap-2.5">
-                        <BookOpen className="w-4 h-4 text-[#DF98FA] shrink-0 mt-0.5" />
+                      <div
+                        className="p-3.5 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5"
+                        style={{
+                          backgroundColor: "var(--bg-surface)",
+                          borderColor: "var(--border-hairline)",
+                          color: "var(--text-secondary)",
+                        }}
+                      >
+                        <BookOpen
+                          className="w-4 h-4 shrink-0 mt-0.5"
+                          style={{ color: "var(--accent-primary)" }}
+                        />
                         <div>
-                          <strong className="text-[#DF98FA]">
-                            Scholarly Dalil &amp; Explanation:
+                          <strong style={{ color: "var(--text-primary)" }}>
+                            {ui.scholarlyExplanation}:
                           </strong>{" "}
                           {question.proofExplanation}
                         </div>
@@ -2258,35 +3157,34 @@ export default function QuizPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                       <Link
                         href={question.proofLink}
-                        className="text-xs font-bold inline-flex items-center gap-1 hover:underline text-[#DF98FA]"
+                        className="text-xs font-bold inline-flex items-center gap-1 hover:underline"
+                        style={{ color: "var(--accent-primary)" }}
                       >
-                        <span>{question.proofLinkLabel}</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <span>
+                          {ui.reference}: {question.proofLinkLabel}
+                        </span>
+                        <ArrowRight className="w-3.5 h-3.5 rtl-mirror" />
                       </Link>
 
                       {outcome === "correct" ? (
                         <button
                           type="button"
                           onClick={nextTier}
-                          className="btn-primary px-5 py-2.5 rounded-xl text-xs font-extrabold cursor-pointer inline-flex items-center gap-1.5"
+                          className="btn-primary px-5 py-2.5 rounded-xl text-xs font-bold cursor-pointer inline-flex items-center gap-1.5"
                         >
-                          <Sparkles className="w-3.5 h-3.5" />
                           <span>
-                            Next Sawal (
-                            {isLadder
-                              ? `Level ${tierIdx + 2}`
-                              : `Blitz ${tierIdx + 2}/${totalSteps}`}
-                            ) →
+                            {ui.nextTier} ({tierIdx + 2}/{totalSteps})
                           </span>
+                          <ArrowRight className="w-3.5 h-3.5 rtl-mirror" />
                         </button>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => startNewRun(categoryFilter, runFormat)}
-                          className="btn-primary px-5 py-2.5 rounded-xl text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+                          onClick={() => startNewRun(topicFilter, runFormat)}
+                          className="btn-primary px-5 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
-                          <span>New Randomized Hot Seat</span>
+                          <span>{ui.newChallenge}</span>
                         </button>
                       )}
                     </div>
@@ -2295,50 +3193,42 @@ export default function QuizPage() {
               </AnimatePresence>
 
               <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                Hotkeys:{" "}
-                <kbd
-                  className="px-1.5 py-0.5 rounded border"
-                  style={{ borderColor: "var(--border-hairline)" }}
-                >
-                  A–D
-                </kbd>{" "}
-                select •{" "}
-                <kbd
-                  className="px-1.5 py-0.5 rounded border"
-                  style={{ borderColor: "var(--border-hairline)" }}
-                >
-                  Enter
-                </kbd>{" "}
-                Lock / Next • Double-click option to instant-lock •{" "}
-                <kbd
-                  className="px-1.5 py-0.5 rounded border"
-                  style={{ borderColor: "var(--border-hairline)" }}
-                >
-                  H
-                </kbd>{" "}
-                Scholar Call
+                {ui.hotkeysHint}
               </p>
             </div>
           </motion.section>
 
-          {/* RIGHT SIDEBAR: ANIMATED 15-TIER KBC PRIZE TREE */}
+          {/* RIGHT SIDEBAR: 15-TIER CHAMPIONSHIP LADDER */}
           <aside className="lg:col-span-4 bento-card p-5 space-y-2.5">
-            <div className="flex items-center justify-between pb-2 border-b" style={{ borderColor: "var(--border-hairline)" }}>
+            <div
+              className="flex items-center justify-between pb-2.5 border-b"
+              style={{ borderColor: "var(--border-hairline)" }}
+            >
               <div>
-                <h2 className="text-sm font-extrabold">
+                <h2
+                  className="text-sm font-bold"
+                  style={{ color: "var(--text-primary)" }}
+                >
                   {isLadder
-                    ? "15-Level Sahib-e-Ilm Tree"
-                    : `20-Question Blitz (${answeredCount}/20)`}
+                    ? ui.modeChampionship
+                    : `${ui.modeBlitz} (${answeredCount}/${totalSteps})`}
                 </h2>
-                <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                  {isLadder
-                    ? "20 Unique Questions in Every Level"
-                    : `Speed Bonus Collected: +${speedBonusTotal} XP`}
-                </p>
+                {!isLadder && (
+                  <p
+                    className="text-[11px] tabular-nums"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    +{speedBonusTotal.toLocaleString()} XP
+                  </p>
+                )}
               </div>
               {isLadder && (
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400">
-                  ★ Safe Padav
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1"
+                  style={{ color: "var(--accent-gold)" }}
+                >
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>{ui.safeMilestone}</span>
                 </span>
               )}
             </div>
@@ -2362,32 +3252,40 @@ export default function QuizPage() {
                       className="px-3 py-1.5 rounded-xl text-xs flex items-center justify-between border transition-all"
                       style={{
                         borderColor: isCurrent
-                          ? "#F59E0B"
+                          ? "var(--accent-gold)"
                           : isSafe
-                          ? "rgba(245, 158, 11, 0.3)"
+                          ? "color-mix(in srgb, var(--accent-gold) 30%, transparent)"
                           : "transparent",
                         backgroundColor: isCurrent
-                          ? "rgba(245, 158, 11, 0.24)"
+                          ? "var(--gold-soft)"
                           : isPassed
-                          ? "rgba(16, 185, 129, 0.12)"
+                          ? "rgba(16, 185, 129, 0.1)"
                           : "transparent",
                         color: isCurrent
-                          ? "#FBBF24"
+                          ? "var(--accent-gold)"
                           : isSafe
-                          ? "#F9B091"
+                          ? "var(--text-primary)"
                           : isPassed
-                          ? "#4ADE80"
+                          ? "#10B981"
                           : "var(--text-muted)",
-                        fontWeight: isCurrent || isSafe ? 800 : 500,
+                        fontWeight: isCurrent || isSafe ? 700 : 500,
                       }}
                     >
                       <span className="flex items-center gap-2 tabular-nums min-w-0">
                         <span className="w-5 text-end opacity-80">{i + 1}</span>
-                        <span>
-                          {i === 14 ? "👑" : isSafe ? "★" : isPassed ? "✓" : "•"}
+                        <span className="w-3.5 flex items-center justify-center shrink-0">
+                          {i === 14 ? (
+                            <Crown className="w-3.5 h-3.5" />
+                          ) : isSafe ? (
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                          ) : isPassed ? (
+                            <Check className="w-3.5 h-3.5" />
+                          ) : (
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />
+                          )}
                         </span>
-                        <span className="text-[10px] truncate opacity-80 font-semibold">
-                          {TIER_TITLES[i].replace("★ ", "").replace("👑 ", "")}
+                        <span className="text-[11px] truncate opacity-90">
+                          {stripLeadingSymbols(TIER_TITLES[i] || "")}
                         </span>
                       </span>
                       <span className="tabular-nums shrink-0">
@@ -2410,24 +3308,26 @@ export default function QuizPage() {
                       className="p-2 rounded-xl border text-center text-xs font-bold tabular-nums"
                       style={{
                         borderColor: isCurrent
-                          ? "#F59E0B"
+                          ? "var(--accent-gold)"
                           : isPassed
                           ? "#10B981"
                           : "var(--border-hairline)",
                         backgroundColor: isCurrent
-                          ? "rgba(245, 158, 11, 0.22)"
+                          ? "var(--gold-soft)"
                           : isPassed
-                          ? "rgba(16, 185, 129, 0.14)"
+                          ? "rgba(16, 185, 129, 0.12)"
                           : "var(--bg-muted)",
                         color: isCurrent
-                          ? "#FBBF24"
+                          ? "var(--accent-gold)"
                           : isPassed
-                          ? "#4ADE80"
+                          ? "#10B981"
                           : "var(--text-muted)",
                       }}
                     >
-                      <div>Q{i + 1}</div>
-                      <div className="text-[9px] opacity-75">L{q.tier}</div>
+                      <div>{i + 1}</div>
+                      <div className="text-[9px] opacity-75">
+                        {ui.tierLabel} {q.tier}
+                      </div>
                     </div>
                   );
                 })}

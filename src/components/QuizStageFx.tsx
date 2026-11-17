@@ -2,8 +2,202 @@
 
 import React, { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Award, Check, Copy, Crown, Sparkles, Trophy, X } from "lucide-react";
+import { Award, Check, Copy, Crown, Flame, Sparkles, Trophy, X } from "lucide-react";
 import { IlmRankInfo, QUIZ_MEDALS } from "@/lib/quiz-fx";
+import { useApp } from "@/lib/store";
+import type { LangCode } from "@/lib/i18n";
+
+const SANAD_UI: Record<
+  LangCode,
+  {
+    grandCrown: string;
+    sanadTitle: string;
+    wonHeading: string;
+    walkedHeading: string;
+    wrongHeading: string;
+    presentedTo: string;
+    stageLabel: string;
+    pointsLabel: string;
+    speedBonus: string;
+    streakLabel: string;
+    masteredLabel: string;
+    medalsLabel: string;
+    copied: string;
+    copySummary: string;
+    playAgain: string;
+  }
+> = {
+  en: {
+    grandCrown: "Crown of Sacred Knowledge",
+    sanadTitle: "Sanad-e-Sahib-e-Ilm",
+    wonHeading: "Taj-e-Sahib-e-Ilm Attained",
+    walkedHeading: "Honored Seeker of Knowledge",
+    wrongHeading: "Steadfast Student of Sacred Ilm",
+    presentedTo: "Presented to",
+    stageLabel: "Stages",
+    pointsLabel: "Ilm Score",
+    speedBonus: "Swift Recall",
+    streakLabel: "Peak Streak",
+    masteredLabel: "Mastered",
+    medalsLabel: "Scholarly Honors",
+    copied: "Sanad Copied",
+    copySummary: "Share Sanad",
+    playAgain: "Begin Another Session",
+  },
+  ur: {
+    grandCrown: "تاجِ صاحبِ علم",
+    sanadTitle: "سندِ صاحبِ علم",
+    wonHeading: "تاجِ صاحبِ علم سر انجام پایا",
+    walkedHeading: "معزز طالبِ علمِ دین",
+    wrongHeading: "سفرِ علمِ دین کا باہمت مسافر",
+    presentedTo: "پیش خدمت",
+    stageLabel: "مراحل",
+    pointsLabel: "علمی اسکور",
+    speedBonus: "برجستہ جواب",
+    streakLabel: "بہترین تسلسل",
+    masteredLabel: "مکمل مسائل",
+    medalsLabel: "علمی اعزازات",
+    copied: "سند کاپی ہو گئی",
+    copySummary: "سند شیئر کریں",
+    playAgain: "نئی نشست شروع کریں",
+  },
+  ar: {
+    grandCrown: "تاج صاحب العلم",
+    sanadTitle: "سند صاحب العلم",
+    wonHeading: "نلتَ تاج صاحب العلم",
+    walkedHeading: "طالب علمٍ مكرّم",
+    wrongHeading: "سالكٌ مثابر في طلب العلم",
+    presentedTo: "يُمنح إلى",
+    stageLabel: "المراحل",
+    pointsLabel: "رصيد العلم",
+    speedBonus: "سرعة البديهة",
+    streakLabel: "أعلى سلسلة",
+    masteredLabel: "المسائل المتقنة",
+    medalsLabel: "الأوسمة العلمية",
+    copied: "تم نسخ السند",
+    copySummary: "مشاركة السند",
+    playAgain: "بدء جلسة جديدة",
+  },
+  ro_ur: {
+    grandCrown: "Taj-e-Sahib-e-Ilm",
+    sanadTitle: "Sanad-e-Sahib-e-Ilm",
+    wonHeading: "Taj-e-Sahib-e-Ilm Mukammal!",
+    walkedHeading: "Muazzaz Talib-e-Ilm",
+    wrongHeading: "Ilm-e-Deen Ka Ba-Himmat Musafir",
+    presentedTo: "Pesh-e-Khidmat",
+    stageLabel: "Marahil",
+    pointsLabel: "Ilmi Score",
+    speedBonus: "Tez Jawab",
+    streakLabel: "Behtareen Silsila",
+    masteredLabel: "Masail Mukammal",
+    medalsLabel: "Ilmi Aizazaat",
+    copied: "Sanad Copy Ho Gayi",
+    copySummary: "Sanad Share Karein",
+    playAgain: "Nayi Nishast Shuru Karein",
+  },
+  hi: {
+    grandCrown: "ताज-ए-साहिब-ए-इल्म",
+    sanadTitle: "सनद-ए-साहिब-ए-इल्म",
+    wonHeading: "ताज-ए-साहिब-ए-इल्म हासिल!",
+    walkedHeading: "सम्मानित तालिब-ए-इल्म",
+    wrongHeading: "इल्म-ए-दीन का सच्चा तालिब",
+    presentedTo: "भेंट",
+    stageLabel: "चरण",
+    pointsLabel: "इल्मी स्कोर",
+    speedBonus: "तेज़ जवाब",
+    streakLabel: "सर्वश्रेष्ठ क्रम",
+    masteredLabel: "मसाइल पूर्ण",
+    medalsLabel: "इल्मी सम्मान",
+    copied: "सनद कॉपी हो गई",
+    copySummary: "सनद साझा करें",
+    playAgain: "नया सत्र शुरू करें",
+  },
+  tr: {
+    grandCrown: "Sâhib-i İlim Tacı",
+    sanadTitle: "Sâhib-i İlim İcâzeti",
+    wonHeading: "Sâhib-i İlim Tacı Kazanıldı",
+    walkedHeading: "Muhterem İlim Talebesi",
+    wrongHeading: "Azimli İlim Yolcusu",
+    presentedTo: "Takdim edilen",
+    stageLabel: "Aşamalar",
+    pointsLabel: "İlim Puanı",
+    speedBonus: "Hızlı Cevap",
+    streakLabel: "En İyi Seri",
+    masteredLabel: "Tamamlanan",
+    medalsLabel: "İlmî Nişanlar",
+    copied: "İcâzet Kopyalandı",
+    copySummary: "İcâzeti Paylaş",
+    playAgain: "Yeni Oturum Başlat",
+  },
+  bn: {
+    grandCrown: "তাজ-এ-সাহেবে ইলম",
+    sanadTitle: "সনদ-এ-সাহেবে ইলম",
+    wonHeading: "তাজ-এ-সাহেবে ইলম অর্জিত!",
+    walkedHeading: "সম্মানিত ইলম অন্বেষী",
+    wrongHeading: "ইলমে দ্বীনের অবিচল শিক্ষার্থী",
+    presentedTo: "প্রাপক",
+    stageLabel: "ধাপসমূহ",
+    pointsLabel: "ইলমি স্কোর",
+    speedBonus: "দ্রুত উত্তর",
+    streakLabel: "সর্বোচ্চ ধারা",
+    masteredLabel: "আয়ত্তকৃত মাসআলা",
+    medalsLabel: "ইলমি সম্মাননা",
+    copied: "সনদ কপি হয়েছে",
+    copySummary: "সনদ শেয়ার করুন",
+    playAgain: "নতুন পর্ব শুরু করুন",
+  },
+  fa: {
+    grandCrown: "تاج صاحب علم",
+    sanadTitle: "سند صاحب علم",
+    wonHeading: "تاج صاحب علم کسب شد",
+    walkedHeading: "طالب گرامی علم دین",
+    wrongHeading: "رهرو استوار دانش دینی",
+    presentedTo: "تقدیم به",
+    stageLabel: "مراحل",
+    pointsLabel: "امتیاز علمی",
+    speedBonus: "پاسخ سریع",
+    streakLabel: "بهترین پیوستگی",
+    masteredLabel: "مسائل آموخته",
+    medalsLabel: "نشان‌های علمی",
+    copied: "سند کپی شد",
+    copySummary: "اشتراک‌گذاری سند",
+    playAgain: "آغاز نشست تازه",
+  },
+  id: {
+    grandCrown: "Mahkota Sahib-e-Ilm",
+    sanadTitle: "Sanad Sahib-e-Ilm",
+    wonHeading: "Mahkota Sahib-e-Ilm Diraih",
+    walkedHeading: "Penuntut Ilmu Mulia",
+    wrongHeading: "Pelajar Ilmu Syar'i yang Tekun",
+    presentedTo: "Diberikan kepada",
+    stageLabel: "Tahap",
+    pointsLabel: "Skor Ilmu",
+    speedBonus: "Jawab Cepat",
+    streakLabel: "Runtunan Terbaik",
+    masteredLabel: "Masail Dikuasai",
+    medalsLabel: "Penghargaan Ilmiah",
+    copied: "Sanad Tersalin",
+    copySummary: "Bagikan Sanad",
+    playAgain: "Mulai Sesi Baru",
+  },
+  fr: {
+    grandCrown: "Couronne de Sahib-e-Ilm",
+    sanadTitle: "Sanad de Sahib-e-Ilm",
+    wonHeading: "Couronne de Sahib-e-Ilm Acquise",
+    walkedHeading: "Noble Chercheur du Savoir",
+    wrongHeading: "Étudiant Persévérant en Sciences Sacrées",
+    presentedTo: "Décerné à",
+    stageLabel: "Étapes",
+    pointsLabel: "Score d'Ilm",
+    speedBonus: "Réponse Rapide",
+    streakLabel: "Meilleure Série",
+    masteredLabel: "Questions Maîtrisées",
+    medalsLabel: "Distinctions Savantes",
+    copied: "Sanad Copié",
+    copySummary: "Partager le Sanad",
+    playAgain: "Nouvelle Session",
+  },
+};
 
 export type ParticleBurstKind = "none" | "sparkle" | "padav" | "grand_crown";
 
@@ -114,8 +308,8 @@ export function QuizConfettiCanvas({
         alive++;
         p.x += p.vx;
         p.y += p.vy;
-        p.vy += 0.19; // gravity
-        p.vx *= 0.988; // air drag
+        p.vy += 0.19;
+        p.vx *= 0.988;
         p.rotation += p.vRot;
         p.alpha -= p.decay;
 
@@ -167,35 +361,34 @@ export type StageMood =
 export function KbcStudioBeams({ mood }: { mood: StageMood }) {
   const beamColor =
     mood === "urgent" || mood === "wrong"
-      ? "rgba(239, 68, 68, 0.22)"
+      ? "rgba(239, 68, 68, 0.2)"
       : mood === "locking"
-      ? "rgba(245, 158, 11, 0.28)"
+      ? "rgba(245, 158, 11, 0.24)"
       : mood === "correct"
-      ? "rgba(16, 185, 129, 0.25)"
+      ? "rgba(16, 185, 129, 0.22)"
       : mood === "milestone"
-      ? "rgba(251, 191, 36, 0.32)"
-      : "rgba(164, 74, 255, 0.18)";
+      ? "rgba(251, 191, 36, 0.28)"
+      : "rgba(164, 74, 255, 0.14)";
 
   const secondaryBeam =
     mood === "urgent" || mood === "wrong"
-      ? "rgba(248, 113, 113, 0.14)"
+      ? "rgba(248, 113, 113, 0.12)"
       : mood === "correct"
-      ? "rgba(251, 191, 36, 0.18)"
-      : "rgba(249, 176, 145, 0.14)";
+      ? "rgba(251, 191, 36, 0.15)"
+      : "rgba(249, 176, 145, 0.12)";
 
   return (
     <div
       className="absolute inset-0 pointer-events-none overflow-hidden rounded-[inherit]"
       aria-hidden="true"
     >
-      {/* Left Sweeping KBC Spotlight Cone */}
       <motion.div
         animate={{
-          rotate: mood === "locking" ? [-14, 14, -14] : [-22, -6, -22],
-          opacity: mood === "locking" ? [0.65, 1, 0.65] : [0.45, 0.75, 0.45],
+          rotate: mood === "locking" ? [-12, 12, -12] : [-20, -6, -20],
+          opacity: mood === "locking" ? [0.55, 0.9, 0.55] : [0.35, 0.65, 0.35],
         }}
         transition={{
-          duration: mood === "locking" ? 1.4 : 7,
+          duration: mood === "locking" ? 1.5 : 8,
           repeat: Infinity,
           ease: "easeInOut",
         }}
@@ -206,14 +399,13 @@ export function KbcStudioBeams({ mood }: { mood: StageMood }) {
         className="absolute -top-10 -left-16 w-[130%] h-[130%]"
       />
 
-      {/* Right Sweeping KBC Spotlight Cone */}
       <motion.div
         animate={{
-          rotate: mood === "locking" ? [14, -14, 14] : [22, 6, 22],
-          opacity: mood === "locking" ? [0.65, 1, 0.65] : [0.45, 0.75, 0.45],
+          rotate: mood === "locking" ? [12, -12, 12] : [20, 6, 20],
+          opacity: mood === "locking" ? [0.55, 0.9, 0.55] : [0.35, 0.65, 0.35],
         }}
         transition={{
-          duration: mood === "locking" ? 1.4 : 7.5,
+          duration: mood === "locking" ? 1.5 : 8.5,
           repeat: Infinity,
           ease: "easeInOut",
         }}
@@ -224,12 +416,11 @@ export function KbcStudioBeams({ mood }: { mood: StageMood }) {
         className="absolute -top-10 -right-16 w-[130%] h-[130%]"
       />
 
-      {/* Subtle Rotating Islamic 8-Pointed Star Studio Seal */}
       <motion.svg
         animate={{ rotate: 360 }}
-        transition={{ duration: 90, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: 95, repeat: Infinity, ease: "linear" }}
         viewBox="0 0 200 200"
-        className="absolute -right-20 -bottom-20 w-72 h-72 opacity-[0.045]"
+        className="absolute -right-20 -bottom-20 w-72 h-72 opacity-[0.04]"
       >
         <rect
           x="45"
@@ -260,14 +451,13 @@ export function KbcStudioBeams({ mood }: { mood: StageMood }) {
         />
       </motion.svg>
 
-      {/* Urgent Heartbeat Crimson Edge Vignette */}
       {mood === "urgent" && (
         <motion.div
-          animate={{ opacity: [0.12, 0.42, 0.12] }}
-          transition={{ duration: 0.85, repeat: Infinity }}
+          animate={{ opacity: [0.1, 0.35, 0.1] }}
+          transition={{ duration: 0.9, repeat: Infinity }}
           className="absolute inset-0 rounded-[inherit]"
           style={{
-            boxShadow: "inset 0 0 65px rgba(239, 68, 68, 0.55)",
+            boxShadow: "inset 0 0 55px rgba(239, 68, 68, 0.45)",
           }}
         />
       )}
@@ -296,18 +486,18 @@ export function FloatingXpBursts({ items }: { items: FloatingToastItem[] }) {
           return (
             <motion.div
               key={item.id}
-              initial={{ opacity: 0, y: 24, scale: 0.82 }}
+              initial={{ opacity: 0, y: 24, scale: 0.86 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -22, scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 360, damping: 22 }}
-              className={`px-4 py-2 rounded-2xl border bg-gradient-to-r shadow-2xl ${colors}`}
+              exit={{ opacity: 0, y: -20, scale: 0.92 }}
+              transition={{ type: "spring", stiffness: 360, damping: 24 }}
+              className={`px-4 py-2 rounded-2xl border bg-gradient-to-r shadow-xl ${colors}`}
             >
-              <div className="text-xs sm:text-sm font-extrabold tracking-wide flex items-center gap-1.5">
+              <div className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 shrink-0" />
                 <span>{item.label}</span>
               </div>
               {item.sublabel && (
-                <div className="text-[10px] font-bold opacity-85">{item.sublabel}</div>
+                <div className="text-[11px] font-medium opacity-85">{item.sublabel}</div>
               )}
             </motion.div>
           );
@@ -352,129 +542,245 @@ export function SanadCertificateModal({
   copied: boolean;
   onPlayAgain: () => void;
 }) {
+  const { lang } = useApp();
   if (!open) return null;
+  const L = SANAD_UI[lang] ?? SANAD_UI.en;
 
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4"
     >
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 16 }}
+        initial={{ opacity: 0, scale: 0.94, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="max-w-xl w-full rounded-3xl border-2 p-6 sm:p-7 relative overflow-hidden shadow-2xl"
+        className="max-w-xl w-full rounded-3xl border p-6 sm:p-7 relative overflow-hidden shadow-2xl"
         style={{
-          backgroundColor: "#121931",
-          borderColor: outcome === "won" ? "#FBBF24" : "#A44AFF",
+          backgroundColor: "var(--bg-surface)",
+          borderColor:
+            outcome === "won" ? "var(--accent-gold)" : "var(--border-hairline)",
           backgroundImage:
-            "radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.16), transparent 65%)",
+            "radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent-gold) 14%, transparent), transparent 65%)",
         }}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white/80 hover:text-white cursor-pointer"
+          aria-label="Close"
+          className="absolute top-4 end-4 p-2 rounded-full transition-colors cursor-pointer"
+          style={{
+            backgroundColor: "var(--bg-elevated)",
+            color: "var(--text-secondary)",
+          }}
         >
           <X className="w-4 h-4" />
         </button>
 
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 text-[11px] font-extrabold uppercase tracking-widest">
+          <div
+            className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border text-[11px] font-semibold"
+            style={{
+              backgroundColor:
+                "color-mix(in srgb, var(--accent-gold) 12%, transparent)",
+              borderColor:
+                "color-mix(in srgb, var(--accent-gold) 35%, transparent)",
+              color: "var(--accent-gold)",
+            }}
+          >
             {outcome === "won" ? (
               <>
-                <Crown className="w-3.5 h-3.5" /> Grand Crown Sanad-e-Ilm
+                <Crown className="w-3.5 h-3.5" /> {L.grandCrown}
               </>
             ) : (
               <>
-                <Award className="w-3.5 h-3.5" /> Sanad-e-Sahib-e-Ilm
+                <Award className="w-3.5 h-3.5" /> {L.sanadTitle}
               </>
             )}
           </div>
 
-          <p className="font-arabic text-2xl text-amber-300">
+          <p
+            className="font-arabic text-2xl"
+            style={{ color: "var(--accent-gold)" }}
+          >
             بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيمِ
           </p>
-          <h3 className="text-2xl font-extrabold text-white">
+          <h3
+            className="text-2xl font-bold"
+            style={{ color: "var(--text-primary)" }}
+          >
             {outcome === "won"
-              ? "Taj-e-Sahib-e-Ilm Conquered!"
+              ? L.wonHeading
               : outcome === "walked"
-              ? "Honored Hot-Seat Scholar"
-              : "Noble Seeker of Sacred Knowledge"}
+              ? L.walkedHeading
+              : L.wrongHeading}
           </h3>
-          <p className="text-xs text-[#A19CC5]">
-            Presented to <strong className="text-white">{playerName}</strong> •{" "}
-            <span style={{ color: rank.color }} className="font-bold">
-              {rank.title} ({rank.arabicTitle})
+          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+            {L.presentedTo}{" "}
+            <strong style={{ color: "var(--text-primary)" }}>{playerName}</strong>{" "}
+            •{" "}
+            <span style={{ color: rank.color }} className="font-semibold">
+              {rank.title}{" "}
+              <span className="font-arabic">({rank.arabicTitle})</span>
             </span>
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-5">
-          <div className="p-3 rounded-2xl bg-[#091945] border border-[#242F54] text-center">
-            <div className="text-[10px] text-[#A19CC5] uppercase">Mode / Level</div>
-            <div className="text-sm font-extrabold text-white mt-0.5">
+        <div
+          className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x rounded-2xl border my-5 overflow-hidden"
+          style={{
+            backgroundColor: "var(--bg-elevated)",
+            borderColor: "var(--border-hairline)",
+          }}
+        >
+          <div
+            className="p-3.5 text-center"
+            style={{ borderColor: "var(--border-hairline)" }}
+          >
+            <div
+              className="text-[11px]"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {L.stageLabel}
+            </div>
+            <div
+              className="text-base font-bold mt-0.5 tabular-nums"
+              style={{ color: "var(--text-primary)" }}
+            >
               {answeredCount}/{totalSteps}
             </div>
-            <div className="text-[10px] text-[#DF98FA] truncate">{modeLabel}</div>
+            <div
+              className="text-[11px] truncate"
+              style={{ color: "var(--accent-primary)" }}
+            >
+              {modeLabel}
+            </div>
           </div>
-          <div className="p-3 rounded-2xl bg-[#091945] border border-[#242F54] text-center">
-            <div className="text-[10px] text-[#A19CC5] uppercase">Ilm XP Banked</div>
-            <div className="text-sm font-extrabold text-amber-300 mt-0.5 tabular-nums">
+
+          <div
+            className="p-3.5 text-center"
+            style={{ borderColor: "var(--border-hairline)" }}
+          >
+            <div
+              className="text-[11px]"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {L.pointsLabel}
+            </div>
+            <div
+              className="text-base font-bold mt-0.5 tabular-nums"
+              style={{ color: "var(--accent-gold)" }}
+            >
               +{bankedXp.toLocaleString()}
             </div>
-            <div className="text-[10px] text-emerald-400">
-              +{speedBonusXp.toLocaleString()} Speed XP
+            <div
+              className="text-[11px] tabular-nums"
+              style={{ color: "var(--accent-emerald)" }}
+            >
+              +{speedBonusXp.toLocaleString()} {L.speedBonus}
             </div>
           </div>
-          <div className="p-3 rounded-2xl bg-[#091945] border border-[#242F54] text-center">
-            <div className="text-[10px] text-[#A19CC5] uppercase">Peak Streak</div>
-            <div className="text-sm font-extrabold text-orange-300 mt-0.5">
-              🔥 {peakStreak}x
+
+          <div
+            className="p-3.5 text-center"
+            style={{ borderColor: "var(--border-hairline)" }}
+          >
+            <div
+              className="text-[11px]"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {L.streakLabel}
             </div>
-            <div className="text-[10px] text-[#A19CC5]">Noor Combo</div>
+            <div
+              className="text-base font-bold mt-0.5 inline-flex items-center justify-center gap-1 tabular-nums"
+              style={{ color: "var(--accent-gold)" }}
+            >
+              <Flame className="w-4 h-4" /> {peakStreak}x
+            </div>
           </div>
-          <div className="p-3 rounded-2xl bg-[#091945] border border-[#242F54] text-center">
-            <div className="text-[10px] text-[#A19CC5] uppercase">Vault Mastered</div>
-            <div className="text-sm font-extrabold text-sky-300 mt-0.5">
+
+          <div
+            className="p-3.5 text-center"
+            style={{ borderColor: "var(--border-hairline)" }}
+          >
+            <div
+              className="text-[11px]"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {L.masteredLabel}
+            </div>
+            <div
+              className="text-base font-bold mt-0.5 tabular-nums"
+              style={{ color: "var(--text-primary)" }}
+            >
               {masteredCount}/300
             </div>
-            <div className="text-[10px] text-[#A19CC5]">Unique Masa&apos;il</div>
           </div>
         </div>
 
         {unlockedMedals.length > 0 && (
           <div className="mb-5">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-[#A19CC5] mb-2 text-center">
-              Earned Scholarly Medals ({unlockedMedals.length}/{QUIZ_MEDALS.length})
+            <div
+              className="text-xs font-semibold mb-2 text-center"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {L.medalsLabel} ({unlockedMedals.length}/{QUIZ_MEDALS.length})
             </div>
             <div className="flex flex-wrap justify-center gap-1.5">
-              {QUIZ_MEDALS.filter((m) => unlockedMedals.includes(m.id)).map((m) => (
-                <span
-                  key={m.id}
-                  className="px-2.5 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-xs font-semibold text-amber-200 flex items-center gap-1"
-                >
-                  <span>{m.badgeEmoji}</span>
-                  <span>{m.title}</span>
-                </span>
-              ))}
+              {QUIZ_MEDALS.filter((m) => unlockedMedals.includes(m.id)).map(
+                (m) => (
+                  <span
+                    key={m.id}
+                    className="px-3 py-1 rounded-full border text-xs font-medium inline-flex items-center gap-1.5"
+                    style={{
+                      backgroundColor:
+                        "color-mix(in srgb, var(--accent-gold) 10%, transparent)",
+                      borderColor:
+                        "color-mix(in srgb, var(--accent-gold) 30%, transparent)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    <Award
+                      className="w-3.5 h-3.5 shrink-0"
+                      style={{ color: "var(--accent-gold)" }}
+                    />
+                    <span>{m.title}</span>
+                  </span>
+                )
+              )}
             </div>
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#242F54]">
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t"
+          style={{ borderColor: "var(--border-hairline)" }}
+        >
           <button
             type="button"
             onClick={onCopyShare}
-            className="px-4 py-2.5 rounded-xl bg-[#091945] border border-[#242F54] text-xs font-bold text-white hover:border-[#A44AFF] inline-flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+            style={{
+              backgroundColor: "var(--bg-elevated)",
+              borderColor: "var(--border-hairline)",
+              color: "var(--text-primary)",
+            }}
           >
             {copied ? (
               <>
-                <Check className="w-4 h-4 text-emerald-400" /> Sanad Copied!
+                <Check
+                  className="w-4 h-4"
+                  style={{ color: "var(--accent-emerald)" }}
+                />{" "}
+                {L.copied}
               </>
             ) : (
               <>
-                <Copy className="w-4 h-4 text-[#DF98FA]" /> Copy Sanad Summary
+                <Copy
+                  className="w-4 h-4"
+                  style={{ color: "var(--accent-primary)" }}
+                />{" "}
+                {L.copySummary}
               </>
             )}
           </button>
@@ -484,9 +790,9 @@ export function SanadCertificateModal({
               onClose();
               onPlayAgain();
             }}
-            className="btn-primary px-5 py-2.5 rounded-xl text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+            className="btn-primary px-5 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
           >
-            <Trophy className="w-4 h-4" /> New Randomized Hot-Seat Run
+            <Trophy className="w-4 h-4" /> {L.playAgain}
           </button>
         </div>
       </motion.div>

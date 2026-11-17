@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   BookOpen,
   Play,
@@ -14,11 +15,14 @@ import {
   Search,
   Bookmark,
   Share2,
+  Copy,
+  Check,
   ListMusic,
   Loader2,
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   SlidersHorizontal,
   AlignJustify,
   SkipBack,
@@ -27,6 +31,7 @@ import {
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { assetUrl } from "@/lib/assets";
+import { LangCode, t, tp } from "@/lib/i18n";
 import {
   HANAFI_SAJDA_ITEMS,
   HANAFI_SAJDA_REFS,
@@ -81,10 +86,672 @@ interface DisplayAyah {
   kanzulImanHindi?: string;
   khazainUlIrfanNote?: string;
   hanafiSajda: boolean;
-  shafiiOnlySajdaNote?: string;
   audioUrl: string;
-  sha256: string;
 }
+
+interface QuranUiStrings {
+  surahView: string;
+  mushaf604: string;
+  highlights: string;
+  settings: string;
+  audio: string;
+  playSurah: string;
+  pause: string;
+  listen: string;
+  jumpToPage: string;
+  translation: string;
+  transliteration: string;
+  tajweed: string;
+  script: string;
+  indoPak: string;
+  uthmani: string;
+  on: string;
+  off: string;
+  autoNext: string;
+  loop: string;
+  sleep: string;
+  copy: string;
+  copied: string;
+  share: string;
+  bookmark: string;
+  sajdaCompleted: string;
+  deferSajda: string;
+  markDone: string;
+  paperNight: string;
+  paperCream: string;
+  searchPlaceholder: string;
+  loadingQuran: string;
+  corpusError: string;
+  audioUnavailable: string;
+  dismiss: string;
+  nextPage: string;
+  prevPage: string;
+  nextSurah: string;
+  sajdaCount: string;
+  wajibSajda: string;
+  sajdaDoneBanner: string;
+  sajdaDeferredBanner: string;
+  sajdaPromptBanner: string;
+  sajdaDrawerTitle: string;
+  deferredQueue: string;
+  tafsirNote: string;
+  hideTafsir: string;
+  showTranslation: string;
+  hideTranslation: string;
+  urduToggle: string;
+  englishToggle: string;
+  kanzulImanUr: string;
+  kanzulImanEn: string;
+  kanzulImanHi: string;
+  kanzulImanRoUr: string;
+  pageTarjuma: string;
+  hizb: string;
+  done: string;
+  logAction: string;
+}
+
+const QURAN_UI: Record<LangCode, QuranUiStrings> = {
+  en: {
+    surahView: "Surah View",
+    mushaf604: "Mushaf 604p",
+    highlights: "Highlights & Sajda",
+    settings: "Settings",
+    audio: "Audio",
+    playSurah: "Play Surah",
+    pause: "Pause",
+    listen: "Listen",
+    jumpToPage: "Jump to Page",
+    translation: "Translation",
+    transliteration: "Transliteration",
+    tajweed: "Tajweed",
+    script: "Script",
+    indoPak: "Indo-Pak",
+    uthmani: "Uthmani",
+    on: "On",
+    off: "Off",
+    autoNext: "Auto-Next",
+    loop: "Loop",
+    sleep: "Sleep",
+    copy: "Copy",
+    copied: "Copied",
+    share: "Share",
+    bookmark: "Bookmark",
+    sajdaCompleted: "Sajda Completed",
+    deferSajda: "Defer Sajda",
+    markDone: "Mark Done",
+    paperNight: "Paper: Night",
+    paperCream: "Paper: Cream",
+    searchPlaceholder: "Search verse number or translation…",
+    loadingQuran: "Opening the Noble Mushaf…",
+    corpusError: "Could not load the 604-page Mushaf dataset.",
+    audioUnavailable: "Audio recitation is temporarily unavailable.",
+    dismiss: "Dismiss",
+    nextPage: "Next Page",
+    prevPage: "Prev Page",
+    nextSurah: "Next Surah",
+    sajdaCount: "Sajdas",
+    wajibSajda: "Wajib Sajda",
+    sajdaDoneBanner: "Alhamdulillah — Sajda-e-Tilawat completed.",
+    sajdaDeferredBanner: "Saved to your Sajda reminder queue.",
+    sajdaPromptBanner: "Wajib Sajda-e-Tilawat (Hanafi): Perform one Sajdah facing Qibla.",
+    sajdaDrawerTitle: "14 Wajib Sajda-e-Tilawat Verses",
+    deferredQueue: "Deferred Sajda Queue",
+    tafsirNote: "Khazain-ul-Irfan Commentary",
+    hideTafsir: "Hide Commentary",
+    showTranslation: "Show Translation",
+    hideTranslation: "Hide Translation",
+    urduToggle: "Urdu (کنزالایمان)",
+    englishToggle: "English (Kanzul Iman)",
+    kanzulImanUr: "Kanzul Iman (Urdu — Imam Ahmad Raza Khan)",
+    kanzulImanEn: "Kanzul Iman (English)",
+    kanzulImanHi: "Kanzul Iman (Hindi)",
+    kanzulImanRoUr: "Kanzul Iman (Roman Urdu)",
+    pageTarjuma: "Kanzul Iman Page Translation",
+    hizb: "Hizb",
+    done: "Done",
+    logAction: "Log",
+  },
+  ur: {
+    surahView: "سورۃ مطالعہ",
+    mushaf604: "مصحف ۶۰۴ ص",
+    highlights: "منتخب و سجدہ",
+    settings: "ترتیبات",
+    audio: "تلاوت",
+    playSurah: "تلاوتِ سورۃ",
+    pause: "روکیں",
+    listen: "سنیں",
+    jumpToPage: "صفحہ منتخب کریں",
+    translation: "ترجمہ",
+    transliteration: "تلفظ",
+    tajweed: "تجوید",
+    script: "رسم الخط",
+    indoPak: "برصغیر (انڈو پاک)",
+    uthmani: "عثمانی",
+    on: "فعال",
+    off: "غیر فعال",
+    autoNext: "مسلسل تلاوت",
+    loop: "تکرار",
+    sleep: "ٹائمر",
+    copy: "کاپی",
+    copied: "کاپی ہو گیا",
+    share: "شیئر",
+    bookmark: "نشان زد",
+    sajdaCompleted: "سجدہ مکمل",
+    deferSajda: "یاد دہانی میں رکھیں",
+    markDone: "ادا ہو گیا",
+    paperNight: "کاغذ: شب",
+    paperCream: "کاغذ: کریم",
+    searchPlaceholder: "آیت نمبر یا ترجمہ کنزالایمان تلاش کریں…",
+    loadingQuran: "قرآنِ مجید لوڈ ہو رہا ہے…",
+    corpusError: "۶۰۴ صفحات کا مصحف لوڈ نہیں ہو سکا۔",
+    audioUnavailable: "تلاوت کی آڈیو اس وقت دستیاب نہیں۔",
+    dismiss: "بند کریں",
+    nextPage: "اگلا صفحہ",
+    prevPage: "پچھلا صفحہ",
+    nextSurah: "اگلی سورۃ",
+    sajdaCount: "سجدے",
+    wajibSajda: "سجدۂ تلاوت واجب",
+    sajdaDoneBanner: "الحمد للہ — سجدۂ تلاوت ادا ہو چکا ہے۔",
+    sajdaDeferredBanner: "آپ کی سجدہ یاد دہانی فہرست میں محفوظ ہے۔",
+    sajdaPromptBanner: "فقہِ حنفی: اس آیت کی تلاوت یا سماع پر رو بہ قبلہ ایک سجدہ واجب ہے۔",
+    sajdaDrawerTitle: "۱۴ واجب آیاتِ سجدۂ تلاوت",
+    deferredQueue: "باقی سجدہ ہائے تلاوت",
+    tafsirNote: "حاشیہ خزائن العرفان",
+    hideTafsir: "حاشیہ چھپائیں",
+    showTranslation: "ترجمہ دکھائیں",
+    hideTranslation: "ترجمہ چھپائیں",
+    urduToggle: "اردو (کنزالایمان)",
+    englishToggle: "انگریزی ترجمہ",
+    kanzulImanUr: "ترجمہ کنزالایمان (اعلیٰ حضرت امام احمد رضا خان)",
+    kanzulImanEn: "کنزالایمان (انگریزی)",
+    kanzulImanHi: "کنزالایمان (ہندی)",
+    kanzulImanRoUr: "کنزالایمان (رومن اردو)",
+    pageTarjuma: "ترجمہ کنزالایمان (مکمل صفحہ)",
+    hizb: "حزب",
+    done: "مکمل",
+    logAction: "درج کریں",
+  },
+  ar: {
+    surahView: "عرض السورة",
+    mushaf604: "المصحف ٦٠٤ ص",
+    highlights: "المختارات والسجدة",
+    settings: "الإعدادات",
+    audio: "التلاوة",
+    playSurah: "تلاوة السورة",
+    pause: "إيقاف مؤقت",
+    listen: "استماع",
+    jumpToPage: "انتقال إلى صفحة",
+    translation: "الترجمة",
+    transliteration: "النطق اللاتيني",
+    tajweed: "التجويد",
+    script: "الرسم",
+    indoPak: "الهندي والباكستاني",
+    uthmani: "الرسم العثماني",
+    on: "مفعل",
+    off: "معطل",
+    autoNext: "تلقائي",
+    loop: "تكرار",
+    sleep: "مؤقت النوم",
+    copy: "نسخ",
+    copied: "تم النسخ",
+    share: "مشاركة",
+    bookmark: "حفظ العلامة",
+    sajdaCompleted: "تمت السجدة",
+    deferSajda: "تأجيل السجدة",
+    markDone: "تسجيل الأداء",
+    paperNight: "الورق: ليلي",
+    paperCream: "الورق: كريمي",
+    searchPlaceholder: "ابحث برقم الآية أو النص…",
+    loadingQuran: "جارٍ فتح المصحف الشريف…",
+    corpusError: "تعذر تحميل بيانات المصحف الشريف (٦٠٤ صفحات).",
+    audioUnavailable: "التلاوة الصوتية غير متاحة حالياً.",
+    dismiss: "إغلاق",
+    nextPage: "الصفحة التالية",
+    prevPage: "الصفحة السابقة",
+    nextSurah: "السورة التالية",
+    sajdaCount: "السجدات",
+    wajibSajda: "سجدة تلاوة واجبة",
+    sajdaDoneBanner: "الحمد لله — تم أداء سجدة التلاوة.",
+    sajdaDeferredBanner: "تم الحفظ في قائمة تذكير السجدات.",
+    sajdaPromptBanner: "الفقه الحنفي: تجب سجدة التلاوة عند قراءة أو سماع هذه الآية.",
+    sajdaDrawerTitle: "آيات سجدة التلاوة الـ ١٤ الواجبة",
+    deferredQueue: "سجدات مؤجلة للأداء",
+    tafsirNote: "حاشية خزائن العرفان",
+    hideTafsir: "إخفاء الحاشية",
+    showTranslation: "إظهار الترجمة",
+    hideTranslation: "إخفاء الترجمة",
+    urduToggle: "الأردية (كنز الإيمان)",
+    englishToggle: "الإنجليزية (كنز الإيمان)",
+    kanzulImanUr: "كنز الإيمان (الأردية)",
+    kanzulImanEn: "كنز الإيمان (الإنجليزية)",
+    kanzulImanHi: "كنز الإيمان (الهندية)",
+    kanzulImanRoUr: "كنز الإيمان (الأردية اللاتينية)",
+    pageTarjuma: "ترجمة معاني الصفحة",
+    hizb: "الحزب",
+    done: "تم",
+    logAction: "تسجيل",
+  },
+  ro_ur: {
+    surahView: "Surah View",
+    mushaf604: "Mushaf 604p",
+    highlights: "Muntakhab & Sajda",
+    settings: "Settings",
+    audio: "Tilawat",
+    playSurah: "Surah Sunein",
+    pause: "Rokein",
+    listen: "Sunein",
+    jumpToPage: "Safha par jayein",
+    translation: "Tarjuma",
+    transliteration: "Talaffuz",
+    tajweed: "Tajweed",
+    script: "Rasm-ul-Khat",
+    indoPak: "Indo-Pak",
+    uthmani: "Uthmani",
+    on: "On",
+    off: "Off",
+    autoNext: "Auto-Agla",
+    loop: "Dohrayein",
+    sleep: "Sleep Timer",
+    copy: "Copy",
+    copied: "Copy Ho Gaya",
+    share: "Share",
+    bookmark: "Nishani",
+    sajdaCompleted: "Sajda Mukammal",
+    deferSajda: "Baad Mein",
+    markDone: "Ada Ho Gaya",
+    paperNight: "Kaghaz: Night",
+    paperCream: "Kaghaz: Cream",
+    searchPlaceholder: "Ayat number ya tarjuma talash karein…",
+    loadingQuran: "Quran-e-Pak khul raha hai…",
+    corpusError: "604-safha Mushaf load nahi ho saka.",
+    audioUnavailable: "Audio tilawat dastiyab nahi hai.",
+    dismiss: "Hataein",
+    nextPage: "Agla Safha",
+    prevPage: "Pichla Safha",
+    nextSurah: "Agli Surah",
+    sajdaCount: "Sajde",
+    wajibSajda: "Wajib Sajda",
+    sajdaDoneBanner: "Alhamdulillah — Sajda-e-Tilawat ada ho gaya.",
+    sajdaDeferredBanner: "Sajda yad-dihani fehrist mein mehfooz.",
+    sajdaPromptBanner: "Hanafi Fiqh: Qibla rukh ek Sajda-e-Tilawat wajib hai.",
+    sajdaDrawerTitle: "14 Wajib Sajda-e-Tilawat Aayaat",
+    deferredQueue: "Baqi Sajda Fehrist",
+    tafsirNote: "Khazain-ul-Irfan Hashiya",
+    hideTafsir: "Hashiya Chhupayein",
+    showTranslation: "Tarjuma Dikhayein",
+    hideTranslation: "Tarjuma Chhupayein",
+    urduToggle: "Urdu (کنزالایمان)",
+    englishToggle: "English (Kanzul Iman)",
+    kanzulImanUr: "Kanzul Iman (Urdu — Ala Hazrat)",
+    kanzulImanEn: "Kanzul Iman (English)",
+    kanzulImanHi: "Kanzul Iman (Hindi)",
+    kanzulImanRoUr: "Kanzul Iman (Roman Urdu)",
+    pageTarjuma: "Safha Tarjuma (Kanzul Iman)",
+    hizb: "Hizb",
+    done: "Mukammal",
+    logAction: "Darj",
+  },
+  hi: {
+    surahView: "सूरह दृश्य",
+    mushaf604: "मुसहफ़ 604 पृ.",
+    highlights: "चयनित व सजदा",
+    settings: "सेटिंग्स",
+    audio: "तिलावत",
+    playSurah: "सूरह सुनें",
+    pause: "रोकें",
+    listen: "सुनें",
+    jumpToPage: "पृष्ठ पर जाएं",
+    translation: "अनुवाद",
+    transliteration: "उच्चारण",
+    tajweed: "तजवीद",
+    script: "लिपि",
+    indoPak: "इंडो-पाक",
+    uthmani: "उस्मानी",
+    on: "चालू",
+    off: "बंद",
+    autoNext: "ऑटो-अगला",
+    loop: "दोहराएं",
+    sleep: "स्लीप टाइमर",
+    copy: "कॉपी",
+    copied: "कॉपी हो गया",
+    share: "साझा करें",
+    bookmark: "बुकमार्क",
+    sajdaCompleted: "सजदा पूर्ण",
+    deferSajda: "बाद में याद दिलाएं",
+    markDone: "पूर्ण चिह्नित करें",
+    paperNight: "पृष्ठ: नाइट",
+    paperCream: "पृष्ठ: क्रीम",
+    searchPlaceholder: "आयत संख्या या अनुवाद खोजें…",
+    loadingQuran: "पवित्र क़ुरआन लोड हो रहा है…",
+    corpusError: "604 पृष्ठ का मुसहफ़ लोड नहीं हो सका।",
+    audioUnavailable: "ऑडियो तिलावत अभी उपलब्ध नहीं है।",
+    dismiss: "बंद करें",
+    nextPage: "अगला पृष्ठ",
+    prevPage: "पिछला पृष्ठ",
+    nextSurah: "अगली सूरह",
+    sajdaCount: "सजदे",
+    wajibSajda: "वाजिब सजदा",
+    sajdaDoneBanner: "अलहम्दुलिल्लाह — सजदा-ए-तिलावत पूरा हुआ।",
+    sajdaDeferredBanner: "आपकी सजदा अनुस्मारक सूची में सहेजा गया।",
+    sajdaPromptBanner: "हनफ़ी फ़िक़्ह: क़िबला रुख़ एक सजदा-ए-तिलावत वाजिब है।",
+    sajdaDrawerTitle: "14 वाजिब सजदा-ए-तिलावत आयतें",
+    deferredQueue: "लंबित सजदा सूची",
+    tafsirNote: "ख़ज़ाइनुल इरफ़ान टिप्पणी",
+    hideTafsir: "टिप्पणी छुपाएं",
+    showTranslation: "अनुवाद दिखाएं",
+    hideTranslation: "अनुवाद छुपाएं",
+    urduToggle: "उर्दू (کنزالایمان)",
+    englishToggle: "अंग्रेज़ी (Kanzul Iman)",
+    kanzulImanUr: "कन्ज़ुल ईमान (उर्दू)",
+    kanzulImanEn: "कन्ज़ुल ईमान (अंग्रेज़ी)",
+    kanzulImanHi: "कन्ज़ुल ईमान (हिन्दी)",
+    kanzulImanRoUr: "कन्ज़ुल ईमान (रोमन उर्दू)",
+    pageTarjuma: "कन्ज़ुल ईमान पृष्ठ अनुवाद",
+    hizb: "हिज़्ब",
+    done: "पूर्ण",
+    logAction: "दर्ज करें",
+  },
+  tr: {
+    surahView: "Sûre Görünümü",
+    mushaf604: "Mushaf 604s",
+    highlights: "Seçmeler ve Secde",
+    settings: "Ayarlar",
+    audio: "Ses",
+    playSurah: "Sûreyi Dinle",
+    pause: "Duraklat",
+    listen: "Dinle",
+    jumpToPage: "Sayfaya Git",
+    translation: "Meal",
+    transliteration: "Okunuş",
+    tajweed: "Tecvid",
+    script: "Hat",
+    indoPak: "Hint-Pak",
+    uthmani: "Osmanî",
+    on: "Açık",
+    off: "Kapalı",
+    autoNext: "Otomatik Geçiş",
+    loop: "Tekrar",
+    sleep: "Uyku",
+    copy: "Kopyala",
+    copied: "Kopyalandı",
+    share: "Paylaş",
+    bookmark: "Yer İmi",
+    sajdaCompleted: "Secde Yapıldı",
+    deferSajda: "Sonra Hatırlat",
+    markDone: "Tamamlandı",
+    paperNight: "Sayfa: Gece",
+    paperCream: "Sayfa: Krem",
+    searchPlaceholder: "Âyet numarası veya meal ara…",
+    loadingQuran: "Kur'ân-ı Kerîm yükleniyor…",
+    corpusError: "604 sayfalık Mushaf verisi yüklenemedi.",
+    audioUnavailable: "Sesli tilavet şu anda kullanılamıyor.",
+    dismiss: "Kapat",
+    nextPage: "Sonraki Sayfa",
+    prevPage: "Önceki Sayfa",
+    nextSurah: "Sonraki Sûre",
+    sajdaCount: "Secdeler",
+    wajibSajda: "Vacip Secde",
+    sajdaDoneBanner: "Elhamdülillah — Tilavet secdesi tamamlandı.",
+    sajdaDeferredBanner: "Tilavet secdesi hatırlatma listesine eklendi.",
+    sajdaPromptBanner: "Hanefî Fıkhı: Kıbleye yönelerek 1 tilavet secdesi vaciptir.",
+    sajdaDrawerTitle: "14 Vacip Tilavet Secdesi Âyeti",
+    deferredQueue: "Bekleyen Secdeler",
+    tafsirNote: "Hazâinü'l-İrfân Notu",
+    hideTafsir: "Notu Gizle",
+    showTranslation: "Meali Göster",
+    hideTranslation: "Meali Gizle",
+    urduToggle: "Urduca (کنزالایمان)",
+    englishToggle: "İngilizce (Kanzul Iman)",
+    kanzulImanUr: "Kenzü'l-İman (Urduca)",
+    kanzulImanEn: "Kenzü'l-İman (İngilizce)",
+    kanzulImanHi: "Kenzü'l-İman (Hintçe)",
+    kanzulImanRoUr: "Kenzü'l-İman (Latin Urduca)",
+    pageTarjuma: "Sayfa Meali (Kenzü'l-İman)",
+    hizb: "Hizb",
+    done: "Tamam",
+    logAction: "Kaydet",
+  },
+  bn: {
+    surahView: "সূরা ভিউ",
+    mushaf604: "মুসহাফ ৬০৪ পৃ.",
+    highlights: "নির্বাচিত ও সিজদা",
+    settings: "সেটিংস",
+    audio: "তিলাওয়াত",
+    playSurah: "সূরা শুনুন",
+    pause: "বিরতি",
+    listen: "শুনুন",
+    jumpToPage: "পৃষ্ঠায় যান",
+    translation: "অনুবাদ",
+    transliteration: "উচ্চারণ",
+    tajweed: "তাজবিদ",
+    script: "লিপি",
+    indoPak: "ইন্দো-পাক",
+    uthmani: "উসমানী",
+    on: "চালু",
+    off: "বন্ধ",
+    autoNext: "স্বয়ংক্রিয়",
+    loop: "পুনরাবৃত্তি",
+    sleep: "স্লিপ টাইমার",
+    copy: "কপি",
+    copied: "কপি হয়েছে",
+    share: "শেয়ার",
+    bookmark: "বুকমার্ক",
+    sajdaCompleted: "সিজদা সম্পন্ন",
+    deferSajda: "পরে মনে করান",
+    markDone: "সম্পন্ন করুন",
+    paperNight: "কাগজ: রাত",
+    paperCream: "কাগজ: ক্রিম",
+    searchPlaceholder: "আয়াত নম্বর বা অনুবাদ খুঁজুন…",
+    loadingQuran: "পবিত্র কুরআন লোড হচ্ছে…",
+    corpusError: "৬০৪ পৃষ্ঠার মুসহাফ লোড করা যায়নি।",
+    audioUnavailable: "অডিও তিলাওয়াত বর্তমানে পাওয়া যাচ্ছে না।",
+    dismiss: "বন্ধ করুন",
+    nextPage: "পরবর্তী পৃষ্ঠা",
+    prevPage: "পূর্ববর্তী পৃষ্ঠা",
+    nextSurah: "পরবর্তী সূরা",
+    sajdaCount: "সিজদা",
+    wajibSajda: "ওয়াজিব সিজদা",
+    sajdaDoneBanner: "আলহামদুলিল্লাহ — সিজদায়ে তিলাওয়াত সম্পন্ন হয়েছে।",
+    sajdaDeferredBanner: "সিজদা রিমাইন্ডার তালিকায় সংরক্ষিত হয়েছে।",
+    sajdaPromptBanner: "হানাফি ফিকহ: কিবলামুখী হয়ে ১টি সিজদায়ে তিলাওয়াত ওয়াজিব।",
+    sajdaDrawerTitle: "১৪টি ওয়াজিব সিজদায়ে তিলাওয়াত আয়াত",
+    deferredQueue: "বাকি সিজদার তালিকা",
+    tafsirNote: "খাযাইনুল ইরফান টীকা",
+    hideTafsir: "টীকা লুকান",
+    showTranslation: "অনুবাদ দেখান",
+    hideTranslation: "অনুবাদ লুকান",
+    urduToggle: "উর্দু (کنزالایمان)",
+    englishToggle: "ইংরেজি (Kanzul Iman)",
+    kanzulImanUr: "কানযুল ঈমান (উর্দু)",
+    kanzulImanEn: "কানযুল ঈমান (ইংরেজি)",
+    kanzulImanHi: "কানযুল ঈমান (হিন্দি)",
+    kanzulImanRoUr: "কানযুল ঈমান (রোমান উর্দু)",
+    pageTarjuma: "পৃষ্ঠার অনুবাদ (কানযুল ঈমান)",
+    hizb: "হিযব",
+    done: "সম্পন্ন",
+    logAction: "নথিভুক্ত",
+  },
+  fa: {
+    surahView: "نمای سوره",
+    mushaf604: "مصحف ۶۰۴ ص",
+    highlights: "برگزیده و سجده",
+    settings: "تنظیمات",
+    audio: "صوت",
+    playSurah: "پخش سوره",
+    pause: "مکث",
+    listen: "شنیدن",
+    jumpToPage: "رفتن به صفحه",
+    translation: "ترجمه",
+    transliteration: "آوانگاری",
+    tajweed: "تجوید",
+    script: "رسم‌الخط",
+    indoPak: "شبه‌قاره",
+    uthmani: "عثمانی",
+    on: "فعال",
+    off: "غیرفعال",
+    autoNext: "پخش پیوسته",
+    loop: "تکرار",
+    sleep: "خواب",
+    copy: "کپی",
+    copied: "کپی شد",
+    share: "اشتراک",
+    bookmark: "نشان‌گذاری",
+    sajdaCompleted: "سجده انجام شد",
+    deferSajda: "یادآوری بعدی",
+    markDone: "ثبت انجام",
+    paperNight: "کاغذ: شب",
+    paperCream: "کاغذ: کرم",
+    searchPlaceholder: "جستجوی شماره آیه یا متن ترجمه…",
+    loadingQuran: "در حال گشودن مصحف شریف…",
+    corpusError: "بارگذاری مصحف ۶۰۴ صفحه‌ای ممکن نشد.",
+    audioUnavailable: "فایل صوتی تلاوت در دسترس نیست.",
+    dismiss: "بستن",
+    nextPage: "صفحه بعد",
+    prevPage: "صفحه قبل",
+    nextSurah: "سوره بعدی",
+    sajdaCount: "سجده‌ها",
+    wajibSajda: "سجده تلاوت واجب",
+    sajdaDoneBanner: "الحمدلله — سجده تلاوت به جا آورده شد.",
+    sajdaDeferredBanner: "در فهرست یادآوری سجده ذخیره شد.",
+    sajdaPromptBanner: "فقه حنفی: یک سجده تلاوت رو به قبله واجب است.",
+    sajdaDrawerTitle: "۱۴ آیه واجب سجده تلاوت",
+    deferredQueue: "سجده‌های معوقه",
+    tafsirNote: "حاشیه خزائن‌العرفان",
+    hideTafsir: "پنهان کردن حاشیه",
+    showTranslation: "نمایش ترجمه",
+    hideTranslation: "پنهان کردن ترجمه",
+    urduToggle: "اردو (کنزالایمان)",
+    englishToggle: "انگلیسی (Kanzul Iman)",
+    kanzulImanUr: "کنزالایمان (اردو — امام احمد رضا خان)",
+    kanzulImanEn: "کنزالایمان (انگلیسی)",
+    kanzulImanHi: "کنزالایمان (هندی)",
+    kanzulImanRoUr: "کنزالایمان (اردوی لاتین)",
+    pageTarjuma: "ترجمه آیات صفحه",
+    hizb: "حزب",
+    done: "انجام شد",
+    logAction: "ثبت",
+  },
+  id: {
+    surahView: "Tampilan Surah",
+    mushaf604: "Mushaf 604h",
+    highlights: "Pilihan & Sajdah",
+    settings: "Pengaturan",
+    audio: "Audio",
+    playSurah: "Putar Surah",
+    pause: "Jeda",
+    listen: "Dengar",
+    jumpToPage: "Ke Halaman",
+    translation: "Terjemahan",
+    transliteration: "Transliterasi",
+    tajweed: "Tajwid",
+    script: "Rasm",
+    indoPak: "Indo-Pak",
+    uthmani: "Utsmani",
+    on: "Aktif",
+    off: "Nonaktif",
+    autoNext: "Otomatis Lanjut",
+    loop: "Ulangi",
+    sleep: "Tidur",
+    copy: "Salin",
+    copied: "Tersalin",
+    share: "Bagikan",
+    bookmark: "Markah",
+    sajdaCompleted: "Sajdah Selesai",
+    deferSajda: "Tunda Sajdah",
+    markDone: "Tandai Selesai",
+    paperNight: "Kertas: Malam",
+    paperCream: "Kertas: Krem",
+    searchPlaceholder: "Cari nomor ayat atau terjemahan…",
+    loadingQuran: "Membuka Mushaf Al-Qur'an…",
+    corpusError: "Gagal memuat data Mushaf 604 halaman.",
+    audioUnavailable: "Audio murottal sedang tidak tersedia.",
+    dismiss: "Tutup",
+    nextPage: "Hal. Berikut",
+    prevPage: "Hal. Sebelum",
+    nextSurah: "Surah Berikutnya",
+    sajdaCount: "Sajdah",
+    wajibSajda: "Sajdah Wajib",
+    sajdaDoneBanner: "Alhamdulillah — Sajdah Tilawah telah ditunaikan.",
+    sajdaDeferredBanner: "Disimpan ke daftar pengingat Sajdah Anda.",
+    sajdaPromptBanner: "Fiqih Hanafi: Wajib melakukan 1 sujud tilawah menghadap Kiblat.",
+    sajdaDrawerTitle: "14 Ayat Sajdah Tilawah Wajib",
+    deferredQueue: "Antrean Sajdah Tertunda",
+    tafsirNote: "Catatan Khazain-ul-Irfan",
+    hideTafsir: "Sembunyikan Catatan",
+    showTranslation: "Tampilkan Terjemahan",
+    hideTranslation: "Sembunyikan Terjemahan",
+    urduToggle: "Urdu (کنزالایمان)",
+    englishToggle: "Inggris (Kanzul Iman)",
+    kanzulImanUr: "Kanzul Iman (Urdu)",
+    kanzulImanEn: "Kanzul Iman (Inggris)",
+    kanzulImanHi: "Kanzul Iman (Hindi)",
+    kanzulImanRoUr: "Kanzul Iman (Urdu Latin)",
+    pageTarjuma: "Terjemahan Halaman (Kanzul Iman)",
+    hizb: "Hizb",
+    done: "Selesai",
+    logAction: "Catat",
+  },
+  fr: {
+    surahView: "Vue Sourate",
+    mushaf604: "Moushaf 604p",
+    highlights: "Sélection & Sajda",
+    settings: "Paramètres",
+    audio: "Audio",
+    playSurah: "Écouter la Sourate",
+    pause: "Pause",
+    listen: "Écouter",
+    jumpToPage: "Aller à la page",
+    translation: "Traduction",
+    transliteration: "Translittération",
+    tajweed: "Tajwid",
+    script: "Graphie",
+    indoPak: "Indo-Pak",
+    uthmani: "Othmanienne",
+    on: "Activé",
+    off: "Désactivé",
+    autoNext: "Suite auto",
+    loop: "Boucle",
+    sleep: "Veille",
+    copy: "Copier",
+    copied: "Copié",
+    share: "Partager",
+    bookmark: "Marque-page",
+    sajdaCompleted: "Sajda accomplie",
+    deferSajda: "Reporter la Sajda",
+    markDone: "Valider",
+    paperNight: "Papier : Nuit",
+    paperCream: "Papier : Crème",
+    searchPlaceholder: "Rechercher un verset ou une traduction…",
+    loadingQuran: "Ouverture du Noble Moushaf…",
+    corpusError: "Impossible de charger le Moushaf de 604 pages.",
+    audioUnavailable: "La récitation audio est indisponible.",
+    dismiss: "Fermer",
+    nextPage: "Page suiv.",
+    prevPage: "Page préc.",
+    nextSurah: "Sourate suivante",
+    sajdaCount: "Sajdas",
+    wajibSajda: "Sajda Wajib",
+    sajdaDoneBanner: "Alhamdulillah — Prosternation de récitation accomplie.",
+    sajdaDeferredBanner: "Enregistré dans vos rappels de Sajda.",
+    sajdaPromptBanner: "Fiqh Hanafite : Effectuez 1 prosternation face à la Qibla.",
+    sajdaDrawerTitle: "Les 14 Versets de Prosternation (Wajib)",
+    deferredQueue: "Sajdas en attente",
+    tafsirNote: "Note Khazain-ul-Irfan",
+    hideTafsir: "Masquer la note",
+    showTranslation: "Afficher la traduction",
+    hideTranslation: "Masquer la traduction",
+    urduToggle: "Ourdou (کنزالایمان)",
+    englishToggle: "Anglais (Kanzul Iman)",
+    kanzulImanUr: "Kanzul Iman (Ourdou)",
+    kanzulImanEn: "Kanzul Iman (Anglais)",
+    kanzulImanHi: "Kanzul Iman (Hindi)",
+    kanzulImanRoUr: "Kanzul Iman (Ourdou latin)",
+    pageTarjuma: "Traduction de la page (Kanzul Iman)",
+    hizb: "Hizb",
+    done: "Fait",
+    logAction: "Noter",
+  },
+};
 
 const TOTAL_MUSHAF_PAGES = 604;
 const BISMILLAH_TEXT = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
@@ -168,15 +835,11 @@ function hydrateDisplayAyah(s: CompactSurah, ay: CompactAyah): DisplayAyah {
         ? "Note: In Hanafi Madhhab, 22:77 is NOT a Sajda-e-Tilawat (only 22:18 in Surah Al-Hajj is Wajib)."
         : undefined),
     hanafiSajda: isHanafiSajda,
-    shafiiOnlySajdaNote: is22_77
-      ? "Excluded from the 14 Hanafi Sajdas (Shafi'i-only marker; Hanafi Sajda in Al-Hajj is at 22:18)."
-      : undefined,
     audioUrl: getEveryAyahUrl(s.n, ay.n),
-    sha256: curated?.sha256 ?? `kanzul-iman-${s.n}-${ay.n}`,
   };
 }
 
-export default function QuranPage() {
+function QuranReaderContent() {
   const {
     lang,
     lastQuranRef,
@@ -186,23 +849,27 @@ export default function QuranPage() {
     logSajda,
   } = useApp();
 
+  const searchParams = useSearchParams();
+  const ui = QURAN_UI[lang] ?? QURAN_UI.en;
+
   const initialRef = useMemo(() => parseRef(lastQuranRef), [lastQuranRef]);
+  const initialSurahNum = initialRef.surahNum;
   const initialSurahMeta = useMemo(
-    () => SURAH_LIST.find((s) => s.number === initialRef.surahNum) ?? SURAH_LIST[0],
-    [initialRef.surahNum]
+    () => SURAH_LIST.find((s) => s.number === initialSurahNum) ?? SURAH_LIST[0],
+    [initialSurahNum]
   );
 
   // Full 6,236-ayah dataset state
   const [quranData, setQuranData] = useState<CompactSurah[] | null>(null);
   const [loadingCorpus, setLoadingCorpus] = useState(true);
-  const [corpusError, setCorpusError] = useState<string | null>(null);
+  const [corpusError, setCorpusError] = useState(false);
 
-  // View State: Detail Surah (Reference Image 1 & 2 Right Screen) OR 1-Page Mushaf
+  // View State: Surah View, 604p Mushaf, or Highlights / Sajda
   const [viewMode, setViewMode] = useState<"surah" | "mushaf" | "highlights">("surah");
   const [mushafPaper, setMushafPaper] = useState<"night" | "cream">("night");
   const [showMushafTarjuma, setShowMushafTarjuma] = useState(false);
   const [currentPage, setCurrentPage] = useState<number>(initialSurahMeta.startPage || 1);
-  const [selectedSurah, setSelectedSurah] = useState<number>(initialRef.surahNum || 1);
+  const [selectedSurah, setSelectedSurah] = useState<number>(initialSurahNum || 1);
   const [selectedAyahId, setSelectedAyahId] = useState<string>(lastQuranRef || "1:1");
   const [pageInput, setPageInput] = useState<string>(String(initialSurahMeta.startPage || 1));
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -213,19 +880,18 @@ export default function QuranPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [ayahFilter, setAyahFilter] = useState("");
 
-  // Reading preferences
+  // Reading & Translation Preferences (auto-adapting to active `lang`)
   const [scriptMode, setScriptMode] = useState<"indopak" | "uthmani">("indopak");
   const [showTranslit, setShowTranslit] = useState(true);
   const [tajweedColor, setTajweedColor] = useState(false);
   const [openTafsirId, setOpenTafsirId] = useState<string | null>(null);
-  const [tarjumaLang, setTarjumaLang] = useState<"ur" | "en" | "ro_ur" | "hi">(
-    lang === "ur" || lang === "ro_ur" || lang === "hi" ? lang : "en"
-  );
+  const [showSecondaryTrans, setShowSecondaryTrans] = useState(false);
+  const [arShowTranslation, setArShowTranslation] = useState(false);
 
   // Audio state
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [audioLoadingId, setAudioLoadingId] = useState<string | null>(null);
-  const [audioError, setAudioError] = useState<string | null>(null);
+  const [audioError, setAudioError] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [loopAyah, setLoopAyah] = useState(false);
   const [autoAdvance, setAutoAdvance] = useState(true);
@@ -234,18 +900,26 @@ export default function QuranPage() {
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Support URL query params (?surah=X&page=Y) from the Dashboard Surah/Para/Page/Hijb tabs
+  const primaryTranslationMode = useMemo<"ur" | "hi" | "ro_ur" | "ar" | "en">(() => {
+    if (lang === "ur" || lang === "fa") return "ur";
+    if (lang === "hi") return "hi";
+    if (lang === "ro_ur") return "ro_ur";
+    if (lang === "ar") return "ar";
+    return "en";
+  }, [lang]);
+
+  // Support URL query params (?surah=X&page=Y) cleanly inside microtask
+  const surahQueryParam = searchParams.get("surah");
+  const pageQueryParam = searchParams.get("page");
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const sParam = Number(params.get("surah"));
-    const pParam = Number(params.get("page"));
+    const sParam = Number(surahQueryParam);
+    const pParam = Number(pageQueryParam);
     Promise.resolve().then(() => {
       if (Number.isFinite(sParam) && sParam >= 1 && sParam <= 114) {
         setSelectedSurah(sParam);
         setViewMode("surah");
         const meta = SURAH_LIST.find((s) => s.number === sParam);
-        if (meta && !pParam) {
+        if (meta && !pageQueryParam) {
           setCurrentPage(meta.startPage);
           setPageInput(String(meta.startPage));
         }
@@ -257,7 +931,7 @@ export default function QuranPage() {
         setPageInput(String(pParam));
       }
     });
-  }, []);
+  }, [surahQueryParam, pageQueryParam]);
 
   useEffect(() => {
     let cancelled = false;
@@ -273,7 +947,7 @@ export default function QuranPage() {
       })
       .catch(() => {
         if (cancelled) return;
-        setCorpusError("Could not load the complete 604-page Mushaf dataset.");
+        setCorpusError(true);
         setLoadingCorpus(false);
       });
     return () => {
@@ -314,17 +988,32 @@ export default function QuranPage() {
     } else if (viewMode === "surah") {
       base = surahMap.get(selectedSurah) ?? [];
     } else {
-      base = QURAN_AYAHS.map(
-        (a) =>
-          ayahByRef.get(a.id) ?? {
-            ...a,
-            globalNum: 1,
-            page: 1,
-            juz: 1,
-            ruku: 1,
-            hizbQuarter: 1,
-          }
-      );
+      base = QURAN_AYAHS.map((a) => {
+        const hydrated = ayahByRef.get(a.id);
+        if (hydrated) return hydrated;
+        return {
+          id: a.id,
+          globalNum: 1,
+          surahNum: a.surahNum,
+          surahName: a.surahName,
+          surahArabic: a.surahArabic,
+          ayahNum: a.ayahNum,
+          page: 1,
+          juz: 1,
+          ruku: 1,
+          hizbQuarter: 1,
+          arabicIndoPak: a.arabicIndoPak,
+          arabicUthmani: a.arabicUthmani,
+          transliteration: a.transliteration,
+          kanzulImanUrdu: a.kanzulImanUrdu,
+          kanzulImanEnglish: a.kanzulImanEnglish,
+          kanzulImanRomanUrdu: a.kanzulImanRomanUrdu,
+          kanzulImanHindi: a.kanzulImanHindi,
+          khazainUlIrfanNote: a.khazainUlIrfanNote,
+          hanafiSajda: a.hanafiSajda,
+          audioUrl: a.audioUrl,
+        };
+      });
     }
     const q = ayahFilter.trim().toLowerCase();
     if (!q) return base;
@@ -333,7 +1022,9 @@ export default function QuranPage() {
         a.id.includes(q) ||
         String(a.ayahNum) === q ||
         a.kanzulImanEnglish.toLowerCase().includes(q) ||
-        a.kanzulImanUrdu.includes(ayahFilter.trim())
+        a.kanzulImanUrdu.includes(ayahFilter.trim()) ||
+        (a.kanzulImanHindi && a.kanzulImanHindi.includes(ayahFilter.trim())) ||
+        (a.kanzulImanRomanUrdu && a.kanzulImanRomanUrdu.toLowerCase().includes(q))
     );
   }, [viewMode, currentPageAyahs, surahMap, selectedSurah, ayahByRef, ayahFilter]);
 
@@ -351,9 +1042,10 @@ export default function QuranPage() {
     return SURAH_LIST.find((s) => s.number === selectedSurah) ?? SURAH_LIST[0];
   }, [viewMode, currentPageAyahs, selectedSurah]);
 
+  const currentSurahNumber = currentSurahMeta.number;
   const nextSurahMeta = useMemo(
-    () => SURAH_LIST.find((s) => s.number === Math.min(114, currentSurahMeta.number + 1)),
-    [currentSurahMeta.number]
+    () => SURAH_LIST.find((s) => s.number === Math.min(114, currentSurahNumber + 1)),
+    [currentSurahNumber]
   );
 
   const currentJuzNum = useMemo(() => {
@@ -440,7 +1132,7 @@ export default function QuranPage() {
   const playAyah = useCallback(
     (ayah: DisplayAyah) => {
       if (!audioRef.current) return;
-      setAudioError(null);
+      setAudioError(false);
       setAudioLoadingId(ayah.id);
       setSelectedAyahId(ayah.id);
       audioRef.current.src = ayah.audioUrl;
@@ -454,7 +1146,7 @@ export default function QuranPage() {
         .catch(() => {
           setAudioLoadingId(null);
           setPlayingId(null);
-          setAudioError(`Audio unavailable for ${ayah.id}. Check your network connection.`);
+          setAudioError(true);
         });
       setPlayingId(ayah.id);
       logQuranAyah(ayah.id);
@@ -472,6 +1164,18 @@ export default function QuranPage() {
     playAyah(ayah);
   };
 
+  const handlePlaySurah = () => {
+    const firstTarget = activeListAyahs[0] || inspectedAyah;
+    if (!firstTarget) return;
+    if (playingId) {
+      audioRef.current?.pause();
+      setPlayingId(null);
+      setAudioLoadingId(null);
+      return;
+    }
+    playAyah(firstTarget);
+  };
+
   const stepAudioVerse = (delta: number) => {
     const list = activeListAyahs;
     if (list.length === 0) return;
@@ -485,13 +1189,32 @@ export default function QuranPage() {
     }
   };
 
-  const handleShareAyah = (ayah: DisplayAyah) => {
-    const text = `${ayah.arabicUthmani}\n\n${ayah.kanzulImanUrdu}\n${ayah.kanzulImanEnglish}\n— Holy Quran (${ayah.surahName} ${ayah.id}, Kanzul Iman)`;
+  const buildShareText = (ayah: DisplayAyah) =>
+    `${ayah.arabicUthmani}\n\n${ayah.kanzulImanUrdu}\n${ayah.kanzulImanEnglish}\n— ${t(lang, "navQuran")} (${ayah.surahName} ${ayah.id})`;
+
+  const handleCopyAyah = (ayah: DisplayAyah) => {
+    const text = buildShareText(ayah);
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text).catch(() => {});
     }
     setCopiedId(ayah.id);
     setTimeout(() => setCopiedId(null), 1800);
+  };
+
+  const handleShareAyah = (ayah: DisplayAyah) => {
+    const text = buildShareText(ayah);
+    if (typeof navigator !== "undefined" && "share" in navigator) {
+      navigator
+        .share({
+          title: `${ayah.surahName} (${ayah.id})`,
+          text,
+        })
+        .catch(() => {
+          handleCopyAyah(ayah);
+        });
+      return;
+    }
+    handleCopyAyah(ayah);
   };
 
   const handleAudioEnded = () => {
@@ -536,11 +1259,121 @@ export default function QuranPage() {
     }
   };
 
-  const getTranslation = (ayah: DisplayAyah): { text: string } => {
-    if (tarjumaLang === "ur") return { text: ayah.kanzulImanUrdu };
-    if (tarjumaLang === "ro_ur" && ayah.kanzulImanRomanUrdu) return { text: ayah.kanzulImanRomanUrdu };
-    if (tarjumaLang === "hi" && ayah.kanzulImanHindi) return { text: ayah.kanzulImanHindi };
-    return { text: ayah.kanzulImanEnglish };
+  const renderAdaptiveTranslation = (ayah: DisplayAyah, compact = false) => {
+    const romanText = ayah.kanzulImanRomanUrdu || ayah.transliteration;
+
+    if (primaryTranslationMode === "ar") {
+      if (!arShowTranslation && !compact) return null;
+      return (
+        <div className="space-y-1.5">
+          <p dir="ltr" className="text-sm leading-relaxed text-left" style={{ color: "var(--text-muted)" }}>
+            {ayah.kanzulImanEnglish}
+          </p>
+          {showSecondaryTrans && ayah.kanzulImanUrdu && (
+            <p dir="rtl" className="font-urdu text-right text-base sm:text-lg leading-[2.2]" style={{ color: "var(--text-secondary)" }}>
+              {ayah.kanzulImanUrdu}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (primaryTranslationMode === "ur") {
+      return (
+        <div className="space-y-2">
+          {showTranslit && ayah.transliteration && !compact && (
+            <p dir="ltr" className="text-xs font-medium text-left" style={{ color: "var(--accent-primary)" }}>
+              {ayah.transliteration}
+            </p>
+          )}
+          <p
+            dir="rtl"
+            className={`font-urdu text-right leading-[2.2] ${compact ? "text-sm sm:text-base" : "text-lg sm:text-xl"}`}
+            style={{ color: "var(--text-secondary)" }}
+          >
+            {ayah.kanzulImanUrdu}
+          </p>
+          {showSecondaryTrans && ayah.kanzulImanEnglish && (
+            <p dir="ltr" className="text-xs sm:text-sm leading-relaxed text-left opacity-85" style={{ color: "var(--text-muted)" }}>
+              {ayah.kanzulImanEnglish}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (primaryTranslationMode === "hi") {
+      return (
+        <div className="space-y-2">
+          {showTranslit && ayah.transliteration && !compact && (
+            <p className="text-xs font-medium" style={{ color: "var(--accent-primary)" }}>
+              {ayah.transliteration}
+            </p>
+          )}
+          {ayah.kanzulImanHindi && (
+            <p
+              className={`font-hindi leading-relaxed ${compact ? "text-xs sm:text-sm" : "text-sm sm:text-base"}`}
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {ayah.kanzulImanHindi}
+            </p>
+          )}
+          <p
+            className="text-xs sm:text-sm leading-relaxed"
+            style={{ color: ayah.kanzulImanHindi ? "var(--text-muted)" : "var(--text-secondary)" }}
+          >
+            {ayah.kanzulImanEnglish}
+          </p>
+          {showSecondaryTrans && ayah.kanzulImanUrdu && (
+            <p dir="rtl" className="font-urdu text-right text-base sm:text-lg leading-[2.2]" style={{ color: "var(--text-muted)" }}>
+              {ayah.kanzulImanUrdu}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (primaryTranslationMode === "ro_ur") {
+      return (
+        <div className="space-y-2">
+          {romanText && (
+            <p className="text-sm sm:text-[15px] font-medium leading-relaxed" style={{ color: "var(--accent-secondary)" }}>
+              {romanText}
+            </p>
+          )}
+          <p dir="rtl" className="font-urdu text-right text-base sm:text-lg leading-[2.2]" style={{ color: "var(--text-secondary)" }}>
+            {ayah.kanzulImanUrdu}
+          </p>
+          {(showSecondaryTrans || !romanText) && (
+            <p className="text-xs sm:text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              {ayah.kanzulImanEnglish}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    // Default (`en`, `tr`, `bn`, `id`, `fr`): clean English Kanzul Iman + optional Urdu toggle
+    return (
+      <div className="space-y-2">
+        {showTranslit && ayah.transliteration && !compact && (
+          <p className="text-xs font-medium" style={{ color: "var(--accent-primary)" }}>
+            {ayah.transliteration}
+          </p>
+        )}
+        <p
+          className={`leading-relaxed ${compact ? "text-xs" : "text-sm sm:text-[15px]"}`}
+          style={{ color: "var(--text-secondary)" }}
+        >
+          {ayah.kanzulImanEnglish}
+        </p>
+        {showSecondaryTrans && ayah.kanzulImanUrdu && (
+          <p dir="rtl" className="font-urdu text-right text-base sm:text-lg leading-[2.2]" style={{ color: "var(--text-muted)" }}>
+            {ayah.kanzulImanUrdu}
+          </p>
+        )}
+      </div>
+    );
   };
 
   // Precompute current 1-page Mushaf sheet variables
@@ -630,7 +1463,9 @@ export default function QuranPage() {
           className="flex items-center gap-2 text-[11px] font-semibold"
           style={{ color: isCreamPaper ? "#785A28" : "var(--text-muted)" }}
         >
-          <span>Hizb {pageHizbNum}</span>
+          <span>
+            {ui.hizb} {pageHizbNum}
+          </span>
           {pageHasSajda && (
             <span
               className="px-2 py-0.5 rounded-full text-[10px] font-bold"
@@ -639,7 +1474,7 @@ export default function QuranPage() {
                 color: isCreamPaper ? "#8B5E0B" : "var(--accent-gold)",
               }}
             >
-              ۩ سجدہ تلاوت
+              ۩ {ui.wajibSajda}
             </span>
           )}
         </div>
@@ -649,7 +1484,7 @@ export default function QuranPage() {
           style={{ color: isCreamPaper ? "#8B5E0B" : "var(--accent-primary)" }}
         >
           <span className="font-arabic text-base sm:text-lg">{firstPageAyah?.surahArabic}</span>
-          <span className="hidden xs:inline text-[11px] opacity-80">({firstPageAyah?.surahName})</span>
+          <span className="hidden sm:inline text-[11px] opacity-80">({firstPageAyah?.surahName})</span>
         </div>
       </header>
 
@@ -693,7 +1528,7 @@ export default function QuranPage() {
                       style={{ backgroundColor: isCreamPaper ? "rgba(180,134,24,0.35)" : "rgba(255,255,255,0.35)" }}
                     />
                     <p className="text-[11px] font-semibold uppercase tracking-widest opacity-90">
-                      {surahInfo?.revelationType} • {surahInfo?.numberOfAyahs} Verses
+                      {surahInfo ? tp(lang, surahInfo.revelationType) : ""} • {surahInfo?.numberOfAyahs} {t(lang, "versesLabel")}
                     </p>
                     {showBismillahBanner && (
                       <p dir="rtl" className="font-arabic text-2xl sm:text-3xl pt-2">
@@ -726,7 +1561,7 @@ export default function QuranPage() {
                         setSelectedAyahId(ayah.id);
                         setInspectorOpen(true);
                       }}
-                      title={`Tap for Kanzul Iman (${ayah.id})`}
+                      title={`${ayah.surahName} ${ayah.id}`}
                       className="inline rounded-lg px-1 py-0.5 cursor-pointer transition-colors"
                       style={{
                         backgroundColor: isPlaying
@@ -749,7 +1584,7 @@ export default function QuranPage() {
 
                       {ayah.hanafiSajda && (
                         <span
-                          className="inline-block mx-1 px-1.5 py-0.2 rounded text-xs font-bold align-middle"
+                          className="inline-block mx-1 px-1.5 py-0.5 rounded text-xs font-bold align-middle"
                           style={{
                             backgroundColor: isCreamPaper ? "rgba(180,134,24,0.18)" : "var(--gold-soft)",
                             color: isCreamPaper ? "#8B5E0B" : "var(--accent-gold)",
@@ -783,7 +1618,7 @@ export default function QuranPage() {
                             ? "1px solid rgba(197, 155, 39, 0.45)"
                             : "1px solid color-mix(in srgb, var(--accent-primary) 40%, transparent)",
                         }}
-                        title={`Play Ayah ${ayah.id}`}
+                        title={`${ui.listen} (${ayah.id})`}
                       >
                         <span>۝{toArabicIndicDigits(ayah.ayahNum)}</span>
                       </button>{" "}
@@ -805,55 +1640,45 @@ export default function QuranPage() {
               className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider"
               style={{ color: isCreamPaper ? "#8B5E0B" : "var(--accent-primary)" }}
             >
-              <span>Kanzul Iman Page Translation</span>
-              <span>
+              <span>{ui.pageTarjuma}</span>
+              <span className="tabular-nums">
                 {firstPageAyah?.id} – {lastPageAyah?.id}
               </span>
             </div>
-            <div className="max-h-56 overflow-y-auto pr-1 space-y-2 text-xs">
-              {currentPageAyahs.map((ay) => {
-                const tr = getTranslation(ay);
-                return (
-                  <div
-                    key={`tr-${ay.id}`}
-                    onClick={() => {
-                      setSelectedAyahId(ay.id);
-                      setInspectorOpen(true);
-                    }}
-                    className="p-2.5 rounded-xl cursor-pointer transition-colors"
-                    style={{
-                      backgroundColor: isCreamPaper ? "rgba(197, 155, 39, 0.1)" : "var(--bg-muted)",
-                    }}
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <span
-                        className="font-bold text-[11px]"
-                        style={{ color: isCreamPaper ? "#8B5E0B" : "var(--accent-primary)" }}
-                      >
-                        {ay.surahName} {ay.id}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          togglePlay(ay);
-                        }}
-                        className="text-[11px] font-semibold underline cursor-pointer"
-                      >
-                        {playingId === ay.id ? "Pause" : "Listen"}
-                      </button>
-                    </div>
-                    <p
-                      dir={tarjumaLang === "ur" ? "rtl" : "ltr"}
-                      className={`leading-relaxed ${
-                        tarjumaLang === "ur" ? "font-urdu text-right text-sm" : "text-xs"
-                      }`}
+            <div className="max-h-60 overflow-y-auto pe-1 space-y-2 text-xs">
+              {currentPageAyahs.map((ay) => (
+                <div
+                  key={`tr-${ay.id}`}
+                  onClick={() => {
+                    setSelectedAyahId(ay.id);
+                    setInspectorOpen(true);
+                  }}
+                  className="p-3 rounded-xl cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: isCreamPaper ? "rgba(197, 155, 39, 0.1)" : "var(--bg-muted)",
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span
+                      className="font-bold text-[11px]"
+                      style={{ color: isCreamPaper ? "#8B5E0B" : "var(--accent-primary)" }}
                     >
-                      {tr.text}
-                    </p>
+                      {ay.surahName} {ay.id}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePlay(ay);
+                      }}
+                      className="text-[11px] font-semibold underline cursor-pointer"
+                    >
+                      {playingId === ay.id ? ui.pause : ui.listen}
+                    </button>
                   </div>
-                );
-              })}
+                  {renderAdaptiveTranslation(ay, true)}
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -870,8 +1695,8 @@ export default function QuranPage() {
           onClick={() => stepPage(1)}
           className="btn-primary px-3.5 py-1.5 rounded-full font-semibold inline-flex items-center gap-1 disabled:opacity-40 cursor-pointer min-h-[36px]"
         >
-          <ChevronLeft className="w-4 h-4" />
-          <span>Next Page</span>
+          <ChevronLeft className="w-4 h-4 rtl-mirror" />
+          <span>{ui.nextPage}</span>
         </button>
 
         <div
@@ -882,7 +1707,9 @@ export default function QuranPage() {
           }}
         >
           <span className="font-arabic text-base">{toArabicIndicDigits(clampedPage)}</span>
-          <span className="text-[11px]">Page {clampedPage} / 604</span>
+          <span className="text-[11px]">
+            {t(lang, "pageLabel")} {clampedPage} / 604
+          </span>
         </div>
 
         <button
@@ -894,8 +1721,8 @@ export default function QuranPage() {
             borderColor: isCreamPaper ? "rgba(180, 134, 24, 0.35)" : "var(--border-hairline)",
           }}
         >
-          <span>Prev Page</span>
-          <ChevronRight className="w-4 h-4" />
+          <span>{ui.prevPage}</span>
+          <ChevronRight className="w-4 h-4 rtl-mirror" />
         </button>
       </footer>
     </div>
@@ -910,55 +1737,48 @@ export default function QuranPage() {
         onError={() => {
           setAudioLoadingId(null);
           if (playingId) {
-            setAudioError(`Could not stream audio for ${playingId}.`);
+            setAudioError(true);
             setPlayingId(null);
           }
         }}
       />
 
-      {/* Sleek Mode & Surah/Page Navigation Bar */}
+      {/* Editorial Segmented Pill Bar & Controls */}
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {/* Pill Toggle: Surah View (Reference Image 1 & 2) vs 1-Page Mushaf */}
-          <div
-            className="inline-flex rounded-full p-1 border"
-            style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-surface)" }}
-          >
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="pill-tab-bar" role="tablist" aria-label={t(lang, "navQuran")}>
             <button
               type="button"
+              role="tab"
+              aria-selected={viewMode === "surah"}
+              data-active={viewMode === "surah"}
               onClick={() => setViewMode("surah")}
-              className="px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5 transition-all"
-              style={{
-                backgroundImage: viewMode === "surah" ? "var(--gradient-brand)" : undefined,
-                color: viewMode === "surah" ? "#ffffff" : "var(--text-muted)",
-              }}
+              className="pill-tab-btn inline-flex items-center gap-1.5"
             >
               <AlignJustify className="w-3.5 h-3.5" />
-              <span>Detail Surah</span>
+              <span>{ui.surahView}</span>
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={viewMode === "mushaf"}
+              data-active={viewMode === "mushaf"}
               onClick={() => setViewMode("mushaf")}
-              className="px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5 transition-all"
-              style={{
-                backgroundImage: viewMode === "mushaf" ? "var(--gradient-brand)" : undefined,
-                color: viewMode === "mushaf" ? "#ffffff" : "var(--text-muted)",
-              }}
+              className="pill-tab-btn inline-flex items-center gap-1.5"
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>1-Page Mushaf</span>
+              <span>{ui.mushaf604}</span>
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={viewMode === "highlights"}
+              data-active={viewMode === "highlights"}
               onClick={() => setViewMode("highlights")}
-              className="px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5 transition-all"
-              style={{
-                backgroundImage: viewMode === "highlights" ? "var(--gradient-brand)" : undefined,
-                color: viewMode === "highlights" ? "#ffffff" : "var(--text-muted)",
-              }}
+              className="pill-tab-btn inline-flex items-center gap-1.5"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Highlights</span>
+              <span className="hidden sm:inline">{ui.highlights}</span>
             </button>
           </div>
 
@@ -968,25 +1788,25 @@ export default function QuranPage() {
                 <button
                   type="button"
                   onClick={() => setMushafPaper(mushafPaper === "night" ? "cream" : "night")}
-                  className="px-3 py-1.5 rounded-full border font-semibold cursor-pointer"
+                  className="px-3 py-1.5 rounded-full border font-semibold cursor-pointer transition-colors"
                   style={{
                     borderColor: "var(--border-hairline)",
                     backgroundColor: "var(--bg-surface)",
                   }}
                 >
-                  {mushafPaper === "cream" ? "Paper: Cream" : "Paper: Night"}
+                  {mushafPaper === "cream" ? ui.paperCream : ui.paperNight}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowMushafTarjuma(!showMushafTarjuma)}
-                  className="px-3 py-1.5 rounded-full border font-semibold cursor-pointer"
+                  className="px-3 py-1.5 rounded-full border font-semibold cursor-pointer transition-colors"
                   style={{
                     borderColor: showMushafTarjuma ? "var(--accent-primary)" : "var(--border-hairline)",
                     color: showMushafTarjuma ? "var(--accent-primary)" : "var(--text-muted)",
                     backgroundColor: "var(--bg-surface)",
                   }}
                 >
-                  Tarjuma
+                  {ui.translation}
                 </button>
               </>
             )}
@@ -994,17 +1814,18 @@ export default function QuranPage() {
             <button
               type="button"
               onClick={() => setSajdaDrawerOpen(true)}
-              className="px-3 py-1.5 rounded-full border font-semibold cursor-pointer"
+              className="px-3 py-1.5 rounded-full border font-semibold cursor-pointer tabular-nums"
               style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-surface)" }}
             >
-              ۩ Sajdas ({sajdaCompleted.length}/14)
+              ۩ {ui.sajdaCount} ({sajdaCompleted.length}/14)
             </button>
 
             <button
               type="button"
               onClick={() => setSettingsOpen(!settingsOpen)}
-              aria-label="Reading and Audio Settings"
-              className="w-8 h-8 rounded-full border flex items-center justify-center cursor-pointer"
+              aria-label={ui.settings}
+              title={ui.settings}
+              className="w-8 h-8 rounded-full border flex items-center justify-center cursor-pointer transition-colors"
               style={{
                 borderColor: settingsOpen ? "var(--accent-primary)" : "var(--border-hairline)",
                 backgroundColor: settingsOpen ? "var(--accent-soft)" : "var(--bg-surface)",
@@ -1015,10 +1836,10 @@ export default function QuranPage() {
           </div>
         </div>
 
-        {/* Clean Surah + Para + Page Selector Row */}
+        {/* Clean Surah + Para + Jump-to-Page Selector Row */}
         <div className="grid grid-cols-2 sm:grid-cols-12 gap-2">
           <select
-            aria-label="Select Surah"
+            aria-label={t(lang, "tabSurah")}
             value={currentSurahMeta.number}
             onChange={(e) => {
               const sNum = Number(e.target.value);
@@ -1042,7 +1863,7 @@ export default function QuranPage() {
           </select>
 
           <select
-            aria-label="Select Para / Juz"
+            aria-label={t(lang, "paraLabel")}
             value={currentJuzNum}
             onChange={(e) => {
               const jNum = Number(e.target.value);
@@ -1060,7 +1881,7 @@ export default function QuranPage() {
           >
             {JUZ_LIST.map((j) => (
               <option key={j.juz} value={j.juz} className="text-black">
-                Para {j.juz} — {j.arabicTitle}
+                {t(lang, "paraLabel")} {j.juz} — {j.arabicTitle}
               </option>
             ))}
           </select>
@@ -1077,9 +1898,9 @@ export default function QuranPage() {
                 stepPage(-1);
               }}
               className="p-1 rounded-lg disabled:opacity-35 cursor-pointer"
-              title="Previous Page"
+              title={ui.prevPage}
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4 rtl-mirror" />
             </button>
             <form
               onSubmit={(e) => {
@@ -1093,7 +1914,7 @@ export default function QuranPage() {
               className="flex items-center gap-1"
             >
               <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                p.
+                {t(lang, "pageLabel")}
               </span>
               <input
                 type="number"
@@ -1106,7 +1927,7 @@ export default function QuranPage() {
                   if (Number.isFinite(parsed)) goToPage(parsed);
                 }}
                 className="w-11 text-center text-xs font-bold tabular-nums bg-transparent outline-none"
-                aria-label="Mushaf Page Number"
+                aria-label={ui.jumpToPage}
               />
             </form>
             <button
@@ -1117,36 +1938,24 @@ export default function QuranPage() {
                 stepPage(1);
               }}
               className="p-1 rounded-lg disabled:opacity-35 cursor-pointer"
-              title="Next Page"
+              title={ui.nextPage}
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 rtl-mirror" />
             </button>
           </div>
         </div>
 
-        {/* Collapsible Settings Drawer */}
+        {/* Collapsible Reading & Audio Settings Drawer */}
         {settingsOpen && (
           <div className="bento-card p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
             <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={tarjumaLang}
-                onChange={(e) => setTarjumaLang(e.target.value as typeof tarjumaLang)}
-                className="ui-select px-3 py-1.5 rounded-xl border font-semibold bg-transparent outline-none cursor-pointer"
-                style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
-              >
-                <option value="en" className="text-black">Kanzul Iman (English)</option>
-                <option value="ur" className="text-black">Kanzul Iman (Urdu)</option>
-                <option value="ro_ur" className="text-black">Kanzul Iman (Roman Urdu)</option>
-                <option value="hi" className="text-black">Hindi Translation</option>
-              </select>
-
               <button
                 type="button"
                 onClick={() => setScriptMode(scriptMode === "indopak" ? "uthmani" : "indopak")}
                 className="px-3 py-1.5 rounded-xl border font-semibold cursor-pointer"
                 style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
               >
-                Script: {scriptMode === "indopak" ? "Indo-Pak" : "Uthmani"}
+                {ui.script}: {scriptMode === "indopak" ? ui.indoPak : ui.uthmani}
               </button>
 
               <button
@@ -1158,23 +1967,58 @@ export default function QuranPage() {
                   backgroundColor: tajweedColor ? "var(--accent-soft)" : "transparent",
                 }}
               >
-                Tajweed: {tajweedColor ? "On" : "Off"}
+                {ui.tajweed}: {tajweedColor ? ui.on : ui.off}
               </button>
+
+              {primaryTranslationMode !== "ar" && primaryTranslationMode !== "ro_ur" && (
+                <button
+                  type="button"
+                  onClick={() => setShowTranslit(!showTranslit)}
+                  className="px-3 py-1.5 rounded-xl border font-semibold cursor-pointer"
+                  style={{
+                    borderColor: showTranslit ? "var(--accent-primary)" : "var(--border-hairline)",
+                    backgroundColor: showTranslit ? "var(--accent-soft)" : "transparent",
+                  }}
+                >
+                  {ui.transliteration}: {showTranslit ? ui.on : ui.off}
+                </button>
+              )}
 
               <button
                 type="button"
-                onClick={() => setShowTranslit(!showTranslit)}
+                onClick={() => {
+                  if (primaryTranslationMode === "ar") {
+                    setArShowTranslation((v) => !v);
+                  } else {
+                    setShowSecondaryTrans((v) => !v);
+                  }
+                }}
                 className="px-3 py-1.5 rounded-xl border font-semibold cursor-pointer"
                 style={{
-                  borderColor: showTranslit ? "var(--accent-primary)" : "var(--border-hairline)",
-                  backgroundColor: showTranslit ? "var(--accent-soft)" : "transparent",
+                  borderColor:
+                    (primaryTranslationMode === "ar" ? arShowTranslation : showSecondaryTrans)
+                      ? "var(--accent-primary)"
+                      : "var(--border-hairline)",
+                  backgroundColor:
+                    (primaryTranslationMode === "ar" ? arShowTranslation : showSecondaryTrans)
+                      ? "var(--accent-soft)"
+                      : "transparent",
                 }}
               >
-                Transliteration: {showTranslit ? "On" : "Off"}
+                {primaryTranslationMode === "ar"
+                  ? arShowTranslation
+                    ? ui.hideTranslation
+                    : ui.showTranslation
+                  : primaryTranslationMode === "ur"
+                  ? ui.englishToggle
+                  : ui.urduToggle}
               </button>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
+                {ui.audio}:
+              </span>
               <button
                 type="button"
                 onClick={() => setPlaybackRate(playbackRate === 1 ? 1.25 : playbackRate === 1.25 ? 0.75 : 1)}
@@ -1193,7 +2037,7 @@ export default function QuranPage() {
                 }}
               >
                 <ListMusic className="w-3.5 h-3.5" />
-                <span>Auto-Next</span>
+                <span>{ui.autoNext}</span>
               </button>
               <button
                 type="button"
@@ -1205,7 +2049,7 @@ export default function QuranPage() {
                 }}
               >
                 <Repeat className="w-3.5 h-3.5" />
-                <span>Loop</span>
+                <span>{ui.loop}</span>
               </button>
               <button
                 type="button"
@@ -1217,7 +2061,7 @@ export default function QuranPage() {
                 }}
               >
                 <Moon className="w-3.5 h-3.5" />
-                <span>{sleepSecondsLeft !== null ? formatSleep(sleepSecondsLeft) : "Sleep"}</span>
+                <span>{sleepSecondsLeft !== null ? formatSleep(sleepSecondsLeft) : ui.sleep}</span>
               </button>
             </div>
           </div>
@@ -1230,11 +2074,11 @@ export default function QuranPage() {
           style={{ borderColor: "var(--accent-gold)", backgroundColor: "var(--gold-soft)" }}
         >
           <span className="inline-flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
-            <span>{audioError}</span>
+            <AlertCircle className="w-4 h-4 shrink-0" style={{ color: "var(--accent-gold)" }} />
+            <span>{ui.audioUnavailable}</span>
           </span>
-          <button type="button" onClick={() => setAudioError(null)} className="underline cursor-pointer">
-            Dismiss
+          <button type="button" onClick={() => setAudioError(false)} className="underline cursor-pointer">
+            {ui.dismiss}
           </button>
         </div>
       )}
@@ -1242,29 +2086,45 @@ export default function QuranPage() {
       {loadingCorpus && (
         <div className="bento-card p-12 text-center space-y-3">
           <Loader2 className="w-7 h-7 animate-spin mx-auto" style={{ color: "var(--accent-primary)" }} />
-          <p className="text-sm font-semibold">Loading Complete Holy Quran…</p>
+          <p className="text-sm font-semibold">{ui.loadingQuran}</p>
         </div>
       )}
 
       {corpusError && !loadingCorpus && (
         <div className="bento-card p-6 text-xs" style={{ borderColor: "var(--accent-gold)" }}>
-          {corpusError}
+          {ui.corpusError}
         </div>
       )}
 
       {/* VIEW 1: 1-PAGE-PER-SCREEN MUSHAF */}
       {!loadingCorpus && viewMode === "mushaf" && mushafSheetNode}
 
-      {/* VIEW 2 & 3: DETAIL SURAH VIEW (Exact Reference Image 1 Right Screen Design) */}
+      {/* VIEW 2 & 3: LUMINOUS SURAH HERO BANNER + EDITORIAL VERSE LIST (Image 1 & Image 2 Style) */}
       {!loadingCorpus && viewMode !== "mushaf" && (
         <div className="space-y-6">
-          {/* Reference Image 1: Lavender-to-Violet Surah Banner Card with Open Quran Watermark & Bismillah */}
-          <div className="quran-gradient-card relative py-7 px-6 sm:py-8 sm:px-8 text-center overflow-hidden">
-            {/* Subtle Open Quran Watermark on Bottom Right (Exact Reference Image 1) */}
+          {/* Luminous Brand Gradient Arch Banner Card */}
+          <div className="quran-gradient-card relative py-7 px-6 sm:py-9 sm:px-8 text-center overflow-hidden">
+            {/* Subtle Illuminated Mihrab Arch & Wave Contours */}
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 500 220"
+              preserveAspectRatio="none"
+              className="pointer-events-none absolute inset-0 w-full h-full opacity-20"
+            >
+              <path
+                d="M150 220 L150 92 Q250 12 350 92 L350 220 Z"
+                fill="none"
+                stroke="#FFFFFF"
+                strokeWidth="1.5"
+              />
+              <path d="M0 168 Q150 128 310 172 T500 148 L500 220 L0 220 Z" fill="#FFFFFF" opacity="0.2" />
+            </svg>
+
+            {/* Open Mushaf on Rehal Watermark (Reference Image 1 Right Screen) */}
             <svg
               aria-hidden="true"
               viewBox="0 0 230 165"
-              className="pointer-events-none absolute -right-6 -bottom-8 w-60 h-48 opacity-15"
+              className="pointer-events-none absolute -end-6 -bottom-8 w-56 sm:w-64 h-44 sm:h-48 opacity-16"
             >
               <path d="M38 92 Q76 72 114 97 L114 48 Q76 28 38 46 Z" fill="#FFFFFF" />
               <path d="M190 92 Q152 72 114 97 L114 48 Q152 28 190 46 Z" fill="#FFFFFF" />
@@ -1273,15 +2133,18 @@ export default function QuranPage() {
             </svg>
 
             <div className="relative z-10 space-y-1.5">
-              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+              <div className="font-arabic text-lg sm:text-xl text-white/85">{currentSurahMeta.name}</div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                 {currentSurahMeta.englishName}
               </h1>
               <p className="text-xs sm:text-sm text-white/90 font-medium">
-                {currentSurahMeta.englishNameTranslation}
+                {tp(lang, currentSurahMeta.englishNameTranslation)}
               </p>
+
               <div className="w-48 h-px bg-white/35 mx-auto my-3.5" />
+
               <p className="text-xs font-semibold uppercase tracking-widest text-white/90">
-                {currentSurahMeta.revelationType} • {currentSurahMeta.numberOfAyahs} Verses
+                {tp(lang, currentSurahMeta.revelationType)} • {currentSurahMeta.numberOfAyahs} {t(lang, "versesLabel")}
               </p>
 
               {(viewMode === "highlights" || selectedSurah !== 9) && (
@@ -1289,45 +2152,72 @@ export default function QuranPage() {
                   {BISMILLAH_TEXT}
                 </p>
               )}
+
+              <div className="pt-3 flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={handlePlaySurah}
+                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-xs text-white text-xs font-semibold transition cursor-pointer"
+                >
+                  {playingId ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                  <span>{playingId ? ui.pause : ui.playSurah}</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Subtle Search & Language Switch Row */}
+          {/* Search & Companion Translation Toggle Row */}
           <div className="flex items-center justify-between gap-2">
             <div className="relative flex-1">
-              <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 opacity-50" />
+              <Search className="w-3.5 h-3.5 absolute start-3.5 top-1/2 -translate-y-1/2 opacity-50" />
               <input
                 type="text"
                 value={ayahFilter}
                 onChange={(e) => setAyahFilter(e.target.value)}
-                placeholder="Search verse number or translation…"
-                className="w-full pl-9 pr-3.5 py-2 rounded-full border text-xs bg-transparent outline-none"
+                placeholder={ui.searchPlaceholder}
+                className="w-full ps-9 pe-3.5 py-2 rounded-full border text-xs bg-transparent outline-none"
                 style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-surface)" }}
               />
             </div>
-            <button
-              type="button"
-              onClick={() => setTarjumaLang(tarjumaLang === "en" ? "ur" : "en")}
-              className="px-3.5 py-2 rounded-full border text-xs font-semibold cursor-pointer shrink-0"
-              style={{
-                borderColor: "var(--border-hairline)",
-                backgroundColor: "var(--bg-surface)",
-                color: "var(--text-primary)",
-              }}
-            >
-              {tarjumaLang === "ur" ? "Urdu (کنزالایمان)" : "English (Kanzul Iman)"}
-            </button>
+
+            {primaryTranslationMode === "ar" ? (
+              <button
+                type="button"
+                onClick={() => setArShowTranslation((v) => !v)}
+                className="px-3.5 py-2 rounded-full border text-xs font-semibold cursor-pointer shrink-0 transition-colors"
+                style={{
+                  borderColor: arShowTranslation ? "var(--accent-primary)" : "var(--border-hairline)",
+                  backgroundColor: arShowTranslation ? "var(--accent-soft)" : "var(--bg-surface)",
+                  color: "var(--text-primary)",
+                }}
+              >
+                {arShowTranslation ? ui.hideTranslation : ui.showTranslation}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowSecondaryTrans((v) => !v)}
+                className="px-3.5 py-2 rounded-full border text-xs font-semibold cursor-pointer shrink-0 transition-colors"
+                style={{
+                  borderColor: showSecondaryTrans ? "var(--accent-primary)" : "var(--border-hairline)",
+                  backgroundColor: showSecondaryTrans ? "var(--accent-soft)" : "var(--bg-surface)",
+                  color: "var(--text-primary)",
+                }}
+              >
+                {primaryTranslationMode === "ur" ? ui.englishToggle : ui.urduToggle}
+              </button>
+            )}
           </div>
 
-          {/* Reference Image 1 Clean Hairline-Divided Verse List (No Heavy Card Boxes) */}
+          {/* Clean Hairline-Divided Verse List (Exact Reference Image 1 Action Pill + Generous Calligraphy) */}
           <div className="divide-y" style={{ borderColor: "var(--border-hairline)" }}>
             {activeListAyahs.map((ayah) => {
               const isPlaying = playingId === ayah.id;
               const isAudioLoading = audioLoadingId === ayah.id;
               const isBookmarked = lastQuranRef === ayah.id;
+              const isCopied = copiedId === ayah.id;
               const sajdaDone = sajdaCompleted.includes(ayah.id);
               const sajdaDeferred = sajdaQueue.includes(ayah.id);
-              const translation = getTranslation(ayah);
 
               return (
                 <article
@@ -1336,10 +2226,9 @@ export default function QuranPage() {
                   className="py-5 space-y-5"
                   style={{ borderColor: "var(--border-hairline)" }}
                 >
-                  {/* Exact Reference Image 1 Top Rounded Action Pill Bar:
-                      ONLY the purple circle verse number on the left + Share / Play / Bookmark icons on the right */}
+                  {/* Verse Action Pill: Number Badge on Start, Share / Play / Copy / Bookmark Icons on End */}
                   <div className="verse-action-pill px-3.5 py-2.5 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <span
                         className="w-7 h-7 rounded-full inline-flex items-center justify-center text-xs font-bold text-white tabular-nums shrink-0"
                         style={{ backgroundImage: "var(--gradient-brand)" }}
@@ -1347,119 +2236,115 @@ export default function QuranPage() {
                         {ayah.ayahNum}
                       </span>
                       {viewMode === "highlights" && (
-                        <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+                        <span className="text-xs font-semibold truncate" style={{ color: "var(--text-muted)" }}>
                           {ayah.surahName} ({ayah.id})
                         </span>
                       )}
                       {ayah.hanafiSajda && (
                         <span
-                          className="px-2.5 py-0.5 rounded-full text-[10px] font-bold"
+                          className="px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0"
                           style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
                         >
-                          ۩ Wajib Sajda
+                          ۩ {ui.wajibSajda}
                         </span>
                       )}
                     </div>
 
-                    {/* Right: Share / Play / Bookmark Icons in Luminous Purple */}
-                    <div className="flex items-center gap-3" style={{ color: "var(--accent-primary)" }}>
+                    <div className="flex items-center gap-2.5 shrink-0" style={{ color: "var(--accent-primary)" }}>
                       <button
                         type="button"
                         onClick={() => handleShareAyah(ayah)}
-                        className="p-1 rounded-lg hover:opacity-80 cursor-pointer"
-                        title="Share Verse"
+                        className="p-1.5 rounded-lg hover:opacity-80 cursor-pointer transition-opacity"
+                        title={ui.share}
+                        aria-label={ui.share}
                       >
-                        {copiedId === ayah.id ? (
-                          <span className="text-[10px] font-bold">Copied</span>
-                        ) : (
-                          <Share2 className="w-[18px] h-[18px]" />
-                        )}
+                        <Share2 className="w-[17px] h-[17px]" />
                       </button>
 
                       <button
                         type="button"
                         onClick={() => togglePlay(ayah)}
-                        className="p-1 rounded-lg hover:opacity-80 cursor-pointer"
-                        title={isPlaying ? "Pause Recitation" : "Play Recitation"}
+                        className="p-1.5 rounded-lg hover:opacity-80 cursor-pointer transition-opacity"
+                        title={isPlaying ? ui.pause : ui.listen}
+                        aria-label={isPlaying ? ui.pause : ui.listen}
                       >
                         {isAudioLoading ? (
-                          <Loader2 className="w-[18px] h-[18px] animate-spin" />
+                          <Loader2 className="w-[17px] h-[17px] animate-spin" />
                         ) : isPlaying ? (
-                          <Pause className="w-[18px] h-[18px]" />
+                          <Pause className="w-[17px] h-[17px]" />
                         ) : (
-                          <Play className="w-[18px] h-[18px]" />
+                          <Play className="w-[17px] h-[17px]" />
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleCopyAyah(ayah)}
+                        className="p-1.5 rounded-lg hover:opacity-80 cursor-pointer transition-opacity"
+                        title={isCopied ? ui.copied : ui.copy}
+                        aria-label={isCopied ? ui.copied : ui.copy}
+                      >
+                        {isCopied ? (
+                          <Check className="w-[17px] h-[17px]" style={{ color: "var(--accent-gold)" }} />
+                        ) : (
+                          <Copy className="w-[17px] h-[17px]" />
                         )}
                       </button>
 
                       <button
                         type="button"
                         onClick={() => logQuranAyah(ayah.id)}
-                        className="p-1 rounded-lg hover:opacity-80 cursor-pointer"
+                        className="p-1.5 rounded-lg hover:opacity-80 cursor-pointer transition-opacity"
                         style={{ color: isBookmarked ? "var(--accent-gold)" : "var(--accent-primary)" }}
-                        title="Bookmark Verse"
+                        title={ui.bookmark}
+                        aria-label={ui.bookmark}
                       >
-                        <Bookmark className="w-[18px] h-[18px]" fill={isBookmarked ? "currentColor" : "none"} />
+                        <Bookmark className="w-[17px] h-[17px]" fill={isBookmarked ? "currentColor" : "none"} />
                       </button>
                     </div>
                   </div>
 
-                  {/* Right-Aligned Calligraphic Arabic Text */}
-                  <p dir="rtl" className="font-arabic text-2xl sm:text-[28px] text-right leading-[2.3] px-1">
+                  {/* Generous Right-Aligned Calligraphic Arabic Text */}
+                  <p dir="rtl" className="font-arabic text-2xl sm:text-[30px] text-right leading-[2.35] px-1">
                     {renderTajweedArabic(
                       scriptMode === "indopak" ? ayah.arabicIndoPak : ayah.arabicUthmani,
                       tajweedColor
                     )}
                   </p>
 
-                  {/* Optional Transliteration + Clean Translation */}
-                  <div className="space-y-1.5 px-1">
-                    {showTranslit && ayah.transliteration && (
-                      <p className="text-xs font-medium" style={{ color: "var(--accent-primary)" }}>
-                        {ayah.transliteration}
-                      </p>
-                    )}
-
-                    <p
-                      dir={tarjumaLang === "ur" ? "rtl" : "ltr"}
-                      className={`text-sm sm:text-[15px] leading-relaxed ${
-                        tarjumaLang === "ur" ? "font-urdu text-right text-lg" : ""
-                      }`}
-                      style={{ color: "var(--text-muted)" }}
-                    >
-                      {translation.text}
-                    </p>
-                  </div>
+                  {/* Auto-Adapted Translation & Transliteration Block */}
+                  <div className="px-1">{renderAdaptiveTranslation(ayah)}</div>
 
                   {ayah.hanafiSajda && (
                     <div
-                      className="p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-xs"
+                      className="p-3.5 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-xs"
                       style={{ borderColor: "var(--accent-gold)", backgroundColor: "var(--gold-soft)" }}
                     >
                       <span>
                         {sajdaDone
-                          ? "Alhamdulillah — Sajda-e-Tilawat completed."
+                          ? ui.sajdaDoneBanner
                           : sajdaDeferred
-                          ? "Saved to your Sajda reminder list."
-                          : "Wajib Sajda-e-Tilawat (Hanafi): Perform 1 Sajdah facing Qibla."}
+                          ? ui.sajdaDeferredBanner
+                          : ui.sajdaPromptBanner}
                       </span>
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => logSajda(ayah.id, "now")}
-                          className="btn-primary px-3 py-1 rounded-lg font-semibold cursor-pointer inline-flex items-center gap-1"
+                          className="btn-primary px-3 py-1.5 rounded-lg font-semibold cursor-pointer inline-flex items-center gap-1.5"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>{sajdaDone ? "Completed" : "Mark Done"}</span>
+                          <span>{sajdaDone ? ui.sajdaCompleted : ui.markDone}</span>
                         </button>
                         {!sajdaDone && (
                           <button
                             type="button"
                             onClick={() => logSajda(ayah.id, "defer")}
-                            className="px-3 py-1 rounded-lg border font-semibold cursor-pointer inline-flex items-center gap-1"
+                            className="px-3 py-1.5 rounded-lg border font-semibold cursor-pointer inline-flex items-center gap-1.5"
                             style={{ borderColor: "var(--border-hairline)" }}
                           >
                             <Clock className="w-3.5 h-3.5" />
-                            <span>Remind Later</span>
+                            <span>{ui.deferSajda}</span>
                           </button>
                         )}
                       </div>
@@ -1471,14 +2356,19 @@ export default function QuranPage() {
                       <button
                         type="button"
                         onClick={() => setOpenTafsirId(openTafsirId === ayah.id ? null : ayah.id)}
-                        className="text-xs font-medium cursor-pointer"
+                        className="text-xs font-semibold inline-flex items-center gap-1 cursor-pointer"
                         style={{ color: "var(--accent-primary)" }}
                       >
-                        {openTafsirId === ayah.id ? "Hide Tafsir Note ▲" : "Khazain-ul-Irfan Note ▼"}
+                        <span>{openTafsirId === ayah.id ? ui.hideTafsir : ui.tafsirNote}</span>
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 transition-transform ${
+                            openTafsirId === ayah.id ? "rotate-180" : ""
+                          }`}
+                        />
                       </button>
                       {openTafsirId === ayah.id && (
                         <div
-                          className="mt-2 p-3 rounded-xl text-xs leading-relaxed"
+                          className="mt-2 p-3.5 rounded-xl text-xs leading-relaxed"
                           style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-muted)" }}
                         >
                           {ayah.khazainUlIrfanNote}
@@ -1493,7 +2383,7 @@ export default function QuranPage() {
         </div>
       )}
 
-      {/* Floating Bottom Lavender-to-Violet Audio Player Pill (Exact Reference Image 2 Bottom Bar) */}
+      {/* Floating Bottom Brand Gradient Audio Player Pill (Reference Image 2 Bottom Bar) */}
       {!loadingCorpus && inspectedAyah && (
         <div className="fixed bottom-16 sm:bottom-4 inset-x-3 z-30 pointer-events-none flex justify-center">
           <div className="pointer-events-auto quran-gradient-card w-full max-w-xl px-5 py-3 rounded-full flex items-center justify-between gap-3 shadow-2xl">
@@ -1512,9 +2402,11 @@ export default function QuranPage() {
                 className="text-[11px] text-white/90 inline-flex items-center gap-1 hover:underline cursor-pointer truncate"
               >
                 <span>
-                  {nextSurahMeta ? `Next surah ${nextSurahMeta.englishName}` : `Ayah ${inspectedAyah.id}`}
+                  {nextSurahMeta
+                    ? `${ui.nextSurah}: ${nextSurahMeta.englishName}`
+                    : `${t(lang, "ayahNo")} ${inspectedAyah.id}`}
                 </span>
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className="w-3 h-3 rtl-mirror" />
               </button>
             </div>
 
@@ -1523,38 +2415,38 @@ export default function QuranPage() {
                 type="button"
                 onClick={() => stepAudioVerse(-1)}
                 className="p-2 rounded-full bg-white/15 hover:bg-white/25 text-white cursor-pointer"
-                aria-label="Previous Verse"
+                aria-label={tp(lang, "Previous")}
               >
-                <SkipBack className="w-4 h-4" />
+                <SkipBack className="w-4 h-4 rtl-mirror" />
               </button>
               <button
                 type="button"
                 onClick={() => togglePlay(inspectedAyah)}
                 className="w-9 h-9 rounded-full bg-white text-purple-700 flex items-center justify-center font-bold cursor-pointer shadow-md transition-transform active:scale-95"
-                aria-label={playingId ? "Pause Recitation" : "Play Recitation"}
+                aria-label={playingId ? ui.pause : ui.listen}
               >
                 {audioLoadingId ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : playingId ? (
                   <Pause className="w-4 h-4" />
                 ) : (
-                  <Play className="w-4 h-4 ml-0.5" />
+                  <Play className="w-4 h-4 ms-0.5" />
                 )}
               </button>
               <button
                 type="button"
                 onClick={() => stepAudioVerse(1)}
                 className="p-2 rounded-full bg-white/15 hover:bg-white/25 text-white cursor-pointer"
-                aria-label="Next Verse"
+                aria-label={tp(lang, "Next")}
               >
-                <SkipForward className="w-4 h-4" />
+                <SkipForward className="w-4 h-4 rtl-mirror" />
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Selected Verse Kanzul Iman Bottom Sheet (When Tapping a Verse in 1-Page Mushaf Mode) */}
+      {/* Selected Verse Kanzul Iman Modal (When Tapping a Verse in 1-Page Mushaf Mode) */}
       {inspectorOpen && inspectedAyah && (
         <div
           className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 sm:p-4"
@@ -1566,8 +2458,11 @@ export default function QuranPage() {
           >
             <div className="flex items-center justify-between gap-2">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
-                  Page {inspectedAyah.page} • Para {inspectedAyah.juz}
+                <div
+                  className="text-[11px] font-semibold uppercase tracking-wider"
+                  style={{ color: "var(--accent-primary)" }}
+                >
+                  {t(lang, "pageLabel")} {inspectedAyah.page} • {t(lang, "paraLabel")} {inspectedAyah.juz}
                 </div>
                 <h2 className="text-base font-bold">
                   {inspectedAyah.surahName} ({inspectedAyah.id})
@@ -1577,15 +2472,28 @@ export default function QuranPage() {
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
+                  onClick={() => handleCopyAyah(inspectedAyah)}
+                  className="p-2 rounded-xl border cursor-pointer"
+                  style={{ borderColor: "var(--border-hairline)" }}
+                  title={copiedId === inspectedAyah.id ? ui.copied : ui.copy}
+                >
+                  {copiedId === inspectedAyah.id ? (
+                    <Check className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+                <button
+                  type="button"
                   onClick={() => logQuranAyah(inspectedAyah.id)}
                   className="p-2 rounded-xl border cursor-pointer"
                   style={{
                     borderColor: lastQuranRef === inspectedAyah.id ? "var(--accent-gold)" : "var(--border-hairline)",
                     color: lastQuranRef === inspectedAyah.id ? "var(--accent-gold)" : "var(--text-muted)",
                   }}
-                  title="Bookmark Verse"
+                  title={ui.bookmark}
                 >
-                  <Bookmark className="w-4 h-4" />
+                  <Bookmark className="w-4 h-4" fill={lastQuranRef === inspectedAyah.id ? "currentColor" : "none"} />
                 </button>
                 <button
                   type="button"
@@ -1593,14 +2501,14 @@ export default function QuranPage() {
                   className="btn-primary px-3.5 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   {playingId === inspectedAyah.id ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                  <span>{playingId === inspectedAyah.id ? "Pause" : "Listen"}</span>
+                  <span>{playingId === inspectedAyah.id ? ui.pause : ui.listen}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setInspectorOpen(false)}
                   className="p-2 rounded-xl border cursor-pointer"
                   style={{ borderColor: "var(--border-hairline)" }}
-                  aria-label="Close verse modal"
+                  aria-label={tp(lang, "Close")}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1617,23 +2525,81 @@ export default function QuranPage() {
             </p>
 
             <div className="space-y-3 text-xs">
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--accent-primary)" }}>
-                  Kanzul Iman (Urdu — Imam Ahmad Raza Khan)
-                </div>
-                <p dir="rtl" className="font-urdu text-right text-base sm:text-lg leading-relaxed">
-                  {inspectedAyah.kanzulImanUrdu}
-                </p>
-              </div>
-
-              <div className="pt-2.5 border-t" style={{ borderColor: "var(--border-hairline)" }}>
-                <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--accent-secondary)" }}>
-                  Kanzul Iman (English)
-                </div>
-                <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                  {inspectedAyah.kanzulImanEnglish}
-                </p>
-              </div>
+              {primaryTranslationMode === "ur" ? (
+                <>
+                  <div>
+                    <div
+                      className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                      style={{ color: "var(--accent-primary)" }}
+                    >
+                      {ui.kanzulImanUr}
+                    </div>
+                    <p dir="rtl" className="font-urdu text-right text-base sm:text-lg leading-[2.2]">
+                      {inspectedAyah.kanzulImanUrdu}
+                    </p>
+                  </div>
+                  <div className="pt-2.5 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+                    <div
+                      className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                      style={{ color: "var(--accent-secondary)" }}
+                    >
+                      {ui.kanzulImanEn}
+                    </div>
+                    <p dir="ltr" className="text-sm leading-relaxed text-left" style={{ color: "var(--text-muted)" }}>
+                      {inspectedAyah.kanzulImanEnglish}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {inspectedAyah.kanzulImanHindi && primaryTranslationMode === "hi" && (
+                    <div>
+                      <div
+                        className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                        style={{ color: "var(--accent-primary)" }}
+                      >
+                        {ui.kanzulImanHi}
+                      </div>
+                      <p className="font-hindi text-sm sm:text-base leading-relaxed">
+                        {inspectedAyah.kanzulImanHindi}
+                      </p>
+                    </div>
+                  )}
+                  {inspectedAyah.kanzulImanRomanUrdu && primaryTranslationMode === "ro_ur" && (
+                    <div>
+                      <div
+                        className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                        style={{ color: "var(--accent-primary)" }}
+                      >
+                        {ui.kanzulImanRoUr}
+                      </div>
+                      <p className="text-sm font-medium leading-relaxed">{inspectedAyah.kanzulImanRomanUrdu}</p>
+                    </div>
+                  )}
+                  <div>
+                    <div
+                      className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                      style={{ color: "var(--accent-secondary)" }}
+                    >
+                      {ui.kanzulImanEn}
+                    </div>
+                    <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                      {inspectedAyah.kanzulImanEnglish}
+                    </p>
+                  </div>
+                  <div className="pt-2.5 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+                    <div
+                      className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                      style={{ color: "var(--accent-primary)" }}
+                    >
+                      {ui.kanzulImanUr}
+                    </div>
+                    <p dir="rtl" className="font-urdu text-right text-base sm:text-lg leading-[2.2]">
+                      {inspectedAyah.kanzulImanUrdu}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1651,11 +2617,14 @@ export default function QuranPage() {
           >
             <div className="flex items-center justify-between gap-2">
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
-                  Hanafi Fiqh (Bahar-e-Shariat)
+                <span
+                  className="text-[11px] font-semibold uppercase tracking-wider"
+                  style={{ color: "var(--accent-primary)" }}
+                >
+                  {tp(lang, "Hanafi Fiqh")}
                 </span>
                 <h2 className="text-base font-bold">
-                  14 Wajib Sajda-e-Tilawat Verses ({sajdaCompleted.length}/14)
+                  {ui.sajdaDrawerTitle} ({sajdaCompleted.length}/14)
                 </h2>
               </div>
               <button
@@ -1663,26 +2632,36 @@ export default function QuranPage() {
                 onClick={() => setSajdaDrawerOpen(false)}
                 className="p-2 rounded-xl border cursor-pointer"
                 style={{ borderColor: "var(--border-hairline)" }}
-                aria-label="Close Sajda list"
+                aria-label={tp(lang, "Close")}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {sajdaQueue.length > 0 && (
-              <div className="p-3 rounded-xl border space-y-2 text-xs" style={{ borderColor: "var(--accent-gold)", backgroundColor: "var(--gold-soft)" }}>
-                <div className="font-bold">Deferred Sajda Queue ({sajdaQueue.length})</div>
+              <div
+                className="p-3 rounded-xl border space-y-2 text-xs"
+                style={{ borderColor: "var(--accent-gold)", backgroundColor: "var(--gold-soft)" }}
+              >
+                <div className="font-bold">
+                  {ui.deferredQueue} ({sajdaQueue.length})
+                </div>
                 {sajdaQueue.map((ref) => (
                   <div key={ref} className="flex items-center justify-between">
-                    <button type="button" onClick={() => jumpToRef(ref)} className="underline font-semibold cursor-pointer">
-                      ۩ Ayah {ref}
+                    <button
+                      type="button"
+                      onClick={() => jumpToRef(ref)}
+                      className="underline font-semibold cursor-pointer"
+                    >
+                      ۩ {t(lang, "ayahNo")} {ref}
                     </button>
                     <button
                       type="button"
                       onClick={() => logSajda(ref, "now")}
-                      className="btn-primary px-2.5 py-1 rounded-lg font-semibold cursor-pointer"
+                      className="btn-primary px-2.5 py-1 rounded-lg font-semibold cursor-pointer inline-flex items-center gap-1"
                     >
-                      Mark Done
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>{ui.markDone}</span>
                     </button>
                   </div>
                 ))}
@@ -1704,20 +2683,21 @@ export default function QuranPage() {
                     <button
                       type="button"
                       onClick={() => jumpToRef(s.ref)}
-                      className="text-left font-semibold hover:underline cursor-pointer"
+                      className="text-start font-semibold hover:underline cursor-pointer"
                     >
                       <div>۩ {s.label}</div>
                       <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                        Page {s.page}
+                        {t(lang, "pageLabel")} {s.page}
                       </div>
                     </button>
                     <button
                       type="button"
                       onClick={() => logSajda(s.ref, "now")}
-                      className="px-2 py-1 rounded-lg border text-[11px] font-semibold cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg border text-[11px] font-semibold cursor-pointer inline-flex items-center gap-1"
                       style={{ borderColor: "var(--border-hairline)" }}
                     >
-                      {done ? "Done" : "Log"}
+                      {done && <CheckCircle2 className="w-3 h-3" style={{ color: "var(--accent-primary)" }} />}
+                      <span>{done ? ui.done : ui.logAction}</span>
                     </button>
                   </div>
                 );
@@ -1727,5 +2707,19 @@ export default function QuranPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function QuranPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="bento-card p-12 text-center max-w-3xl mx-auto">
+          <Loader2 className="w-7 h-7 animate-spin mx-auto" style={{ color: "var(--accent-primary)" }} />
+        </div>
+      }
+    >
+      <QuranReaderContent />
+    </Suspense>
   );
 }

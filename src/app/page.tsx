@@ -9,6 +9,7 @@ import {
   Trophy,
   Calculator,
   ArrowRight,
+  ChevronRight,
   Sparkles,
   Clock,
   Scale,
@@ -17,7 +18,6 @@ import {
   MapPin,
   Search,
   Flame,
-  Award,
   CheckCircle2,
   Sliders,
   Calendar,
@@ -26,8 +26,15 @@ import {
 import { useApp } from "@/lib/store";
 import { formatCountdown, formatTime } from "@/lib/prayer-engine";
 import { getEventsForHijri, getUpcomingEvents } from "@/lib/hijri";
-import { formatLocalizedHijriMonth, t } from "@/lib/i18n";
-import { ModuleIconKey, RBAC_ROLES } from "@/lib/backend-types";
+import {
+  formatLocalizedHijriMonth,
+  formatLocalizedWeekday,
+  getModuleSubtitle,
+  localizePrayerName,
+  t,
+  tp,
+} from "@/lib/i18n";
+import { ModuleIconKey } from "@/lib/backend-types";
 import { TASBIH_LITANIES } from "@/data/fiqh-hadith";
 import { HANAFI_SAJDA_ITEMS, JUZ_LIST, SURAH_LIST } from "@/data/quran";
 import { ActivityRings } from "@/components/ActivityRings";
@@ -71,16 +78,11 @@ export default function DashboardPage() {
     sajdaCompleted,
     allAuliya,
     user,
-    authUser,
     weather,
     rings,
     streakDays,
     backend,
     dynamicCalendarEvents,
-    totalXp,
-    currentRank,
-    nextRank,
-    rankProgressPct,
     claimedQuestsToday,
     claimDailyQuest,
     barsiFatihaToday,
@@ -110,30 +112,29 @@ export default function DashboardPage() {
   const fardCompletedCount = Object.values(salahToday).filter((v) => v !== "none").length;
   const sunnahCompletedCount = Object.values(sunnahChecks).filter(Boolean).length;
 
-  // Dynamic Modular Cards driven 100% by Backend Registry (enabled + ordered + live telemetry)
+  // Clean localized module launcher items
   const enabledModules = useMemo(() => {
     return backend.modules
       .filter((m) => m.enabled)
       .sort((a, b) => a.order - b.order)
       .map((m) => {
         const title = m.customTitle?.trim() || t(lang, m.i18nTitleKey);
-        let liveSubtitle = m.subtitleTemplate;
+        let liveSubtitle = getModuleSubtitle(lang, m.id, m.subtitleTemplate);
+
         if (m.id === "quran") {
-          liveSubtitle = `Page ${lastReadSurah.startPage} • ${m.subtitleTemplate}`;
+          liveSubtitle = `${t(lang, "pageLabel")} ${lastReadSurah.startPage} • ${lastReadSurah.englishName}`;
         } else if (m.id === "prayer") {
-          liveSubtitle = `${fardCompletedCount}/5 Today • Qibla ${schedule.qiblaBearing}°`;
+          liveSubtitle = `${fardCompletedCount}/5 • ${t(lang, "qiblaBearing")} ${schedule.qiblaBearing}°`;
         } else if (m.id === "tasbih") {
           liveSubtitle = `${tasbihTotalToday}/${tasbihTarget} • ${activeLitany.name.split(" ")[0]}`;
+        } else if (m.id === "auliya" && nextEvent) {
+          liveSubtitle = nextEvent.title;
         } else if (m.id === "auliya") {
-          liveSubtitle = nextEvent ? nextEvent.title : `${allAuliya.length} Shrines`;
-        } else if (m.id === "quiz") {
-          liveSubtitle =
-            bestQuizTier > 0
-              ? `Tier ${bestQuizTier}/15 • ${totalXp.toLocaleString()} XP`
-              : `300 Qs • ${totalXp.toLocaleString()} XP`;
-        } else if (m.id === "barsi") {
-          liveSubtitle = `${backend.barsiRecords.length} Profiles • ${m.subtitleTemplate}`;
+          liveSubtitle = `${allAuliya.length} • ${getModuleSubtitle(lang, m.id, m.subtitleTemplate)}`;
+        } else if (m.id === "quiz" && bestQuizTier > 0) {
+          liveSubtitle = `${tp(lang, `Tier ${bestQuizTier}/15`)} • ${getModuleSubtitle(lang, m.id, m.subtitleTemplate)}`;
         }
+
         return {
           ...m,
           resolvedTitle: title,
@@ -143,9 +144,9 @@ export default function DashboardPage() {
       });
   }, [
     backend.modules,
-    backend.barsiRecords.length,
     lang,
     lastReadSurah.startPage,
+    lastReadSurah.englishName,
     fardCompletedCount,
     schedule.qiblaBearing,
     tasbihTotalToday,
@@ -154,10 +155,8 @@ export default function DashboardPage() {
     nextEvent,
     allAuliya.length,
     bestQuizTier,
-    totalXp,
   ]);
 
-  // Evaluate live progress for Backend-Configured Daily Barakah Quests
   const activeQuests = useMemo(() => {
     return backend.gamificationConfig.dailyQuests
       .filter((q) => q.enabled)
@@ -200,142 +199,192 @@ export default function DashboardPage() {
 
   const keyMushafPages = useMemo(
     () => [
-      { page: 1, title: "Surah Al-Fatihah", subtitle: "Opening Page of the Mushaf", arabic: "الفاتحة" },
-      { page: 2, title: "Surah Al-Baqarah", subtitle: "Para 1 • Alif-Lam-Mim", arabic: "البقرة" },
-      { page: 50, title: "Ayat-ul-Kursi & Para 3", subtitle: "Surah Al-Baqarah", arabic: "آية الكرسي" },
-      { page: 293, title: "Surah Al-Kahf", subtitle: "Para 15 • Friday Recitation", arabic: "الكهف" },
-      { page: 440, title: "Surah Yasin", subtitle: "Para 22–23 • Heart of the Quran", arabic: "يس" },
-      { page: 531, title: "Surah Ar-Rahman", subtitle: "Para 27 • Bride of the Quran", arabic: "الرحمن" },
-      { page: 534, title: "Surah Al-Waqi'ah", subtitle: "Para 27 • Nightly Recitation", arabic: "الواقعة" },
-      { page: 562, title: "Surah Al-Mulk", subtitle: "Para 29 • Protection before Sleep", arabic: "الملك" },
-      { page: 582, title: "Juz Amma (Para 30)", subtitle: "Surah An-Naba to An-Nas", arabic: "عم يتساءلون" },
-      { page: 604, title: "Khatm-ul-Quran Page", subtitle: "Surah Al-Ikhlas, Al-Falaq & An-Nas", arabic: "الناس" },
+      { page: 1, title: "Surah Al-Fatihah", para: 1, arabic: "الفاتحة" },
+      { page: 2, title: "Surah Al-Baqarah", para: 1, arabic: "البقرة" },
+      { page: 50, title: "Ayat-ul-Kursi", para: 3, arabic: "آية الكرسي" },
+      { page: 293, title: "Surah Al-Kahf", para: 15, arabic: "الكهف" },
+      { page: 440, title: "Surah Yasin", para: 22, arabic: "يس" },
+      { page: 531, title: "Surah Ar-Rahman", para: 27, arabic: "الرحمن" },
+      { page: 534, title: "Surah Al-Waqi'ah", para: 27, arabic: "الواقعة" },
+      { page: 562, title: "Surah Al-Mulk", para: 29, arabic: "الملك" },
+      { page: 582, title: "Juz Amma", para: 30, arabic: "عم يتساءلون" },
+      { page: 604, title: "Surah Al-Ikhlas & Mu'awwidhatayn", para: 30, arabic: "الناس" },
     ],
     []
   );
 
   const localizedHijriMonth = formatLocalizedHijriMonth(lang, hijri.month, hijri.monthName);
-  const roleMeta = authUser ? RBAC_ROLES[authUser.role] : null;
+  const localizedWeekday = formatLocalizedWeekday(lang, hijri.weekday);
+  const nextPrayerName = localizePrayerName(lang, schedule.nextPrayer.label);
 
   return (
-    <div className="space-y-6">
-      {/* Dynamic Backend Announcement Banner */}
+    <div className="space-y-7">
+      {/* Optional Admin-Enabled Notice */}
       {backend.platformSettings.announcementEnabled && backend.platformSettings.announcementText && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="px-4 py-2.5 rounded-2xl border flex flex-wrap items-center justify-between gap-2 text-xs"
           style={{
-            borderColor: "color-mix(in srgb, var(--accent-primary) 35%, var(--border-hairline))",
+            borderColor: "color-mix(in srgb, var(--accent-primary) 30%, var(--border-hairline))",
             backgroundColor: "var(--accent-soft)",
           }}
         >
           <div className="flex items-center gap-2 min-w-0">
             <Megaphone className="w-4 h-4 shrink-0" style={{ color: "var(--accent-primary)" }} />
-            <span
-              className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
-              style={{ backgroundColor: "var(--bg-surface)", color: "var(--accent-primary)" }}
-            >
-              {backend.platformSettings.announcementBadge}
-            </span>
             <span className="truncate font-medium">{backend.platformSettings.announcementText}</span>
           </div>
           <Link
-            href={backend.platformSettings.announcementHref || "/admin"}
-            className="font-bold inline-flex items-center gap-1 shrink-0"
+            href={backend.platformSettings.announcementHref || "/auliya"}
+            className="font-semibold inline-flex items-center gap-1 shrink-0"
             style={{ color: "var(--accent-primary)" }}
           >
-            <span>Open</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <span>{tp(lang, "Open")}</span>
+            <ArrowRight className="w-3.5 h-3.5 rtl-mirror" />
           </Link>
-        </motion.div>
+        </div>
       )}
 
-      {/* 1. Dramatic Greeting + Spiritual Rank & XP Progression Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1">
-        <div className="space-y-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
-              {t(lang, "greeting")}
-            </p>
-            {roleMeta && (
+      {/* 1. Calm Editorial Greeting Header (Reference Mockup Style) */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pt-0.5">
+        <div className="space-y-1">
+          <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+            {t(lang, "greeting")}
+          </p>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl sm:text-[28px] font-bold tracking-tight">
+              {user ? user.name : "Tanvir Ahassan"}
+            </h1>
+            {streakDays > 0 && (
               <span
-                className="text-[10px] px-2 py-0.5 rounded-full font-bold text-white"
-                style={{ backgroundColor: roleMeta.badgeColor }}
+                className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-semibold"
+                style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
               >
-                {roleMeta.label}
+                <Flame className="w-3 h-3" />
+                <span>
+                  {streakDays} {t(lang, "streakDays")}
+                </span>
               </span>
             )}
-            <span
-              className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-bold"
-              style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
-            >
-              <Flame className="w-3 h-3" />
-              <span>
-                {streakDays} {t(lang, "streakDays")}
-              </span>
-            </span>
-          </div>
-
-          <h1 className="text-2xl sm:text-[28px] font-bold tracking-tight">
-            {user ? user.name : "Tanvir Ahassan"}
-          </h1>
-
-          {/* Gamified Spiritual Rank Progress Strip */}
-          <div className="flex items-center gap-2.5 pt-0.5">
-            <span
-              className="inline-flex items-center gap-1 text-xs font-bold"
-              style={{ color: "var(--accent-primary)" }}
-            >
-              <Award className="w-3.5 h-3.5" />
-              <span>
-                Lv.{currentRank.level} {currentRank.title}
-              </span>
-            </span>
-            <div
-              className="w-28 sm:w-36 h-2 rounded-full overflow-hidden"
-              style={{ backgroundColor: "var(--bg-muted)" }}
-            >
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${rankProgressPct}%` }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="h-full rounded-full"
-                style={{ backgroundImage: "var(--gradient-brand)" }}
-              />
-            </div>
-            <span className="text-[11px] font-mono tabular-nums" style={{ color: "var(--text-muted)" }}>
-              {totalXp.toLocaleString()}
-              {nextRank ? ` / ${nextRank.minXp.toLocaleString()} XP` : " XP (Max)"}
-            </span>
           </div>
         </div>
 
         <div className="sm:text-end text-xs" style={{ color: "var(--text-muted)" }}>
-          <div className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>
+          <div className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
             {hijri.day} {localizedHijriMonth} {hijri.year} AH
           </div>
-          <div>{hijri.weekday}</div>
+          <div className="mt-0.5">{localizedWeekday}</div>
         </div>
       </div>
 
-      {/* 2. Dual Hero Cards (Quran Mushaf Last Read + Live Twilight Mosque Prayer Card) */}
+      {/* 2. Dual Atmospheric Hero Cards (Twilight Mosque Next Prayer + Illuminated Mushaf Last Read) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Next Prayer Twilight Mosque Card (Image 2 Style) */}
         <motion.div
           whileHover={{ y: -2 }}
-          transition={{ type: "spring", stiffness: 360, damping: 26 }}
-          className="lg:col-span-6"
+          transition={{ type: "spring", stiffness: 360, damping: 28 }}
+          className="lg:col-span-6 order-1 lg:order-2"
+        >
+          <Link
+            href="/prayer"
+            className="twilight-hero-card p-6 relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[178px] group h-full"
+          >
+            {/* Atmospheric Moon, Clouds & Mosque Horizon Artwork */}
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 520 210"
+              preserveAspectRatio="xMidYMax slice"
+              className="pointer-events-none absolute inset-0 w-full h-full"
+            >
+              <defs>
+                <radialGradient id="heroMoonHalo" cx="76%" cy="28%" r="36%">
+                  <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.55" />
+                  <stop offset="45%" stopColor="#DF98FA" stopOpacity="0.22" />
+                  <stop offset="100%" stopColor="#1E1348" stopOpacity="0" />
+                </radialGradient>
+                <linearGradient id="mosqueSil" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#1A103D" stopOpacity="0.72" />
+                  <stop offset="100%" stopColor="#080B1E" stopOpacity="0.94" />
+                </linearGradient>
+              </defs>
+              {/* Soft Moon & Glow */}
+              <circle cx="395" cy="58" r="76" fill="url(#heroMoonHalo)" />
+              <circle cx="395" cy="58" r="22" fill="#FFFDF7" opacity="0.88" />
+              {/* Subtle Stars */}
+              <circle cx="88" cy="36" r="1.5" fill="#FFFFFF" opacity="0.65" />
+              <circle cx="142" cy="54" r="1.2" fill="#FFFFFF" opacity="0.45" />
+              <circle cx="290" cy="30" r="1.6" fill="#FFFFFF" opacity="0.55" />
+              <circle cx="462" cy="42" r="1.3" fill="#FFFFFF" opacity="0.5" />
+              {/* Drifting Twilight Clouds */}
+              <path
+                d="M30 92 Q58 76 86 90 Q112 80 136 94 Z"
+                fill="#FFFFFF"
+                opacity="0.08"
+              />
+              <path
+                d="M320 86 Q348 70 378 84 Q405 74 432 88 Z"
+                fill="#FFFFFF"
+                opacity="0.1"
+              />
+              {/* Mosque Domes & Minarets Silhouette */}
+              <path
+                d="M0 210 L0 172 L36 172 L36 118 L41 96 L46 118 L46 172 L86 172 Q118 136 150 172 L196 172 L196 150 Q260 96 324 150 L324 172 L368 172 Q400 136 432 172 L472 172 L472 118 L477 96 L482 118 L482 172 L520 172 L520 210 Z"
+                fill="url(#mosqueSil)"
+              />
+              {/* Lit Sanctuary Arch Windows */}
+              <rect x="246" y="162" width="7" height="14" rx="3.5" fill="#F9B091" opacity="0.45" />
+              <rect x="258" y="160" width="8" height="16" rx="4" fill="#F9B091" opacity="0.6" />
+              <rect x="271" y="162" width="7" height="14" rx="3.5" fill="#F9B091" opacity="0.45" />
+            </svg>
+
+            <div className="relative z-10 space-y-1">
+              <div className="text-xs sm:text-sm font-medium text-white/85">
+                {nextPrayerName}
+              </div>
+              <div className="text-3xl sm:text-[38px] font-bold tracking-tight tabular-nums text-white leading-tight">
+                {formatTime(schedule.nextPrayer.jamaatTime)}
+              </div>
+              <div className="inline-flex flex-wrap items-center justify-center gap-1.5 text-xs text-white/90 pt-1">
+                <MapPin className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                <span>
+                  {city.name} • {t(lang, "inTimePrefix")} {formatCountdown(schedule.nextPrayer.jamaatTime, now)}
+                </span>
+                {weather && (
+                  <span className="px-2 py-0.5 rounded-full bg-white/15 text-white text-[11px] font-semibold tabular-nums">
+                    {Math.round(weather.temperatureC)}°C
+                  </span>
+                )}
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+
+        {/* Last Read Open Mushaf Card (Image 1 & Image 2 Style) */}
+        <motion.div
+          whileHover={{ y: -2 }}
+          transition={{ type: "spring", stiffness: 360, damping: 28 }}
+          className="lg:col-span-6 order-2 lg:order-1"
         >
           <Link
             href={`/quran?surah=${lastReadSurah.number}&page=${lastReadSurah.startPage}`}
-            className="quran-gradient-card p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between min-h-[162px] group h-full"
+            className="quran-gradient-card p-6 relative overflow-hidden flex flex-col justify-between min-h-[178px] group h-full"
           >
+            {/* Soft Ambient Wave Contours */}
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 400 180"
+              preserveAspectRatio="none"
+              className="pointer-events-none absolute inset-0 w-full h-full opacity-25"
+            >
+              <path d="M0 130 Q120 90 240 135 T400 115 L400 180 L0 180 Z" fill="#FFFFFF" opacity="0.22" />
+              <path d="M0 152 Q150 118 280 152 T400 138 L400 180 L0 180 Z" fill="#2E1065" opacity="0.28" />
+            </svg>
+
+            {/* Sculpted Open Quran on Rehal Artwork */}
             <svg
               aria-hidden="true"
               viewBox="0 0 230 165"
-              className="pointer-events-none absolute -right-3 -bottom-4 w-44 sm:w-52 h-36 sm:h-40 opacity-95 transition-transform duration-300 group-hover:scale-105"
+              className="pointer-events-none absolute -end-3 -bottom-4 w-44 sm:w-50 h-36 sm:h-40 opacity-95 transition-transform duration-300 group-hover:scale-105"
             >
-              <ellipse cx="115" cy="148" rx="68" ry="10" fill="#180838" opacity="0.38" />
+              <ellipse cx="115" cy="148" rx="68" ry="10" fill="#180838" opacity="0.32" />
               <path d="M62 146 L160 100 L167 109 L69 155 Z" fill="#4C1D95" />
               <path d="M160 146 L62 100 L55 109 L153 155 Z" fill="#2E1065" />
               <path d="M34 98 Q74 80 114 103 L114 113 Q74 90 34 108 Z" fill="#F9B091" />
@@ -351,222 +400,163 @@ export default function DashboardPage() {
               <path d="M126 80 Q152 67 178 78" stroke="#A855F7" strokeWidth="2" fill="none" strokeLinecap="round" />
             </svg>
 
-            <div className="relative z-10 inline-flex items-center gap-2 text-xs font-semibold text-white">
+            <div className="relative z-10 inline-flex items-center gap-2 text-xs font-medium text-white/95">
               <BookOpen className="w-4 h-4" />
               <span>{t(lang, "lastRead")}</span>
             </div>
 
-            <div className="relative z-10 mt-3 max-w-[62%]">
-              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white truncate">
-                {lastReadSurah.englishName}
-              </h2>
+            <div className="relative z-10 mt-3 max-w-[65%]">
+              <div className="flex items-baseline gap-2.5">
+                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white truncate">
+                  {lastReadSurah.englishName}
+                </h2>
+                <span className="font-arabic text-base text-white/90 hidden sm:inline">
+                  {lastReadSurah.name}
+                </span>
+              </div>
               <p className="text-xs text-white/85 mt-1">
-                {t(lang, "ayahNo")}: {lastReadParsed.ayahNum} • Page {lastReadSurah.startPage}
+                {t(lang, "ayahNo")} {lastReadParsed.ayahNum} • {t(lang, "pageLabel")} {lastReadSurah.startPage}
               </p>
             </div>
 
-            <div className="relative z-10 mt-3">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-semibold bg-white/20 backdrop-blur-xs text-white">
+            <div className="relative z-10 mt-3.5">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-black/20 backdrop-blur-xs text-white">
                 <span>{t(lang, "continueJourney")}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-3.5 h-3.5 rtl-mirror" />
               </span>
-            </div>
-          </Link>
-        </motion.div>
-
-        <motion.div
-          whileHover={{ y: -2 }}
-          transition={{ type: "spring", stiffness: 360, damping: 26 }}
-          className="lg:col-span-6"
-        >
-          <Link
-            href="/prayer"
-            className="twilight-hero-card p-5 sm:p-6 relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[162px] group h-full"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 500 200"
-              preserveAspectRatio="xMidYMax slice"
-              className="pointer-events-none absolute inset-0 w-full h-full opacity-40"
-            >
-              <defs>
-                <radialGradient id="twilightMoon" cx="50%" cy="35%" r="32%">
-                  <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.85" />
-                  <stop offset="45%" stopColor="#DF98FA" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#27155D" stopOpacity="0" />
-                </radialGradient>
-              </defs>
-              <circle cx="250" cy="68" r="64" fill="url(#twilightMoon)" />
-              <path
-                d="M0 200 L0 164 L42 164 L42 124 L47 104 L52 124 L52 164 L108 164 Q142 124 176 164 L218 164 L218 140 Q250 92 282 140 L282 164 L324 164 Q358 124 392 164 L448 164 L448 124 L453 104 L458 124 L458 164 L500 164 L500 200 Z"
-                fill="#070A1A"
-              />
-            </svg>
-
-            <div className="relative z-10 space-y-1">
-              <div className="text-sm font-semibold text-white/90">
-                {schedule.nextPrayer.label.split(" (")[0]}
-              </div>
-              <div className="text-3xl sm:text-4xl font-bold tracking-tight tabular-nums text-white">
-                {formatTime(schedule.nextPrayer.jamaatTime)}
-              </div>
-              <div className="inline-flex flex-wrap items-center justify-center gap-1.5 text-xs text-white/90 pt-0.5">
-                <MapPin className="w-3.5 h-3.5 text-amber-300" />
-                <span>
-                  {city.name} ({city.tz || "Local"}) • in {formatCountdown(schedule.nextPrayer.jamaatTime, now)}
-                </span>
-                {weather && (
-                  <span className="px-2 py-0.5 rounded-full bg-white/15 text-white font-semibold tabular-nums">
-                    {Math.round(weather.temperatureC)}°C
-                    {weather.usAqi !== null ? ` • AQI ${weather.usAqi}` : ""}
-                  </span>
-                )}
-              </div>
             </div>
           </Link>
         </motion.div>
       </div>
 
-      {/* Live Contextual Rafiq Companion Bar */}
+      {/* Timely Companion Strip (Only renders on sacred events, Jumu'ah, or pre-Salah window) */}
       <RafiqBar />
 
-      {/* 3. 100% Backend-Modular Sanctuary Modules Grid */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
+      {/* 3. Clean Uncluttered Sanctuary Spaces Launcher */}
+      <section className="space-y-3.5">
+        <div className="flex items-end justify-between gap-2">
           <div>
-            <h2 className="text-sm sm:text-base font-bold tracking-tight">
+            <h2 className="text-base sm:text-lg font-bold tracking-tight">
               {t(lang, "companionModules")}
             </h2>
-            <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-              {t(lang, "selectModuleHint")} • {enabledModules.length} Active Modules
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+              {t(lang, "selectModuleHint")}
             </p>
           </div>
 
           <Link
             href="/admin"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-opacity hover:opacity-90 shrink-0"
             style={{
               borderColor: "var(--border-hairline)",
               backgroundColor: "var(--bg-surface)",
-              color: "var(--accent-primary)",
+              color: "var(--text-muted)",
             }}
           >
-            <Sliders className="w-3.5 h-3.5" />
+            <Sliders className="w-3.5 h-3.5" style={{ color: "var(--accent-primary)" }} />
             <span>{t(lang, "customizeModules")}</span>
           </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {enabledModules.map((mod, idx) => {
+          {enabledModules.map((mod) => {
             const Icon = mod.Icon;
             return (
-              <motion.div
+              <Link
                 key={mod.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.22, delay: idx * 0.03 }}
+                href={mod.href}
+                className="bento-card bento-card-interactive p-4 flex items-center justify-between gap-3 group"
               >
-                <Link
-                  href={mod.href}
-                  className={`p-4 flex items-center justify-between gap-3 group h-full ${
-                    mod.featured ? "sanctuary-halo-card" : "bento-card"
-                  } bento-card-interactive`}
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div
-                      className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"
-                      style={{
-                        backgroundImage: mod.featured ? "var(--gradient-brand)" : undefined,
-                        backgroundColor: mod.featured ? undefined : "var(--accent-soft)",
-                        color: mod.featured ? "#ffffff" : "var(--accent-primary)",
-                      }}
-                    >
-                      <Icon className="w-5 h-5" />
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"
+                    style={{
+                      backgroundImage: mod.featured ? "var(--gradient-brand)" : undefined,
+                      backgroundColor: mod.featured ? undefined : "var(--accent-soft)",
+                      color: mod.featured ? "#ffffff" : "var(--accent-primary)",
+                    }}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm truncate">{mod.resolvedTitle}</span>
+                      {mod.badgeText && (
+                        <span
+                          className="text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0"
+                          style={{
+                            backgroundColor: "var(--gold-soft)",
+                            color: "var(--accent-gold)",
+                          }}
+                        >
+                          {tp(lang, mod.badgeText)}
+                        </span>
+                      )}
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm truncate">{mod.resolvedTitle}</span>
-                        {mod.badgeText && (
-                          <span
-                            className="text-[9px] px-1.5 py-0.5 rounded-full font-bold shrink-0"
-                            style={{
-                              backgroundColor: "var(--gold-soft)",
-                              color: "var(--accent-gold)",
-                            }}
-                          >
-                            {mod.badgeText}
-                          </span>
-                        )}
-                      </div>
-                      <div
-                        className="text-xs truncate mt-0.5"
-                        style={{ color: "var(--text-muted)" }}
-                      >
-                        {mod.resolvedSubtitle}
-                      </div>
+                    <div
+                      className="text-xs truncate mt-0.5"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      {mod.resolvedSubtitle}
                     </div>
                   </div>
+                </div>
 
-                  <ArrowRight
-                    className="w-4 h-4 shrink-0 opacity-45 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all"
-                    style={{ color: "var(--accent-primary)" }}
-                  />
-                </Link>
-              </motion.div>
+                <ChevronRight
+                  className="w-4 h-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity rtl-mirror"
+                  style={{ color: "var(--accent-primary)" }}
+                />
+              </Link>
             );
           })}
         </div>
       </section>
 
-      {/* 4. Gamified Daily Barakah Quests + Spiritual Rings + Upcoming Urs/Barsi */}
+      {/* 4. Hairline-Divided Today's Devotions & Sacred Hijri Remembrances (Zero Nested Box Clutter) */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Daily Barakah Quests & 3 Spiritual Rings */}
-        <div className="lg:col-span-7 bento-card p-5 space-y-4">
-          <div className="flex items-center justify-between gap-2">
+        {/* Today's Devotions + Spiritual Rings */}
+        <div className="lg:col-span-7 bento-card p-5 space-y-3">
+          <div className="flex items-center justify-between gap-3 pb-2 border-b" style={{ borderColor: "var(--border-hairline)" }}>
             <div>
-              <span
-                className="text-[11px] font-bold uppercase tracking-wider"
-                style={{ color: "var(--accent-primary)" }}
-              >
+              <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
                 {t(lang, "ringsTitle")}
-              </span>
+              </p>
               <h3 className="text-base font-bold mt-0.5">{t(lang, "dailyQuests")}</h3>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="hidden sm:block text-end text-[11px]" style={{ color: "var(--text-muted)" }}>
+              <div className="hidden sm:block text-end text-[11px] space-y-0.5" style={{ color: "var(--text-muted)" }}>
                 <div>
-                  <span className="font-bold text-emerald-400">{rings.salah}%</span> {t(lang, "salahRing")}
+                  <span className="font-semibold text-emerald-400 tabular-nums">{rings.salah}%</span> {t(lang, "salahRing")}
                 </div>
                 <div>
-                  <span className="font-bold text-cyan-400">{rings.ilm}%</span> {t(lang, "ilmRing")}
+                  <span className="font-semibold text-cyan-400 tabular-nums">{rings.ilm}%</span> {t(lang, "ilmRing")}
                 </div>
                 <div>
-                  <span className="font-bold text-amber-400">{rings.dhikr}%</span> {t(lang, "dhikrRing")}
+                  <span className="font-semibold text-amber-400 tabular-nums">{rings.dhikr}%</span> {t(lang, "dhikrRing")}
                 </div>
               </div>
-              <ActivityRings salah={rings.salah} ilm={rings.ilm} dhikr={rings.dhikr} size={74} />
+              <ActivityRings salah={rings.salah} ilm={rings.ilm} dhikr={rings.dhikr} size={64} />
             </div>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="divide-y" style={{ borderColor: "var(--border-hairline)" }}>
             {activeQuests.slice(0, 4).map((q) => (
               <div
                 key={q.id}
-                className="p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs"
-                style={{
-                  borderColor: q.completed ? "rgba(16, 185, 129, 0.35)" : "var(--border-hairline)",
-                  backgroundColor: "var(--bg-elevated)",
-                }}
+                className="py-3 first:pt-1 last:pb-0 flex items-center justify-between gap-3 text-xs"
+                style={{ borderColor: "var(--border-hairline)" }}
               >
-                <div className="min-w-0 flex-1 space-y-1">
+                <div className="min-w-0 flex-1 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold truncate">{q.title}</span>
-                    <span className="font-mono text-[11px] shrink-0" style={{ color: "var(--accent-gold)" }}>
-                      +{q.xpReward} XP
+                    <span className="font-semibold text-xs sm:text-sm truncate">
+                      {tp(lang, q.title)}
+                    </span>
+                    <span className="font-mono text-[11px] tabular-nums shrink-0" style={{ color: "var(--text-muted)" }}>
+                      {Math.min(q.current, q.target)}/{q.target}
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full overflow-hidden bg-black/20">
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--bg-muted)" }}>
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{
@@ -574,12 +564,6 @@ export default function DashboardPage() {
                         backgroundImage: "var(--gradient-brand)",
                       }}
                     />
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]" style={{ color: "var(--text-muted)" }}>
-                    <span className="truncate">{q.subtitle}</span>
-                    <span className="font-mono tabular-nums shrink-0">
-                      {Math.min(q.current, q.target)}/{q.target}
-                    </span>
                   </div>
                 </div>
 
@@ -592,20 +576,20 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => claimDailyQuest(q.id, q.xpReward, q.title)}
-                    className="btn-primary px-3.5 py-1.5 rounded-xl font-bold shrink-0 cursor-pointer"
+                    className="btn-primary px-3.5 py-1.5 rounded-full font-semibold shrink-0 cursor-pointer"
                   >
                     {t(lang, "claimReward")}
                   </button>
                 ) : (
                   <Link
                     href={q.actionHref}
-                    className="px-3 py-1.5 rounded-xl border font-semibold shrink-0 text-center"
+                    className="px-3 py-1.5 rounded-full border font-semibold shrink-0 text-center transition-opacity hover:opacity-85"
                     style={{
                       borderColor: "var(--border-hairline)",
-                      backgroundColor: "var(--bg-surface)",
+                      color: "var(--accent-primary)",
                     }}
                   >
-                    Go
+                    {t(lang, "goAction")}
                   </Link>
                 )}
               </div>
@@ -613,22 +597,19 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Dynamic Upcoming Urs & Family Barsi Spotlight */}
-        <div className="lg:col-span-5 bento-card p-5 flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between">
+        {/* Upcoming Urs & Family Remembrances */}
+        <div className="lg:col-span-5 bento-card p-5 flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b" style={{ borderColor: "var(--border-hairline)" }}>
             <div>
-              <span
-                className="text-[11px] font-bold uppercase tracking-wider"
-                style={{ color: "var(--accent-gold)" }}
-              >
-                Hijri Calendar CMS
-              </span>
+              <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                {t(lang, "hijriSacredDates")}
+              </p>
               <h3 className="text-base font-bold mt-0.5">{t(lang, "upcomingUrsBarsi")}</h3>
             </div>
-            <Calendar className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
+            <Calendar className="w-4 h-4 shrink-0" style={{ color: "var(--accent-gold)" }} />
           </div>
 
-          <div className="space-y-2.5 flex-1">
+          <div className="divide-y flex-1" style={{ borderColor: "var(--border-hairline)" }}>
             {upcomingEvents.map((ev, i) => {
               const isBarsi = ev.title.startsWith("Barsi:");
               const href = isBarsi
@@ -636,63 +617,61 @@ export default function DashboardPage() {
                 : ev.auliyaId
                 ? `/auliya?saint=${ev.auliyaId}`
                 : "/auliya";
+              const evMonthName = formatLocalizedHijriMonth(lang, ev.month, "");
               return (
                 <Link
                   key={`${ev.title}_${i}`}
                   href={href}
-                  className="p-3 rounded-xl border flex items-center justify-between gap-3 hover:opacity-90 transition-opacity"
-                  style={{
-                    borderColor: "var(--border-hairline)",
-                    backgroundColor: "var(--bg-elevated)",
-                  }}
+                  className="py-3 first:pt-1 last:pb-1 flex items-center justify-between gap-3 hover:opacity-85 transition-opacity"
+                  style={{ borderColor: "var(--border-hairline)" }}
                 >
                   <div className="min-w-0">
-                    <div className="font-bold text-xs truncate">{ev.title}</div>
+                    <div className="font-semibold text-xs sm:text-sm truncate">{ev.title}</div>
                     <div className="text-[11px] truncate mt-0.5" style={{ color: "var(--text-muted)" }}>
                       {ev.subtitle}
                     </div>
                   </div>
                   <span
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold shrink-0 tabular-nums"
+                    className="px-2.5 py-1 rounded-full text-[10px] font-semibold shrink-0 tabular-nums"
                     style={{
                       backgroundColor: isBarsi ? "var(--accent-soft)" : "var(--gold-soft)",
                       color: isBarsi ? "var(--accent-primary)" : "var(--accent-gold)",
                     }}
                   >
-                    {ev.day}/{ev.month} AH
+                    {ev.day} {evMonthName.split(" ")[0]}
                   </span>
                 </Link>
               );
             })}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 pt-1 text-xs font-semibold">
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t text-xs font-semibold" style={{ borderColor: "var(--border-hairline)" }}>
             <Link
               href="/barsi"
-              className="py-2 px-3 rounded-xl border text-center hover:opacity-90"
+              className="py-2 px-3 rounded-xl border text-center hover:opacity-90 truncate"
               style={{
                 borderColor: "var(--border-hairline)",
                 backgroundColor: "var(--bg-elevated)",
               }}
             >
-              + Add Family Barsi
+              {t(lang, "addFamilyBarsi")}
             </Link>
             <Link
               href="/admin"
-              className="py-2 px-3 rounded-xl border text-center hover:opacity-90"
+              className="py-2 px-3 rounded-xl border text-center hover:opacity-90 truncate"
               style={{
                 borderColor: "var(--border-hairline)",
                 backgroundColor: "var(--bg-elevated)",
                 color: "var(--accent-primary)",
               }}
             >
-              + Add Urs / Saint
+              {t(lang, "addUrsSaint")}
             </Link>
           </div>
         </div>
       </section>
 
-      {/* 5. Mushaf Quick Explorer Tabs: Surah | Para | Page | Hijb & Sajda */}
+      {/* 5. Reference Mushaf Index: Surah | Para | Page | Sajda */}
       <section className="space-y-2">
         <div
           className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b"
@@ -733,13 +712,13 @@ export default function DashboardPage() {
 
           {activeTab === "surah" && (
             <div className="relative sm:w-64 pb-2 sm:pb-0">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 opacity-50" />
+              <Search className="w-3.5 h-3.5 absolute start-3 top-1/2 -translate-y-1/2 opacity-50" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t(lang, "searchSurah")}
-                className="w-full pl-8 pr-3 py-1.5 rounded-full border text-xs bg-transparent outline-none"
+                className="w-full ps-8 pe-3 py-1.5 rounded-full border text-xs bg-transparent outline-none"
                 style={{ borderColor: "var(--border-hairline)" }}
               />
             </div>
@@ -747,7 +726,7 @@ export default function DashboardPage() {
         </div>
 
         {activeTab === "surah" && (
-          <div className="divide-y max-h-[440px] overflow-y-auto pr-1" style={{ borderColor: "var(--border-hairline)" }}>
+          <div className="divide-y max-h-[440px] overflow-y-auto pe-1" style={{ borderColor: "var(--border-hairline)" }}>
             {filteredSurahs.map((s) => (
               <Link
                 key={s.number}
@@ -756,26 +735,14 @@ export default function DashboardPage() {
                 style={{ borderColor: "var(--border-hairline)" }}
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <span
-                    className="relative w-9 h-9 inline-flex items-center justify-center shrink-0"
-                    style={{ color: "var(--accent-primary)" }}
-                  >
-                    <svg viewBox="0 0 36 36" className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth="1.6">
-                      <rect x="6" y="6" width="24" height="24" rx="2" />
-                      <rect x="6" y="6" width="24" height="24" rx="2" transform="rotate(45 18 18)" />
-                    </svg>
-                    <span className="absolute text-xs font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
-                      {s.number}
-                    </span>
-                  </span>
-
+                  <StarMedallion label={String(s.number)} />
                   <div className="min-w-0">
                     <div className="font-semibold text-sm sm:text-base truncate">{s.englishName}</div>
                     <div
                       className="text-[11px] uppercase tracking-wider font-medium mt-0.5"
                       style={{ color: "var(--text-muted)" }}
                     >
-                      {s.revelationType} • {s.numberOfAyahs} Verses
+                      {tp(lang, s.revelationType)} • {s.numberOfAyahs} {t(lang, "versesLabel")}
                     </div>
                   </div>
                 </div>
@@ -793,7 +760,7 @@ export default function DashboardPage() {
         )}
 
         {activeTab === "para" && (
-          <div className="divide-y max-h-[440px] overflow-y-auto pr-1" style={{ borderColor: "var(--border-hairline)" }}>
+          <div className="divide-y max-h-[440px] overflow-y-auto pe-1" style={{ borderColor: "var(--border-hairline)" }}>
             {JUZ_LIST.map((j) => (
               <Link
                 key={j.juz}
@@ -802,26 +769,16 @@ export default function DashboardPage() {
                 style={{ borderColor: "var(--border-hairline)" }}
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <span
-                    className="relative w-9 h-9 inline-flex items-center justify-center shrink-0"
-                    style={{ color: "var(--accent-primary)" }}
-                  >
-                    <svg viewBox="0 0 36 36" className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth="1.6">
-                      <rect x="6" y="6" width="24" height="24" rx="2" />
-                      <rect x="6" y="6" width="24" height="24" rx="2" transform="rotate(45 18 18)" />
-                    </svg>
-                    <span className="absolute text-xs font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
-                      {j.juz}
-                    </span>
-                  </span>
-
+                  <StarMedallion label={String(j.juz)} />
                   <div>
-                    <div className="font-semibold text-sm sm:text-base">Para {j.juz}</div>
+                    <div className="font-semibold text-sm sm:text-base">
+                      {t(lang, "paraLabel")} {j.juz}
+                    </div>
                     <div
-                      className="text-[11px] uppercase tracking-wider font-medium mt-0.5"
+                      className="text-[11px] font-medium mt-0.5"
                       style={{ color: "var(--text-muted)" }}
                     >
-                      {j.surahName} ({j.surahNum}:{j.ayahNum}) • Page {j.startPage}
+                      {j.surahName} ({j.surahNum}:{j.ayahNum}) • {t(lang, "pageLabel")} {j.startPage}
                     </div>
                   </div>
                 </div>
@@ -839,7 +796,7 @@ export default function DashboardPage() {
         )}
 
         {activeTab === "page" && (
-          <div className="divide-y max-h-[440px] overflow-y-auto pr-1" style={{ borderColor: "var(--border-hairline)" }}>
+          <div className="divide-y max-h-[440px] overflow-y-auto pe-1" style={{ borderColor: "var(--border-hairline)" }}>
             {keyMushafPages.map((item) => (
               <Link
                 key={item.page}
@@ -848,26 +805,14 @@ export default function DashboardPage() {
                 style={{ borderColor: "var(--border-hairline)" }}
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <span
-                    className="relative w-9 h-9 inline-flex items-center justify-center shrink-0"
-                    style={{ color: "var(--accent-primary)" }}
-                  >
-                    <svg viewBox="0 0 36 36" className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth="1.6">
-                      <rect x="6" y="6" width="24" height="24" rx="2" />
-                      <rect x="6" y="6" width="24" height="24" rx="2" transform="rotate(45 18 18)" />
-                    </svg>
-                    <span className="absolute text-[10px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
-                      {item.page}
-                    </span>
-                  </span>
-
+                  <StarMedallion label={String(item.page)} small />
                   <div>
                     <div className="font-semibold text-sm sm:text-base">{item.title}</div>
                     <div
-                      className="text-[11px] uppercase tracking-wider font-medium mt-0.5"
+                      className="text-[11px] font-medium mt-0.5"
                       style={{ color: "var(--text-muted)" }}
                     >
-                      Mushaf Page {item.page} • {item.subtitle}
+                      {t(lang, "pageLabel")} {item.page} • {t(lang, "paraLabel")} {item.para}
                     </div>
                   </div>
                 </div>
@@ -885,7 +830,7 @@ export default function DashboardPage() {
         )}
 
         {activeTab === "hijb" && (
-          <div className="divide-y max-h-[440px] overflow-y-auto pr-1" style={{ borderColor: "var(--border-hairline)" }}>
+          <div className="divide-y max-h-[440px] overflow-y-auto pe-1" style={{ borderColor: "var(--border-hairline)" }}>
             {HANAFI_SAJDA_ITEMS.map((s, idx) => {
               const done = sajdaCompleted.includes(s.ref);
               return (
@@ -896,26 +841,14 @@ export default function DashboardPage() {
                   style={{ borderColor: "var(--border-hairline)" }}
                 >
                   <div className="flex items-center gap-4 min-w-0">
-                    <span
-                      className="relative w-9 h-9 inline-flex items-center justify-center shrink-0"
-                      style={{ color: "var(--accent-primary)" }}
-                    >
-                      <svg viewBox="0 0 36 36" className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth="1.6">
-                        <rect x="6" y="6" width="24" height="24" rx="2" />
-                        <rect x="6" y="6" width="24" height="24" rx="2" transform="rotate(45 18 18)" />
-                      </svg>
-                      <span className="absolute text-xs font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
-                        {idx + 1}
-                      </span>
-                    </span>
-
+                    <StarMedallion label={String(idx + 1)} />
                     <div>
                       <div className="font-semibold text-sm sm:text-base">{s.label}</div>
                       <div
-                        className="text-[11px] uppercase tracking-wider font-medium mt-0.5"
+                        className="text-[11px] font-medium mt-0.5"
                         style={{ color: "var(--text-muted)" }}
                       >
-                        Wajib Sajda • Page {s.page}
+                        {tp(lang, "Wajib Sajda")} • {t(lang, "pageLabel")} {s.page}
                       </div>
                     </div>
                   </div>
@@ -927,7 +860,7 @@ export default function DashboardPage() {
                       color: done ? "var(--accent-primary)" : "var(--text-muted)",
                     }}
                   >
-                    {done ? "Completed" : `Page ${s.page}`}
+                    {done ? tp(lang, "Completed") : `${t(lang, "pageLabel")} ${s.page}`}
                   </span>
                 </Link>
               );
@@ -936,5 +869,25 @@ export default function DashboardPage() {
         )}
       </section>
     </div>
+  );
+}
+
+function StarMedallion({ label, small = false }: { label: string; small?: boolean }) {
+  return (
+    <span
+      className="relative w-9 h-9 inline-flex items-center justify-center shrink-0"
+      style={{ color: "var(--accent-primary)" }}
+    >
+      <svg viewBox="0 0 36 36" className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="6.5" y="6.5" width="23" height="23" rx="2" />
+        <rect x="6.5" y="6.5" width="23" height="23" rx="2" transform="rotate(45 18 18)" />
+      </svg>
+      <span
+        className={`absolute ${small ? "text-[10px]" : "text-xs"} font-semibold tabular-nums`}
+        style={{ color: "var(--text-primary)" }}
+      >
+        {label}
+      </span>
+    </span>
   );
 }

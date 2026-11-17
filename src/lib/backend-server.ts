@@ -19,7 +19,7 @@ export async function loadServerDatabase(): Promise<BackendDatabaseSnapshot> {
   try {
     const raw = await fs.readFile(DB_FILE, "utf8");
     const parsed = JSON.parse(raw) as BackendDatabaseSnapshot;
-    if (parsed && parsed.schemaVersion >= 1 && Array.isArray(parsed.users)) {
+    if (parsed && parsed.schemaVersion >= 2 && Array.isArray(parsed.users)) {
       memoryCache = parsed;
       return parsed;
     }

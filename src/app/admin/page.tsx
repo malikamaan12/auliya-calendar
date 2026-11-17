@@ -61,7 +61,6 @@ import {
   UserPlus,
   Users,
   X,
-  Zap,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import {
@@ -82,7 +81,379 @@ import {
 import { AuliyaProfile, AuthoredBook, resolvePublicAssetUrl } from "@/data/auliya";
 import { HIJRI_MONTHS } from "@/lib/hijri";
 import { SANCTUARY_THEMES, ThemeId } from "@/lib/themes";
-import { LANGUAGES, LangCode } from "@/lib/i18n";
+import { formatLocalizedHijriMonth, LANGUAGES, LangCode, t, tp } from "@/lib/i18n";
+
+function tl(lang: LangCode, key: string, fallback: string): string {
+  const val = t(lang, key);
+  if (lang !== "en" && val === t("en", key)) return fallback;
+  return val;
+}
+
+interface AdminUiCopy {
+  studioEyebrow: string;
+  subtitle: string;
+  tabOverview: string;
+  tabAuliya: string;
+  tabUrs: string;
+  tabModules: string;
+  tabZakat: string;
+  tabAudit: string;
+  contributorRole: string;
+  contributorRoleHint: string;
+  registerEmailLink: string;
+  guestSession: string;
+  publicReadOnly: string;
+  myProfile: string;
+  accountPortalTitle: string;
+  accountPortalSubtitle: string;
+  roleCapabilitiesTitle: string;
+  roleCapabilitiesSubtitle: string;
+  userDirectoryTitle: string;
+  publish: string;
+  approvePublish: string;
+  statusPublished: string;
+  statusVerification: string;
+  statusDraft: string;
+  newRecord: string;
+  exportSnapshot: string;
+  resetSeed: string;
+  switching: string;
+  selectRole: string;
+  permissionsCount: string;
+}
+
+const ADMIN_UI: Record<LangCode, AdminUiCopy> = {
+  en: {
+    studioEyebrow: "Editorial & Contributor Studio",
+    subtitle:
+      "Curate Auliya biographies, Urs dates, home layout, Zakat benchmarks, and contributor roles",
+    tabOverview: "Overview",
+    tabAuliya: "Auliya Profiles",
+    tabUrs: "Urs Calendar",
+    tabModules: "Home Layout",
+    tabZakat: "Nisab Rates",
+    tabAudit: "Activity Log",
+    contributorRole: "Contributor Role",
+    contributorRoleHint: "Switch editorial tier to preview or curate Sanctuary content",
+    registerEmailLink: "Register with personal email",
+    guestSession: "Guest Session",
+    publicReadOnly: "Public read-only view",
+    myProfile: "My Profile",
+    accountPortalTitle: "Account & Contributor Access",
+    accountPortalSubtitle: "Create a contributor account, sign in, or update your profile",
+    roleCapabilitiesTitle: "Contributor Role Permissions",
+    roleCapabilitiesSubtitle: "Editorial responsibilities across Sanctuary contributor tiers",
+    userDirectoryTitle: "Members & Contributor Roles",
+    publish: "Publish",
+    approvePublish: "Approve & Publish",
+    statusPublished: "Published",
+    statusVerification: "Scholarly Review",
+    statusDraft: "Draft",
+    newRecord: "New",
+    exportSnapshot: "Export Database Snapshot",
+    resetSeed: "Reset to Clean Seed",
+    switching: "Switching…",
+    selectRole: "Select",
+    permissionsCount: "permissions",
+  },
+  ur: {
+    studioEyebrow: "ادارتی و تحقیقی مرکز",
+    subtitle:
+      "تذکرۂ اولیاء، تاریخِ عرس، ترتیبِ شعبہ جات، نصابِ زکوٰۃ اور معاونین کے اختیارات کی ادارت",
+    tabOverview: "جائزہ",
+    tabAuliya: "تذکرۂ اولیاء",
+    tabUrs: "تقویمِ عرس",
+    tabModules: "ترتیبِ مرکز",
+    tabZakat: "شرحِ نصاب",
+    tabAudit: "سجلِ سرگرمی",
+    contributorRole: "ادارتی ذمہ داری",
+    contributorRoleHint: "مواد کی تدوین یا جائزے کے لیے معاون درجہ منتخب کریں",
+    registerEmailLink: "ذاتی ای میل سے اکاؤنٹ بنائیں",
+    guestSession: "مہمان نشست",
+    publicReadOnly: "صرف مطالعہ",
+    myProfile: "میرا تعارف",
+    accountPortalTitle: "اکاؤنٹ اور معاون داخلہ",
+    accountPortalSubtitle: "نیا اکاؤنٹ بنائیں، لاگ اِن کریں یا پروفائل میں ترمیم کریں",
+    roleCapabilitiesTitle: "معاونین کے ادارتی اختیارات",
+    roleCapabilitiesSubtitle: "مرکزِ ادارت کے ہر درجے کی ذمہ داریاں",
+    userDirectoryTitle: "اراکین اور معاون درجات",
+    publish: "شائع کریں",
+    approvePublish: "تصدیق و اشاعت",
+    statusPublished: "شائع شدہ",
+    statusVerification: "علمی تصدیق",
+    statusDraft: "مسودہ",
+    newRecord: "نیا اندراج",
+    exportSnapshot: "ڈیٹا بیس نسخہ محفوظ کریں",
+    resetSeed: "ابتدائی حالت بحال کریں",
+    switching: "تبدیل ہو رہا ہے…",
+    selectRole: "منتخب کریں",
+    permissionsCount: "اختیارات",
+  },
+  ar: {
+    studioEyebrow: "استوديو التحرير والتوثيق",
+    subtitle:
+      "تحرير تراجم الأولياء ومواعيد الحوليات وتخطيط الواجهة ومعدلات النصاب وأدوار المساهمين",
+    tabOverview: "نظرة عامة",
+    tabAuliya: "تراجم الأولياء",
+    tabUrs: "تقويم الحوليات",
+    tabModules: "تخطيط الرئيسية",
+    tabZakat: "معدلات النصاب",
+    tabAudit: "سجل النشاط",
+    contributorRole: "دور المساهم",
+    contributorRoleHint: "اختر مستوى الصلاحية لمعاينة المحتوى أو تحريره",
+    registerEmailLink: "التسجيل بالبريد الشخصي",
+    guestSession: "جلسة زائر",
+    publicReadOnly: "قراءة عامة فقط",
+    myProfile: "ملفي الشخصي",
+    accountPortalTitle: "الحساب وبوابة المساهمين",
+    accountPortalSubtitle: "أنشئ حساباً أو سجّل الدخول أو حدّث ملفك الشخصي",
+    roleCapabilitiesTitle: "صلاحيات أدوار المساهمين",
+    roleCapabilitiesSubtitle: "المسؤوليات التحريرية لكل فئة في المنصة",
+    userDirectoryTitle: "الأعضاء وأدوار المساهمين",
+    publish: "نشر",
+    approvePublish: "اعتماد ونشر",
+    statusPublished: "منشور",
+    statusVerification: "مراجعة علمية",
+    statusDraft: "مسودة",
+    newRecord: "جديد",
+    exportSnapshot: "تصدير نسخة البيانات",
+    resetSeed: "استعادة البيانات الأصلية",
+    switching: "جارٍ التبديل…",
+    selectRole: "اختيار",
+    permissionsCount: "صلاحيات",
+  },
+  ro_ur: {
+    studioEyebrow: "Idarati & Tehqeeqi Studio",
+    subtitle:
+      "Auliya tazkirah, Urs tareekh, home layout, Zakat nisab aur khadimeen ke ikhtiyarat murattab karein",
+    tabOverview: "Jaiza",
+    tabAuliya: "Auliya Tazkirah",
+    tabUrs: "Urs Calendar",
+    tabModules: "Home Tarteeb",
+    tabZakat: "Nisab Rates",
+    tabAudit: "Activity Log",
+    contributorRole: "Khadim / Editorial Darja",
+    contributorRoleHint: "Tazkirah aur Urs murattab karne ke liye darja muntakhab karein",
+    registerEmailLink: "Zati email se account banayein",
+    guestSession: "Mehman Session",
+    publicReadOnly: "Sirf mutala (Read-only)",
+    myProfile: "Mera Profile",
+    accountPortalTitle: "Account & Khadim Dakhila",
+    accountPortalSubtitle: "Naya account banayein, sign in karein ya profile badlein",
+    roleCapabilitiesTitle: "Khadimeen Ke Ikhtiyarat",
+    roleCapabilitiesSubtitle: "Har idarati darje ki zimmedariyan",
+    userDirectoryTitle: "Arakeen & Roles",
+    publish: "Publish Karein",
+    approvePublish: "Tasdeeq & Publish",
+    statusPublished: "Published",
+    statusVerification: "Ilmi Tasdeeq",
+    statusDraft: "Draft",
+    newRecord: "Naya",
+    exportSnapshot: "Snapshot Export Karein",
+    resetSeed: "Asal Seed Bahal Karein",
+    switching: "Badal raha hai…",
+    selectRole: "Chunein",
+    permissionsCount: "ikhtiyarat",
+  },
+  hi: {
+    studioEyebrow: "संपादकीय एवं योगदान स्टुडियो",
+    subtitle:
+      "औलिया जीवनियां, उर्स तिथियां, होम लेआउट, ज़कात निसाब दरें और सहयोगी भूमिकाएं संपादित करें",
+    tabOverview: "अवलोकन",
+    tabAuliya: "औलिया परिचय",
+    tabUrs: "उर्स कैलेंडर",
+    tabModules: "होम लेआउट",
+    tabZakat: "निसाब दरें",
+    tabAudit: "गतिविधि लॉग",
+    contributorRole: "सहयोगी भूमिका",
+    contributorRoleHint: "सामग्री संपादन व समीक्षा के लिए भूमिका चुनें",
+    registerEmailLink: "व्यक्तिगत ईमेल से खाता बनाएं",
+    guestSession: "अतिथि सत्र",
+    publicReadOnly: "केवल पठन मोड",
+    myProfile: "मेरी प्रोफ़ाइल",
+    accountPortalTitle: "खाता एवं सहयोगी प्रवेश",
+    accountPortalSubtitle: "नया खाता बनाएं, साइन इन करें या प्रोफ़ाइल अपडेट करें",
+    roleCapabilitiesTitle: "सहयोगी भूमिका अधिकार",
+    roleCapabilitiesSubtitle: "प्रत्येक संपादकीय स्तर की ज़िम्मेदारियां",
+    userDirectoryTitle: "सदस्य एवं भूमिकाएं",
+    publish: "प्रकाशित करें",
+    approvePublish: "सत्यापित व प्रकाशित करें",
+    statusPublished: "प्रकाशित",
+    statusVerification: "आलिम समीक्षा",
+    statusDraft: "ड्राफ़्ट",
+    newRecord: "नया",
+    exportSnapshot: "डेटाबेस स्नैपशॉट निर्यात करें",
+    resetSeed: "मूल डेटा रीसेट करें",
+    switching: "बदल रहा है…",
+    selectRole: "चुनें",
+    permissionsCount: "अधिकार",
+  },
+  tr: {
+    studioEyebrow: "Yayın ve Katkıda Bulunan Stüdyosu",
+    subtitle:
+      "Evliya biyografilerini, vuslat günlerini, ana sayfa düzenini, nisap kurlarını ve rolleri yönetin",
+    tabOverview: "Genel Bakış",
+    tabAuliya: "Evliya Profilleri",
+    tabUrs: "Vuslat Takvimi",
+    tabModules: "Ana Düzen",
+    tabZakat: "Nisap Kurları",
+    tabAudit: "İşlem Kaydı",
+    contributorRole: "Katkı Rolü",
+    contributorRoleHint: "İçerik düzenlemek veya önizlemek için rol seçin",
+    registerEmailLink: "Kişisel e-posta ile kaydolun",
+    guestSession: "Misafir Oturumu",
+    publicReadOnly: "Salt okunur görünüm",
+    myProfile: "Profilim",
+    accountPortalTitle: "Hesap ve Katkı Portalı",
+    accountPortalSubtitle: "Yeni hesap oluşturun, giriş yapın veya profilinizi güncelleyin",
+    roleCapabilitiesTitle: "Katkı Rolü Yetkileri",
+    roleCapabilitiesSubtitle: "Her yayın kademesi için tanımlı sorumluluklar",
+    userDirectoryTitle: "Üyeler ve Roller",
+    publish: "Yayınla",
+    approvePublish: "Onayla ve Yayınla",
+    statusPublished: "Yayında",
+    statusVerification: "İlmî İnceleme",
+    statusDraft: "Taslak",
+    newRecord: "Yeni",
+    exportSnapshot: "Veritabanı Yedeği İndir",
+    resetSeed: "Varsayılan Veriye Sıfırla",
+    switching: "Geçiliyor…",
+    selectRole: "Seç",
+    permissionsCount: "yetki",
+  },
+  bn: {
+    studioEyebrow: "সম্পাদনা ও অবদানকারী স্টুডিও",
+    subtitle:
+      "আউলিয়া জীবনী, ওরস তারিখ, হোম লেআউট, নিসাব হার এবং অবদানকারী ভূমিকা পরিচালনা করুন",
+    tabOverview: "সারসংক্ষেপ",
+    tabAuliya: "আউলিয়া প্রোফাইল",
+    tabUrs: "ওরস ক্যালেন্ডার",
+    tabModules: "হোম লেআউট",
+    tabZakat: "নিসাব হার",
+    tabAudit: "কার্যবিবরণী",
+    contributorRole: "অবদানকারী ভূমিকা",
+    contributorRoleHint: "সম্পাদনা বা প্রিভিউ করতে ভূমিকা নির্বাচন করুন",
+    registerEmailLink: "ব্যক্তিগত ইমেইল দিয়ে নিবন্ধন করুন",
+    guestSession: "অতিথি সেশন",
+    publicReadOnly: "শুধুমাত্র পাঠযোগ্য",
+    myProfile: "আমার প্রোফাইল",
+    accountPortalTitle: "অ্যাকাউন্ট ও অবদানকারী প্রবেশ",
+    accountPortalSubtitle: "নতুন অ্যাকাউন্ট খুলুন, সাইন ইন করুন বা প্রোফাইল সম্পাদনা করুন",
+    roleCapabilitiesTitle: "ভূমিকাভিত্তিক অনুমতি",
+    roleCapabilitiesSubtitle: "প্রতিটি সম্পাদনা স্তরের দায়িত্বসমূহ",
+    userDirectoryTitle: "সদস্য ও ভূমিকা তালিকা",
+    publish: "প্রকাশ করুন",
+    approvePublish: "অনুমোদন ও প্রকাশ",
+    statusPublished: "প্রকাশিত",
+    statusVerification: "আলেম যাচাই",
+    statusDraft: "খসড়া",
+    newRecord: "নতুন",
+    exportSnapshot: "ডেটাবেস স্ন্যাপশট ডাউনলোড",
+    resetSeed: "মূল ডেটায় রিসেট করুন",
+    switching: "পরিবর্তন হচ্ছে…",
+    selectRole: "নির্বাচন",
+    permissionsCount: "অনুমতি",
+  },
+  fa: {
+    studioEyebrow: "استودیوی تحریریه و مشارکت",
+    subtitle:
+      "تدوین تذکره اولیا، تاریخ‌های عرس، چیدمان صفحه اصلی، نرخ‌های نصاب و نقش‌های مشارکت‌کنندگان",
+    tabOverview: "نمای کلی",
+    tabAuliya: "تذکره اولیا",
+    tabUrs: "تقویم عرس",
+    tabModules: "چیدمان خانه",
+    tabZakat: "نرخ‌های نصاب",
+    tabAudit: "گزارش فعالیت",
+    contributorRole: "نقش مشارکت‌کننده",
+    contributorRoleHint: "برای پیش‌نمایش یا ویرایش محتوا سطح دسترسی را انتخاب کنید",
+    registerEmailLink: "ثبت‌نام با ایمیل شخصی",
+    guestSession: "نشست مهمان",
+    publicReadOnly: "فقط خواندنی",
+    myProfile: "نمایه من",
+    accountPortalTitle: "حساب کاربری و درگاه مشارکت",
+    accountPortalSubtitle: "ایجاد حساب، ورود یا ویرایش مشخصات فردی",
+    roleCapabilitiesTitle: "دسترسی‌های نقش‌ها",
+    roleCapabilitiesSubtitle: "مسئولیت‌های تحریریه در هر سطح کاربری",
+    userDirectoryTitle: "اعضا و نقش‌ها",
+    publish: "انتشار",
+    approvePublish: "تأیید و انتشار",
+    statusPublished: "منتشر شده",
+    statusVerification: "بررسی علمی",
+    statusDraft: "پیش‌نویس",
+    newRecord: "جدید",
+    exportSnapshot: "دریافت نسخه پشتیبان",
+    resetSeed: "بازگردانی به داده اولیه",
+    switching: "در حال تغییر…",
+    selectRole: "انتخاب",
+    permissionsCount: "مجوز",
+  },
+  id: {
+    studioEyebrow: "Studio Redaksi & Kontributor",
+    subtitle:
+      "Kelola biografi Auliya, jadwal Haul/Urs, tata letak beranda, nisab Zakat, dan peran kontributor",
+    tabOverview: "Ringkasan",
+    tabAuliya: "Profil Auliya",
+    tabUrs: "Kalender Haul",
+    tabModules: "Tata Letak",
+    tabZakat: "Kurs Nisab",
+    tabAudit: "Log Aktivitas",
+    contributorRole: "Peran Kontributor",
+    contributorRoleHint: "Pilih tingkat peran untuk meninjau atau menyunting konten",
+    registerEmailLink: "Daftar dengan email pribadi",
+    guestSession: "Sesi Tamu",
+    publicReadOnly: "Akses baca publik",
+    myProfile: "Profil Saya",
+    accountPortalTitle: "Akun & Akses Kontributor",
+    accountPortalSubtitle: "Buat akun baru, masuk, atau perbarui profil Anda",
+    roleCapabilitiesTitle: "Izin Peran Kontributor",
+    roleCapabilitiesSubtitle: "Cakupan tanggung jawab redaksi tiap peran",
+    userDirectoryTitle: "Daftar Anggota & Peran",
+    publish: "Terbitkan",
+    approvePublish: "Setujui & Terbitkan",
+    statusPublished: "Terbit",
+    statusVerification: "Tinjauan Ulama",
+    statusDraft: "Draf",
+    newRecord: "Baru",
+    exportSnapshot: "Ekspor Snapshot Database",
+    resetSeed: "Atur Ulang ke Data Awal",
+    switching: "Mengalihkan…",
+    selectRole: "Pilih",
+    permissionsCount: "izin",
+  },
+  fr: {
+    studioEyebrow: "Studio Éditorial & Contributeurs",
+    subtitle:
+      "Gérez les biographies des Auliya, le calendrier des Urs, la mise en page, le Nisab et les rôles",
+    tabOverview: "Aperçu",
+    tabAuliya: "Profils Auliya",
+    tabUrs: "Calendrier Urs",
+    tabModules: "Mise en Page",
+    tabZakat: "Taux du Nisab",
+    tabAudit: "Journal d'Activité",
+    contributorRole: "Rôle Contributeur",
+    contributorRoleHint: "Changez de rôle pour prévisualiser ou éditer le contenu",
+    registerEmailLink: "S'inscrire avec un e-mail personnel",
+    guestSession: "Session Invité",
+    publicReadOnly: "Lecture publique uniquement",
+    myProfile: "Mon Profil",
+    accountPortalTitle: "Compte & Accès Contributeur",
+    accountPortalSubtitle: "Créez un compte, connectez-vous ou modifiez votre profil",
+    roleCapabilitiesTitle: "Permissions des Rôles",
+    roleCapabilitiesSubtitle: "Responsabilités éditoriales par niveau d'accès",
+    userDirectoryTitle: "Membres & Rôles",
+    publish: "Publier",
+    approvePublish: "Approuver & Publier",
+    statusPublished: "Publié",
+    statusVerification: "Validation Savante",
+    statusDraft: "Brouillon",
+    newRecord: "Nouveau",
+    exportSnapshot: "Exporter l'Instantané JSON",
+    resetSeed: "Réinitialiser les Données",
+    switching: "Changement…",
+    selectRole: "Choisir",
+    permissionsCount: "permissions",
+  },
+};
 
 type AdminTabId = "account" | "auliya" | "urs" | "modules" | "economy" | "audit";
 
@@ -363,12 +734,18 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-function StatusPill({ status }: { status: "Published" | "Scholarly Verification" | "Draft" }) {
+function StatusPill({
+  status,
+  ui,
+}: {
+  status: "Published" | "Scholarly Verification" | "Draft";
+  ui: AdminUiCopy;
+}) {
   if (status === "Published") {
     return (
       <span className="badge-pill badge-emerald">
         <CheckCircle2 className="w-3 h-3" />
-        Published
+        {ui.statusPublished}
       </span>
     );
   }
@@ -376,7 +753,7 @@ function StatusPill({ status }: { status: "Published" | "Scholarly Verification"
     return (
       <span className="badge-pill badge-gold">
         <Clock className="w-3 h-3" />
-        Scholarly Verification
+        {ui.statusVerification}
       </span>
     );
   }
@@ -390,7 +767,7 @@ function StatusPill({ status }: { status: "Published" | "Scholarly Verification"
       }}
     >
       <Edit3 className="w-3 h-3" />
-      Draft
+      {ui.statusDraft}
     </span>
   );
 }
@@ -399,6 +776,7 @@ function AdminControlCenterInner() {
   const searchParams = useSearchParams();
 
   const {
+    lang,
     backend,
     backendLoading,
     authUser,
@@ -420,8 +798,9 @@ function AdminControlCenterInner() {
     cmsExportSnapshot,
     cmsResetDatabase,
     currentRank,
-    totalXp,
   } = useApp();
+
+  const ui = ADMIN_UI[lang] ?? ADMIN_UI.en;
 
   const [activeTab, setActiveTab] = useState<AdminTabId>(() =>
     parseTabParam(searchParams.get("tab"))
@@ -440,10 +819,6 @@ function AdminControlCenterInner() {
 
   const activeRole: UserRole | null = authUser?.role ?? null;
   const roleMeta = activeRole ? RBAC_ROLES[activeRole] : null;
-  const activePermissions = useMemo(
-    () => (roleMeta ? roleMeta.permissions : []),
-    [roleMeta]
-  );
 
   // ============================================================================
   // TAB 1 STATE: Account, Self-Registration, Login & User Governance
@@ -553,15 +928,15 @@ function AdminControlCenterInner() {
         setProfileDraft(null);
         notify(
           "success",
-          `Switched RBAC session to ${RBAC_ROLES[role].label} (${RBAC_ROLES[role].arabicBadge}) — ${RBAC_ROLES[role].permissions.length} active capabilities unlocked.`
+          `${tp(lang, RBAC_ROLES[role].label)} (${RBAC_ROLES[role].arabicBadge})`
         );
       } catch (err) {
-        notify("error", extractErrorMessage(err, "Could not switch demo role."));
+        notify("error", extractErrorMessage(err, "Could not switch contributor role."));
       } finally {
         setBusyAction(null);
       }
     },
-    [switchDemoRole, notify]
+    [switchDemoRole, notify, lang]
   );
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
@@ -583,7 +958,10 @@ function AdminControlCenterInner() {
       setAuthFormMode("profile");
       notify(
         "success",
-        `Alhamdulillah! Personal ${regRole === "creator" ? "Curator / Creator" : "Community Member"} account created (+100 Barakah XP).`
+        `Alhamdulillah! ${tp(
+          lang,
+          regRole === "creator" ? "Curator / Creator" : "Community Member"
+        )} — ${t(lang, "createAccount")}.`
       );
     } catch (err) {
       notify("error", extractErrorMessage(err, "Registration failed."));
@@ -1208,40 +1586,40 @@ function AdminControlCenterInner() {
   }[] = [
     {
       id: "account",
-      label: "Account & RBAC Matrix",
-      shortBadge: roleMeta ? roleMeta.label : "Guest",
+      label: tl(lang, "adminTabOverview", ui.tabOverview),
+      shortBadge: roleMeta ? tp(lang, roleMeta.label) : t(lang, "guestMode"),
       icon: <Shield className="w-4 h-4" />,
     },
     {
       id: "auliya",
-      label: "Auliya Allah CMS",
+      label: tl(lang, "adminTabAuliya", ui.tabAuliya),
       shortBadge:
         auliyaCounts.pending > 0
-          ? `${auliyaCounts.total} • ${auliyaCounts.pending} Review`
+          ? `${auliyaCounts.total} • ${auliyaCounts.pending}`
           : `${auliyaCounts.total}`,
       icon: <Compass className="w-4 h-4" />,
     },
     {
       id: "urs",
-      label: "Urs & Sacred Calendar CMS",
+      label: tl(lang, "adminTabUrs", ui.tabUrs),
       shortBadge: `${backend.ursEvents.length}`,
       icon: <Calendar className="w-4 h-4" />,
     },
     {
       id: "modules",
-      label: "Modular Dashboard Builder",
+      label: tl(lang, "adminTabModules", ui.tabModules),
       shortBadge: `${activeModules.filter((m) => m.enabled).length}/${activeModules.length}`,
       icon: <LayoutGrid className="w-4 h-4" />,
     },
     {
       id: "economy",
-      label: "Zakat & Gamification Engine",
-      shortBadge: `${activeZakat.currencies.length} FX`,
+      label: tl(lang, "adminTabZakat", ui.tabZakat),
+      shortBadge: `${activeZakat.currencies.length}`,
       icon: <Coins className="w-4 h-4" />,
     },
     {
       id: "audit",
-      label: "SHA-256 Audit & DB Snapshot",
+      label: tl(lang, "adminTabAudit", ui.tabAudit),
       shortBadge: `${backend.auditLogs.length}`,
       icon: <Hash className="w-4 h-4" />,
     },
@@ -1250,10 +1628,10 @@ function AdminControlCenterInner() {
   return (
     <div className="space-y-6 pb-10">
       {/* ===================================================================== */}
-      {/* 1. TOP RBAC COMMAND HUD & INSTANT 1-CLICK ROLE / ACCOUNT BAR          */}
+      {/* 1. SANCTUARY STUDIO EDITORIAL HEADER & CONTRIBUTOR ROLE BAR           */}
       {/* ===================================================================== */}
       <section className="sanctuary-halo-card p-5 sm:p-6 space-y-5 relative overflow-hidden">
-        {/* Top Row: Title, Transport Badge & Active User */}
+        {/* Top Row: Studio Title & Active Contributor Card */}
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -1266,31 +1644,7 @@ function AdminControlCenterInner() {
                 }}
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
-                RBAC Command Center &amp; Modular CMS
-              </span>
-
-              {/* Backend Transport Status Pill */}
-              <span
-                className="badge-pill"
-                style={{
-                  backgroundColor:
-                    backend.backendMode === "server-api"
-                      ? "rgba(16, 185, 129, 0.15)"
-                      : "var(--gold-soft)",
-                  color:
-                    backend.backendMode === "server-api"
-                      ? "#10B981"
-                      : "var(--accent-gold)",
-                  border:
-                    backend.backendMode === "server-api"
-                      ? "1px solid rgba(16, 185, 129, 0.35)"
-                      : "1px solid var(--border-hairline)",
-                }}
-              >
-                <Server className="w-3 h-3" />
-                {backend.backendMode === "server-api"
-                  ? "Live Next.js REST API"
-                  : "Isomorphic Local Engine"}
+                {ui.studioEyebrow}
               </span>
 
               <button
@@ -1299,12 +1653,12 @@ function AdminControlCenterInner() {
                   setBusyAction("sync");
                   try {
                     await refreshBackend();
-                    notify("info", "Synchronized latest state from backend engine.");
+                    notify("info", `${tp(lang, "Refresh")} — ${t(lang, "navAdmin")}`);
                   } finally {
                     setBusyAction(null);
                   }
                 }}
-                aria-label="Synchronize backend state"
+                aria-label={tp(lang, "Refresh")}
                 className="px-2.5 py-1 rounded-full text-[11px] font-semibold inline-flex items-center gap-1 border cursor-pointer transition-opacity hover:opacity-90"
                 style={{
                   borderColor: "var(--border-hairline)",
@@ -1317,21 +1671,19 @@ function AdminControlCenterInner() {
                     busyAction === "sync" || backendLoading ? "animate-spin" : ""
                   }`}
                 />
-                <span>Sync</span>
+                <span>{tp(lang, "Refresh")}</span>
               </button>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Governance, Self-Registration &amp; Sanctuary CMS
+              {t(lang, "navAdmin")}
             </h1>
             <p className="text-xs sm:text-sm max-w-2xl" style={{ color: "var(--text-secondary)" }}>
-              Zero hardcoded silos: manage Role-Based Access Control, curate Auliya Allah
-              Tazkirahs &amp; Sacred Urs dates, reorder live Dashboard modules, calibrate 12-currency
-              Hanafi Zakat Nisab, and audit SHA-256 tamper-evident logs.
+              {tl(lang, "adminSubtitle", ui.subtitle)}
             </p>
           </div>
 
-          {/* Active Signed-In User / Guest Identity Card */}
+          {/* Active Signed-In Contributor / Guest Card */}
           <div
             className="rounded-2xl p-3.5 sm:p-4 border min-w-[270px] flex flex-col gap-2.5"
             style={{
@@ -1368,20 +1720,23 @@ function AdminControlCenterInner() {
                     type="button"
                     onClick={handleLogout}
                     disabled={busyAction === "logout"}
-                    aria-label="Sign out of current account"
+                    aria-label={t(lang, "signOut")}
                     className="p-2 rounded-xl border cursor-pointer transition-colors hover:opacity-80"
                     style={{
                       borderColor: "var(--border-hairline)",
                       backgroundColor: "var(--bg-surface)",
                       color: "var(--text-secondary)",
                     }}
-                    title="Sign Out"
+                    title={t(lang, "signOut")}
                   >
                     <LogOut className="w-4 h-4" />
                   </button>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+                <div
+                  className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t"
+                  style={{ borderColor: "var(--border-hairline)" }}
+                >
                   <span
                     className="px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5"
                     style={{
@@ -1391,11 +1746,11 @@ function AdminControlCenterInner() {
                     }}
                   >
                     <Crown className="w-3 h-3" />
-                    <span>{roleMeta.label}</span>
+                    <span>{tp(lang, roleMeta.label)}</span>
                     <span className="font-urdu text-xs opacity-90">• {roleMeta.arabicBadge}</span>
                   </span>
-                  <span className="text-[11px] font-bold tabular-nums" style={{ color: "var(--accent-gold)" }}>
-                    {totalXp.toLocaleString()} XP • {currentRank.title}
+                  <span className="text-[11px] font-medium truncate" style={{ color: "var(--text-muted)" }}>
+                    {authUser.title || authUser.city}
                   </span>
                 </div>
               </>
@@ -1414,9 +1769,9 @@ function AdminControlCenterInner() {
                       <Users className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="font-bold text-sm">Guest Session</div>
+                      <div className="font-bold text-sm">{ui.guestSession}</div>
                       <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                        Not signed in • Public Read-Only
+                        {ui.publicReadOnly}
                       </div>
                     </div>
                   </div>
@@ -1428,7 +1783,7 @@ function AdminControlCenterInner() {
                       color: "var(--text-secondary)",
                     }}
                   >
-                    Guest • زائر
+                    {t(lang, "guestMode")}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1441,7 +1796,7 @@ function AdminControlCenterInner() {
                     className="btn-primary flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <UserPlus className="w-3.5 h-3.5" />
-                    Create Account
+                    {t(lang, "createAccount")}
                   </button>
                   <button
                     type="button"
@@ -1457,7 +1812,7 @@ function AdminControlCenterInner() {
                     }}
                   >
                     <LogIn className="w-3.5 h-3.5" />
-                    Sign In
+                    {t(lang, "signIn")}
                   </button>
                 </div>
               </div>
@@ -1465,7 +1820,7 @@ function AdminControlCenterInner() {
           </div>
         </div>
 
-        {/* 1-Click RBAC Role Switcher Strip */}
+        {/* Editorial Contributor Role Switcher Strip */}
         <div
           className="p-3.5 rounded-2xl border space-y-2.5"
           style={{
@@ -1475,10 +1830,10 @@ function AdminControlCenterInner() {
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-xs font-bold">
-              <Zap className="w-3.5 h-3.5" style={{ color: "var(--accent-gold)" }} />
-              <span>Instant 1-Click RBAC Role Evaluator</span>
+              <Shield className="w-3.5 h-3.5" style={{ color: "var(--accent-gold)" }} />
+              <span>{ui.contributorRole}</span>
               <span className="font-normal hidden sm:inline" style={{ color: "var(--text-muted)" }}>
-                — Test live permissions across every governance tier immediately
+                — {ui.contributorRoleHint}
               </span>
             </div>
             <button
@@ -1490,7 +1845,7 @@ function AdminControlCenterInner() {
               className="text-[11px] font-semibold underline cursor-pointer"
               style={{ color: "var(--accent-primary)" }}
             >
-              Or Register Personal Email Account →
+              {ui.registerEmailLink}
             </button>
           </div>
 
@@ -1505,7 +1860,7 @@ function AdminControlCenterInner() {
                   type="button"
                   onClick={() => handleQuickRoleSwitch(rKey)}
                   disabled={Boolean(busyAction)}
-                  aria-label={`Switch active session to ${meta.label}`}
+                  aria-label={tp(lang, meta.label)}
                   className="p-3 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden group"
                   style={{
                     backgroundColor: isSelected ? `${meta.badgeColor}18` : "var(--bg-elevated)",
@@ -1522,7 +1877,7 @@ function AdminControlCenterInner() {
                         className="w-2 h-2 rounded-full shrink-0"
                         style={{ backgroundColor: meta.badgeColor }}
                       />
-                      {rKey === "creator" ? "Creator" : rKey === "member" ? "Member" : meta.label}
+                      {tp(lang, meta.label)}
                     </span>
                     <span className="font-urdu text-xs" style={{ color: meta.badgeColor }}>
                       {meta.arabicBadge}
@@ -1532,48 +1887,29 @@ function AdminControlCenterInner() {
                     className="mt-1 flex items-center justify-between text-[11px]"
                     style={{ color: "var(--text-muted)" }}
                   >
-                    <span>{meta.permissions.length} permissions</span>
-                    <span className="font-semibold" style={{ color: isSelected ? meta.badgeColor : "var(--text-secondary)" }}>
-                      {isSwitching ? "Switching…" : isSelected ? "Active ✓" : "Activate →"}
+                    <span>
+                      {meta.permissions.length} {ui.permissionsCount}
+                    </span>
+                    <span
+                      className="font-semibold inline-flex items-center gap-1"
+                      style={{ color: isSelected ? meta.badgeColor : "var(--text-secondary)" }}
+                    >
+                      {isSwitching ? (
+                        ui.switching
+                      ) : isSelected ? (
+                        <>
+                          <Check className="w-3 h-3" />
+                          <span>{tp(lang, "Active")}</span>
+                        </>
+                      ) : (
+                        ui.selectRole
+                      )}
                     </span>
                   </div>
                 </button>
               );
             })}
           </div>
-        </div>
-
-        {/* Active Permission Chips Bar */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider mr-1" style={{ color: "var(--text-muted)" }}>
-            Active Capabilities ({activePermissions.length}):
-          </span>
-          {activePermissions.length > 0 ? (
-            activePermissions.map((perm) => (
-              <span
-                key={perm}
-                className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold border"
-                style={{
-                  backgroundColor: "var(--accent-soft)",
-                  borderColor: "var(--border-hairline)",
-                  color: "var(--accent-primary)",
-                }}
-              >
-                {perm}
-              </span>
-            ))
-          ) : (
-            <span
-              className="px-2.5 py-0.5 rounded-md text-[11px] border"
-              style={{
-                backgroundColor: "var(--bg-elevated)",
-                borderColor: "var(--border-hairline)",
-                color: "var(--text-muted)",
-              }}
-            >
-              guest:read_published • Use 1-Click Role Switcher or Sign In above to unlock write capabilities
-            </span>
-          )}
         </div>
       </section>
 
@@ -1619,7 +1955,7 @@ function AdminControlCenterInner() {
             <button
               type="button"
               onClick={() => setBanner(null)}
-              aria-label="Dismiss notification"
+              aria-label={tp(lang, "Close")}
               className="p-1 rounded-lg hover:opacity-75 cursor-pointer"
             >
               <X className="w-4 h-4" />
@@ -1629,49 +1965,39 @@ function AdminControlCenterInner() {
       </AnimatePresence>
 
       {/* ===================================================================== */}
-      {/* 2. 6-TAB MODULAR NAVIGATION STRIP                                     */}
+      {/* 2. 6-TAB SANCTUARY STUDIO NAVIGATION                                  */}
       {/* ===================================================================== */}
-      <nav
-        aria-label="Backend Control Center Sections"
-        className="bento-card p-2 flex items-center gap-1.5 overflow-x-auto"
-      >
-        {tabs.map((t) => {
-          const active = activeTab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setActiveTab(t.id)}
-              className={`px-3.5 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-2 shrink-0 cursor-pointer transition-all ${
-                active ? "btn-primary" : ""
-              }`}
-              style={
-                active
-                  ? undefined
-                  : {
-                      color: "var(--text-secondary)",
-                      backgroundColor: "transparent",
-                    }
-              }
-            >
-              {t.icon}
-              <span>{t.label}</span>
-              <span
-                className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-                style={{
-                  backgroundColor: active ? "rgba(255,255,255,0.22)" : "var(--bg-elevated)",
-                  color: active ? "#ffffff" : "var(--text-muted)",
-                }}
+      <div className="overflow-x-auto pb-1">
+        <nav aria-label={t(lang, "navAdmin")} className="pill-tab-bar min-w-max">
+          {tabs.map((tabItem) => {
+            const active = activeTab === tabItem.id;
+            return (
+              <button
+                key={tabItem.id}
+                type="button"
+                data-active={active}
+                onClick={() => setActiveTab(tabItem.id)}
+                className="pill-tab-btn inline-flex items-center gap-2 shrink-0"
               >
-                {t.shortBadge}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+                {tabItem.icon}
+                <span>{tabItem.label}</span>
+                <span
+                  className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+                  style={{
+                    backgroundColor: active ? "rgba(255,255,255,0.22)" : "var(--bg-elevated)",
+                    color: active ? "#ffffff" : "var(--text-muted)",
+                  }}
+                >
+                  {tabItem.shortBadge}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
       {/* ===================================================================== */}
-      {/* TAB 1: ACCOUNT, SELF-REGISTRATION, RBAC MATRIX & USER GOVERNANCE      */}
+      {/* TAB 1: OVERVIEW — ACCOUNT, CONTRIBUTOR ROLES & MEMBER GOVERNANCE      */}
       {/* ===================================================================== */}
       <AnimatePresence mode="wait">
         {activeTab === "account" && (
@@ -1690,10 +2016,10 @@ function AdminControlCenterInner() {
                   <div>
                     <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
                       <UserPlus className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
-                      <span>Account &amp; Role Portal</span>
+                      <span>{ui.accountPortalTitle}</span>
                     </h2>
                     <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                      Create a personal Member or Creator account, sign in, or edit your profile
+                      {ui.accountPortalSubtitle}
                     </p>
                   </div>
                 </div>
@@ -1718,7 +2044,7 @@ function AdminControlCenterInner() {
                         : { color: "var(--text-secondary)" }
                     }
                   >
-                    Create Account
+                    {t(lang, "createAccount")}
                   </button>
                   <button
                     type="button"
@@ -1732,12 +2058,12 @@ function AdminControlCenterInner() {
                         : { color: "var(--text-secondary)" }
                     }
                   >
-                    Sign In
+                    {t(lang, "signIn")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setAuthFormMode("profile")}
-                    className={`py-2 px-2 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                    className={`py-2 px-2 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1 cursor-pointer transition-all ${
                       authFormMode === "profile" ? "btn-primary" : ""
                     }`}
                     style={
@@ -1746,7 +2072,8 @@ function AdminControlCenterInner() {
                         : { color: "var(--text-secondary)" }
                     }
                   >
-                    My Profile {authUser ? "✓" : ""}
+                    <span>{ui.myProfile}</span>
+                    {authUser && <Check className="w-3 h-3" />}
                   </button>
                 </div>
 
@@ -1765,29 +2092,27 @@ function AdminControlCenterInner() {
                         <Lock className="w-4 h-4 shrink-0 mt-0.5" />
                         <span>
                           Public self-registration is currently disabled in Global Platform Settings.
-                          Super Admins can re-enable it in the Modular Dashboard Builder tab.
+                          Super Admins can re-enable it in the Home Layout tab.
                         </span>
                       </div>
                     )}
 
                     {/* Account Type Selector: Member vs Creator */}
                     <div>
-                      <label className="block font-bold mb-1.5">
-                        Choose Account Tier
-                      </label>
+                      <label className="block font-bold mb-1.5">{ui.contributorRole}</label>
                       <div className="grid grid-cols-2 gap-2.5">
                         {(
                           [
                             {
                               role: "member" as const,
-                              title: "Member",
-                              badge: "رفیقِ کارواں",
-                              desc: "Sync XP, Family Barsi Khatm & Zakat Ledgers",
+                              title: tp(lang, RBAC_ROLES.member.label),
+                              badge: RBAC_ROLES.member.arabicBadge,
+                              desc: "Family Barsi Khatm & Personal Zakat Ledgers",
                             },
                             {
                               role: "creator" as const,
-                              title: "Creator",
-                              badge: "خادمِ تذکرہ",
+                              title: tp(lang, RBAC_ROLES.creator.label),
+                              badge: RBAC_ROLES.creator.arabicBadge,
                               desc: "Author Auliya Tazkirahs & Submit Urs Dates",
                             },
                           ] as const
@@ -1836,7 +2161,7 @@ function AdminControlCenterInner() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block font-semibold mb-1">Full Name *</label>
+                        <label className="block font-semibold mb-1">{tp(lang, "Full Name")} *</label>
                         <input
                           type="text"
                           required
@@ -1849,7 +2174,7 @@ function AdminControlCenterInner() {
                         />
                       </div>
                       <div>
-                        <label className="block font-semibold mb-1">City / Location</label>
+                        <label className="block font-semibold mb-1">{tp(lang, "City")}</label>
                         <input
                           type="text"
                           value={regCity}
@@ -1862,7 +2187,7 @@ function AdminControlCenterInner() {
                     </div>
 
                     <div>
-                      <label className="block font-semibold mb-1">Email Address *</label>
+                      <label className="block font-semibold mb-1">{tp(lang, "Email Address")} *</label>
                       <input
                         type="email"
                         required
@@ -1875,9 +2200,7 @@ function AdminControlCenterInner() {
                     </div>
 
                     <div>
-                      <label className="block font-semibold mb-1">
-                        Password * (SHA-256 salted hash, min 6 chars)
-                      </label>
+                      <label className="block font-semibold mb-1">{tp(lang, "Password")} *</label>
                       <div className="relative">
                         <input
                           type={showPassword ? "text" : "password"}
@@ -1885,7 +2208,7 @@ function AdminControlCenterInner() {
                           minLength={6}
                           value={regPassword}
                           onChange={(e) => setRegPassword(e.target.value)}
-                          placeholder="Create a strong password…"
+                          placeholder="••••••••"
                           className="w-full px-3 py-2.5 pr-10 rounded-xl border bg-transparent"
                           style={{ borderColor: "var(--border-hairline)" }}
                         />
@@ -1911,9 +2234,7 @@ function AdminControlCenterInner() {
                     >
                       <UserPlus className="w-4 h-4" />
                       <span>
-                        {busyAction === "register"
-                          ? "Creating Sanctuary Account…"
-                          : `Create ${regRole === "creator" ? "Creator" : "Member"} Account (+100 XP)`}
+                        {busyAction === "register" ? tp(lang, "Loading") : t(lang, "createAccount")}
                       </span>
                     </button>
                   </form>
@@ -1924,7 +2245,7 @@ function AdminControlCenterInner() {
                   <div className="space-y-4 text-xs">
                     <form onSubmit={handleLoginSubmit} className="space-y-3">
                       <div>
-                        <label className="block font-semibold mb-1">Email Address</label>
+                        <label className="block font-semibold mb-1">{tp(lang, "Email Address")}</label>
                         <input
                           type="email"
                           required
@@ -1936,7 +2257,7 @@ function AdminControlCenterInner() {
                         />
                       </div>
                       <div>
-                        <label className="block font-semibold mb-1">Password</label>
+                        <label className="block font-semibold mb-1">{tp(lang, "Password")}</label>
                         <div className="relative">
                           <input
                             type={showPassword ? "text" : "password"}
@@ -1968,7 +2289,7 @@ function AdminControlCenterInner() {
                         className="btn-primary w-full py-2.5 px-4 rounded-xl font-bold inline-flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <LogIn className="w-4 h-4" />
-                        <span>{busyAction === "login" ? "Verifying…" : "Sign In with Email"}</span>
+                        <span>{busyAction === "login" ? tp(lang, "Loading") : t(lang, "signIn")}</span>
                       </button>
                     </form>
 
@@ -1981,7 +2302,7 @@ function AdminControlCenterInner() {
                       }}
                     >
                       <div className="font-bold text-[11px]" style={{ color: "var(--text-secondary)" }}>
-                        Seeded Sanctuary Accounts (Click to Autofill Credentials):
+                        {ui.contributorRole}:
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                         {DEMO_SEED_CREDENTIALS.map((cred) => (
@@ -1999,7 +2320,7 @@ function AdminControlCenterInner() {
                             }}
                           >
                             <div className="font-bold text-[11px]" style={{ color: RBAC_ROLES[cred.role].badgeColor }}>
-                              {RBAC_ROLES[cred.role].label}
+                              {tp(lang, RBAC_ROLES[cred.role].label)}
                             </div>
                             <div className="text-[10px] truncate" style={{ color: "var(--text-muted)" }}>
                               {cred.email} • {cred.pass}
@@ -2027,21 +2348,21 @@ function AdminControlCenterInner() {
                             <div className="font-bold text-sm">{authUser.name}</div>
                             <div style={{ color: "var(--text-muted)" }}>{authUser.email}</div>
                             <div className="mt-1 text-[11px] font-semibold" style={{ color: roleMeta.badgeColor }}>
-                              {roleMeta.label} ({roleMeta.arabicBadge}) • Status: {authUser.status}
+                              {tp(lang, roleMeta.label)} ({roleMeta.arabicBadge})
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-base font-extrabold tabular-nums" style={{ color: "var(--accent-gold)" }}>
-                              {authUser.xp.toLocaleString()} XP
+                            <div className="text-xs font-bold" style={{ color: "var(--accent-gold)" }}>
+                              {currentRank.title}
                             </div>
                             <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                              {currentRank.title}
+                              {tp(lang, authUser.status === "active" ? "Active" : authUser.status)}
                             </div>
                           </div>
                         </div>
 
                         <div>
-                          <label className="block font-semibold mb-1">Display Name</label>
+                          <label className="block font-semibold mb-1">{tp(lang, "Full Name")}</label>
                           <input
                             type="text"
                             value={(profileDraft ?? authUser).name}
@@ -2075,7 +2396,7 @@ function AdminControlCenterInner() {
                             />
                           </div>
                           <div>
-                            <label className="block font-semibold mb-1">City</label>
+                            <label className="block font-semibold mb-1">{tp(lang, "City")}</label>
                             <input
                               type="text"
                               value={(profileDraft ?? authUser).city}
@@ -2099,7 +2420,7 @@ function AdminControlCenterInner() {
                             className="btn-primary flex-1 py-2.5 px-4 rounded-xl font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <Save className="w-4 h-4" />
-                            <span>Save Profile</span>
+                            <span>{tp(lang, "Save")}</span>
                           </button>
                           <button
                             type="button"
@@ -2112,7 +2433,7 @@ function AdminControlCenterInner() {
                             }}
                           >
                             <LogOut className="w-4 h-4" />
-                            <span>Sign Out</span>
+                            <span>{t(lang, "signOut")}</span>
                           </button>
                         </div>
                       </form>
@@ -2125,10 +2446,9 @@ function AdminControlCenterInner() {
                         }}
                       >
                         <KeyRound className="w-7 h-7 mx-auto" style={{ color: "var(--accent-gold)" }} />
-                        <div className="font-bold text-sm">No Active Backend Session</div>
+                        <div className="font-bold text-sm">{ui.guestSession}</div>
                         <p style={{ color: "var(--text-muted)" }}>
-                          Create a new Member or Creator account, sign in with email, or click any
-                          role in the 1-Click RBAC Switcher above.
+                          {ui.accountPortalSubtitle}
                         </p>
                         <button
                           type="button"
@@ -2136,7 +2456,7 @@ function AdminControlCenterInner() {
                           className="btn-primary px-4 py-2 rounded-xl font-bold inline-flex items-center gap-1.5 cursor-pointer"
                         >
                           <UserPlus className="w-4 h-4" />
-                          <span>Create Personal Account</span>
+                          <span>{t(lang, "createAccount")}</span>
                         </button>
                       </div>
                     )}
@@ -2144,16 +2464,16 @@ function AdminControlCenterInner() {
                 )}
               </section>
 
-              {/* Right 7 Cols: Visual RBAC Capability Matrix Table */}
+              {/* Right 7 Cols: Contributor Role Permissions Table */}
               <section className="lg:col-span-7 bento-card p-5 sm:p-6 space-y-4 overflow-hidden">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
-                      <span>Visual RBAC Capability Matrix</span>
+                      <span>{ui.roleCapabilitiesTitle}</span>
                     </h2>
                     <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                      Live permission enforcement across all {PERMISSION_CATALOG.length} Sanctuary governance scopes
+                      {ui.roleCapabilitiesSubtitle} ({PERMISSION_CATALOG.length})
                     </p>
                   </div>
                 </div>
@@ -2166,7 +2486,7 @@ function AdminControlCenterInner() {
                         style={{ borderColor: "var(--border-hairline)" }}
                       >
                         <th className="py-2.5 pr-3 font-bold" style={{ color: "var(--text-secondary)" }}>
-                          Permission Scope
+                          {tp(lang, "Details")}
                         </th>
                         {ROLE_ORDER.map((r) => {
                           const meta = RBAC_ROLES[r];
@@ -2180,7 +2500,7 @@ function AdminControlCenterInner() {
                                 color: meta.badgeColor,
                               }}
                             >
-                              <div>{r === "creator" ? "Creator" : r === "member" ? "Member" : meta.label}</div>
+                              <div>{tp(lang, meta.label)}</div>
                               <div className="font-urdu text-[11px] font-normal opacity-90">
                                 {meta.arabicBadge}
                               </div>
@@ -2198,8 +2518,8 @@ function AdminControlCenterInner() {
                         >
                           <td className="py-2 pr-3">
                             <div className="font-semibold">{item.label}</div>
-                            <div className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>
-                              {item.key} • {item.domain}
+                            <div className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                              {item.domain}
                             </div>
                           </td>
                           {ROLE_ORDER.map((r) => {
@@ -2246,28 +2566,18 @@ function AdminControlCenterInner() {
               </section>
             </div>
 
-            {/* Bottom Section: User Directory & Role Governance (users:manage — Super Admin) */}
+            {/* Bottom Section: Members & Contributor Roles */}
             <section className="bento-card p-5 sm:p-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                     <h2 className="text-base sm:text-lg font-bold">
-                      User Directory &amp; Role Governance
+                      {ui.userDirectoryTitle}
                     </h2>
-                    <span
-                      className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold border"
-                      style={{
-                        backgroundColor: "var(--accent-soft)",
-                        borderColor: "var(--border-hairline)",
-                        color: "var(--accent-primary)",
-                      }}
-                    >
-                      users:manage
-                    </span>
                   </div>
                   <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    Promote or demote user RBAC roles (member ↔ creator ↔ editor ↔ super_admin) and suspend or reactivate accounts.
+                    {ui.roleCapabilitiesSubtitle}
                   </p>
                 </div>
 
@@ -2278,7 +2588,7 @@ function AdminControlCenterInner() {
                     className="btn-peach px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 cursor-pointer shrink-0"
                   >
                     <Unlock className="w-3.5 h-3.5" />
-                    <span>Switch to Super Admin to Govern Users</span>
+                    <span>{tp(lang, RBAC_ROLES.super_admin.label)}</span>
                   </button>
                 )}
               </div>
@@ -2295,8 +2605,8 @@ function AdminControlCenterInner() {
                         type="text"
                         value={userSearch}
                         onChange={(e) => setUserSearch(e.target.value)}
-                        placeholder="Search directory by name, email, city, title, or role…"
-                        aria-label="Search users"
+                        placeholder={`${tp(lang, "Search")}…`}
+                        aria-label={tp(lang, "Search")}
                         className="w-full pl-9 pr-3 py-2 rounded-xl border bg-transparent"
                         style={{ borderColor: "var(--border-hairline)" }}
                       />
@@ -2304,12 +2614,12 @@ function AdminControlCenterInner() {
                     <select
                       value={userRoleFilter}
                       onChange={(e) => setUserRoleFilter(e.target.value as "all" | UserRole)}
-                      aria-label="Filter users by role"
+                      aria-label={ui.contributorRole}
                       className="ui-select px-3 py-2 rounded-xl border bg-transparent font-semibold"
                       style={{ borderColor: "var(--border-hairline)" }}
                     >
                       <option value="all" style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}>
-                        All Roles ({backend.users.length})
+                        {tp(lang, "All")} ({backend.users.length})
                       </option>
                       {ROLE_ORDER.map((r) => (
                         <option
@@ -2317,7 +2627,7 @@ function AdminControlCenterInner() {
                           value={r}
                           style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}
                         >
-                          {RBAC_ROLES[r].label}
+                          {tp(lang, RBAC_ROLES[r].label)}
                         </option>
                       ))}
                     </select>
@@ -2333,12 +2643,11 @@ function AdminControlCenterInner() {
                             color: "var(--text-muted)",
                           }}
                         >
-                          <th className="py-2.5 pr-3">Account</th>
-                          <th className="py-2.5 px-3">City &amp; Title</th>
-                          <th className="py-2.5 px-3">XP</th>
-                          <th className="py-2.5 px-3">Status</th>
-                          <th className="py-2.5 px-3">Assigned RBAC Role</th>
-                          <th className="py-2.5 pl-3 text-right">Governance</th>
+                          <th className="py-2.5 pr-3">{tp(lang, "Full Name")}</th>
+                          <th className="py-2.5 px-3">{tp(lang, "City")}</th>
+                          <th className="py-2.5 px-3">{tp(lang, "Active")}</th>
+                          <th className="py-2.5 px-3">{ui.contributorRole}</th>
+                          <th className="py-2.5 pl-3 text-right">{tp(lang, "Edit")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2364,7 +2673,7 @@ function AdminControlCenterInner() {
                                       <span>{u.name}</span>
                                       {isSelf && (
                                         <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400">
-                                          You
+                                          {tp(lang, "Active")}
                                         </span>
                                       )}
                                     </div>
@@ -2380,12 +2689,9 @@ function AdminControlCenterInner() {
                                   {u.city}
                                 </div>
                               </td>
-                              <td className="py-3 px-3 font-bold tabular-nums" style={{ color: "var(--accent-gold)" }}>
-                                {u.xp.toLocaleString()}
-                              </td>
                               <td className="py-3 px-3">
                                 {u.status === "active" ? (
-                                  <span className="badge-pill badge-emerald">Active</span>
+                                  <span className="badge-pill badge-emerald">{tp(lang, "Active")}</span>
                                 ) : (
                                   <span className="badge-pill badge-crimson">Suspended</span>
                                 )}
@@ -2399,7 +2705,7 @@ function AdminControlCenterInner() {
                                       role: e.target.value as UserRole,
                                     })
                                   }
-                                  aria-label={`Change role for ${u.name}`}
+                                  aria-label={u.name}
                                   className="ui-select px-2.5 py-1.5 rounded-lg border bg-transparent font-bold disabled:opacity-60"
                                   style={{
                                     borderColor: "var(--border-hairline)",
@@ -2415,7 +2721,7 @@ function AdminControlCenterInner() {
                                         color: "var(--text-primary)",
                                       }}
                                     >
-                                      {RBAC_ROLES[r].label} ({r})
+                                      {tp(lang, RBAC_ROLES[r].label)}
                                     </option>
                                   ))}
                                 </select>
@@ -2428,11 +2734,6 @@ function AdminControlCenterInner() {
                                     handleAdminUserPatch(u.id, {
                                       status: u.status === "active" ? "suspended" : "active",
                                     })
-                                  }
-                                  title={
-                                    isSelf
-                                      ? "Cannot suspend your own active Super Admin session"
-                                      : undefined
                                   }
                                   className="px-3 py-1.5 rounded-lg border font-semibold cursor-pointer disabled:opacity-40"
                                   style={{
@@ -2465,8 +2766,7 @@ function AdminControlCenterInner() {
                   <div className="flex items-center gap-2.5">
                     <ShieldAlert className="w-5 h-5 shrink-0" style={{ color: "var(--accent-gold)" }} />
                     <span style={{ color: "var(--text-secondary)" }}>
-                      User Directory records are shielded by RBAC (`audit:view` / `users:manage`).
-                      Switch to Scholar Editor to inspect or Super Admin to govern roles.
+                      {tp(lang, RBAC_ROLES.editor.label)} / {tp(lang, RBAC_ROLES.super_admin.label)}
                     </span>
                   </div>
                 </div>
@@ -2487,7 +2787,7 @@ function AdminControlCenterInner() {
             transition={{ duration: 0.2 }}
             className="space-y-6"
           >
-            {/* RBAC Editorial Workflow Banner */}
+            {/* Editorial Workflow Banner */}
             <div
               className="p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
               style={{
@@ -2498,13 +2798,13 @@ function AdminControlCenterInner() {
               <div className="flex items-start gap-2.5">
                 <Award className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--accent-gold)" }} />
                 <div>
-                  <span className="font-bold">Scholarly Verification Pipeline: </span>
+                  <span className="font-bold">{ui.statusVerification}: </span>
                   <span style={{ color: "var(--text-secondary)" }}>
                     {canPublishAuliya
-                      ? `Signed in as ${roleMeta?.label} — you can create, edit any saint biography, and Approve & Publish directly to the live Auliya Directory.`
+                      ? `${roleMeta ? tp(lang, roleMeta.label) : ""} — create, edit saint biographies, and publish directly to the live Auliya Directory.`
                       : canCreateAuliya
-                      ? "Signed in as Creator — you can author rich Auliya profiles and save as Draft or submit for Scholarly Verification. Scholar Editors & Super Admins publish live."
-                      : "Browsing in read-only mode. Switch to Creator, Scholar Editor, or Super Admin above to add or edit Auliya profiles."}
+                      ? `${tp(lang, RBAC_ROLES.creator.label)} — author Auliya profiles as ${ui.statusDraft} or submit for ${ui.statusVerification}.`
+                      : `${ui.publicReadOnly} — ${ui.contributorRoleHint}.`}
                   </span>
                 </div>
               </div>
@@ -2514,21 +2814,23 @@ function AdminControlCenterInner() {
                   onClick={() => handleQuickRoleSwitch("editor")}
                   className="btn-primary px-3.5 py-2 rounded-xl font-bold shrink-0 cursor-pointer"
                 >
-                  Switch to Scholar Editor
+                  {ui.selectRole}: {tp(lang, RBAC_ROLES.editor.label)}
                 </button>
               )}
             </div>
 
-            {/* Searchable, Filterable CMS Table of ALL Auliya Records */}
+            {/* Searchable, Filterable Table of ALL Auliya Records */}
             <section className="bento-card p-5 sm:p-6 space-y-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div>
                   <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
                     <Compass className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
-                    <span>Auliya Allah CMS Directory ({filteredAuliyaRecords.length})</span>
+                    <span>
+                      {tl(lang, "adminTabAuliya", ui.tabAuliya)} ({filteredAuliyaRecords.length})
+                    </span>
                   </h2>
                   <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    Live records from <code className="font-mono">backend.auliyaRecords</code> — Edit, Verify &amp; Publish, View 360° Profile, or Delete
+                    Curate saint biographies, shrine coordinates, spiritual lineages (Shajrah), and authored works
                   </p>
                 </div>
 
@@ -2538,7 +2840,9 @@ function AdminControlCenterInner() {
                   className="btn-primary px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer self-start"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>New Auliya Profile</span>
+                  <span>
+                    {ui.newRecord} — {tl(lang, "adminTabAuliya", ui.tabAuliya)}
+                  </span>
                 </button>
               </div>
 
@@ -2553,8 +2857,8 @@ function AdminControlCenterInner() {
                     type="text"
                     value={auliyaSearch}
                     onChange={(e) => setAuliyaSearch(e.target.value)}
-                    placeholder="Search saint name, Urdu/Arabic script, Alqab, city, or Silsila…"
-                    aria-label="Search Auliya CMS records"
+                    placeholder={`${tp(lang, "Search")}…`}
+                    aria-label={tp(lang, "Search")}
                     className="w-full pl-9 pr-3 py-2 rounded-xl border bg-transparent"
                     style={{ borderColor: "var(--border-hairline)" }}
                   />
@@ -2563,13 +2867,16 @@ function AdminControlCenterInner() {
                 <div className="flex flex-wrap items-center gap-1.5">
                   {(
                     [
-                      { key: "All", label: `All (${auliyaCounts.total})` },
-                      { key: "Published", label: `Published (${auliyaCounts.published})` },
+                      { key: "All", label: `${tp(lang, "All")} (${auliyaCounts.total})` },
+                      {
+                        key: "Published",
+                        label: `${ui.statusPublished} (${auliyaCounts.published})`,
+                      },
                       {
                         key: "Scholarly Verification",
-                        label: `Verification (${auliyaCounts.pending})`,
+                        label: `${ui.statusVerification} (${auliyaCounts.pending})`,
                       },
-                      { key: "Draft", label: `Draft (${auliyaCounts.draft})` },
+                      { key: "Draft", label: `${ui.statusDraft} (${auliyaCounts.draft})` },
                     ] as const
                   ).map((st) => {
                     const active = auliyaStatusFilter === st.key;
@@ -2604,7 +2911,7 @@ function AdminControlCenterInner() {
                     style={{ borderColor: "var(--border-hairline)" }}
                   >
                     <option value="All" style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}>
-                      All Silsilas
+                      {tp(lang, "All")} — Silsila
                     </option>
                     {SILSILA_OPTIONS.map((s) => (
                       <option
@@ -2619,7 +2926,7 @@ function AdminControlCenterInner() {
                 </div>
               </div>
 
-              {/* Auliya CMS Table */}
+              {/* Auliya Directory Table */}
               <div className="overflow-x-auto">
                 <table className="w-full text-xs border-collapse min-w-[780px]">
                   <thead>
@@ -2627,11 +2934,11 @@ function AdminControlCenterInner() {
                       className="border-b text-left"
                       style={{ borderColor: "var(--border-hairline)", color: "var(--text-muted)" }}
                     >
-                      <th className="py-2.5 pr-3">Blessed Saint</th>
+                      <th className="py-2.5 pr-3">{tl(lang, "adminTabAuliya", ui.tabAuliya)}</th>
                       <th className="py-2.5 px-3">Silsila</th>
-                      <th className="py-2.5 px-3">Annual Urs &amp; Shrine</th>
-                      <th className="py-2.5 px-3">Status &amp; Curator</th>
-                      <th className="py-2.5 pl-3 text-right">CMS Actions</th>
+                      <th className="py-2.5 px-3">{tl(lang, "adminTabUrs", ui.tabUrs)}</th>
+                      <th className="py-2.5 px-3">{ui.statusPublished}</th>
+                      <th className="py-2.5 pl-3 text-right">{tp(lang, "Edit")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2694,17 +3001,22 @@ function AdminControlCenterInner() {
                           </td>
                           <td className="py-3 px-3">
                             <div className="font-semibold">
-                              {rec.ursDay} {HIJRI_MONTHS[(rec.ursMonth - 1 + 12) % 12]}
+                              {rec.ursDay}{" "}
+                              {formatLocalizedHijriMonth(
+                                lang,
+                                rec.ursMonth,
+                                HIJRI_MONTHS[(rec.ursMonth - 1 + 12) % 12]
+                              )}
                             </div>
                             <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>
                               {rec.city}, {rec.country}
                             </div>
                           </td>
                           <td className="py-3 px-3">
-                            <StatusPill status={rec.status} />
+                            <StatusPill status={rec.status} ui={ui} />
                             <div className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>
-                              By {rec.createdByName}
-                              {rec.verifiedByName ? ` • Verified: ${rec.verifiedByName}` : ""}
+                              {rec.createdByName}
+                              {rec.verifiedByName ? ` • ${rec.verifiedByName}` : ""}
                             </div>
                           </td>
                           <td className="py-3 pl-3">
@@ -2721,7 +3033,7 @@ function AdminControlCenterInner() {
                                 }}
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
-                                <span>Edit</span>
+                                <span>{tp(lang, "Edit")}</span>
                               </button>
 
                               {canPublishAuliya && rec.status !== "Published" && (
@@ -2737,7 +3049,7 @@ function AdminControlCenterInner() {
                                   }}
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5" />
-                                  <span>Approve &amp; Publish</span>
+                                  <span>{ui.approvePublish}</span>
                                 </button>
                               )}
 
@@ -2751,7 +3063,7 @@ function AdminControlCenterInner() {
                                 }}
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
-                                <span>Live Profile</span>
+                                <span>{t(lang, "navAuliya")}</span>
                               </Link>
 
                               {canDeleteAuliya &&
@@ -2762,7 +3074,7 @@ function AdminControlCenterInner() {
                                       onClick={() => handleDeleteAuliya(rec.id, rec.name)}
                                       className="px-2 py-1.5 rounded-lg font-bold bg-red-500 text-white cursor-pointer"
                                     >
-                                      Confirm
+                                      {tp(lang, "Delete")}
                                     </button>
                                     <button
                                       type="button"
@@ -2770,14 +3082,14 @@ function AdminControlCenterInner() {
                                       className="px-2 py-1.5 rounded-lg border cursor-pointer"
                                       style={{ borderColor: "var(--border-hairline)" }}
                                     >
-                                      Cancel
+                                      {tp(lang, "Cancel")}
                                     </button>
                                   </div>
                                 ) : (
                                   <button
                                     type="button"
                                     onClick={() => setConfirmDeleteAuliyaId(rec.id)}
-                                    aria-label={`Delete ${rec.name}`}
+                                    aria-label={`${tp(lang, "Delete")} ${rec.name}`}
                                     className="p-1.5 rounded-lg border cursor-pointer"
                                     style={{
                                       borderColor: "rgba(239, 68, 68, 0.35)",
@@ -2804,11 +3116,11 @@ function AdminControlCenterInner() {
                 <div>
                   <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
                     {auliyaForm.editingId
-                      ? `Editing Existing Record: ${auliyaForm.editingId}`
-                      : "Create New Auliya Allah Record"}
+                      ? `${tp(lang, "Edit")}: ${auliyaForm.editingId}`
+                      : `${ui.newRecord} — ${tl(lang, "adminTabAuliya", ui.tabAuliya)}`}
                   </div>
                   <h2 className="text-lg sm:text-xl font-extrabold mt-0.5">
-                    Rich Auliya Profile, Shrine GPS, Shajrah &amp; Tasanif Editor
+                    {tl(lang, "adminTabAuliya", ui.tabAuliya)} — Tazkirah, Shajrah &amp; Tasanif
                   </h2>
                 </div>
 
@@ -2823,7 +3135,7 @@ function AdminControlCenterInner() {
                     }}
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Clear &amp; Create New</span>
+                    <span>{ui.newRecord}</span>
                   </button>
                 )}
               </div>
@@ -3032,13 +3344,13 @@ function AdminControlCenterInner() {
                               color: "var(--text-primary)",
                             }}
                           >
-                            {idx + 1}. {m}
+                            {idx + 1}. {formatLocalizedHijriMonth(lang, idx + 1, m)}
                           </option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="block font-semibold mb-1">Shrine City *</label>
+                      <label className="block font-semibold mb-1">{tp(lang, "City")} *</label>
                       <input
                         type="text"
                         required
@@ -3429,7 +3741,7 @@ function AdminControlCenterInner() {
                   }}
                 >
                   <div className="space-y-1 flex-1">
-                    <label className="block font-bold">Publication Workflow Target</label>
+                    <label className="block font-bold">{ui.publish}</label>
                     <div className="flex flex-wrap items-center gap-3">
                       <select
                         value={
@@ -3450,27 +3762,29 @@ function AdminControlCenterInner() {
                           value="Draft"
                           style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}
                         >
-                          Save as Personal Draft
+                          {ui.statusDraft}
                         </option>
                         <option
                           value="Scholarly Verification"
                           style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}
                         >
-                          Submit for Scholarly Verification
+                          {ui.statusVerification}
                         </option>
                         {canPublishAuliya && (
                           <option
                             value="Published"
                             style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}
                           >
-                            Publish Live Immediately (Editor / Super Admin)
+                            {ui.statusPublished} ({tp(lang, RBAC_ROLES.editor.label)} /{" "}
+                            {tp(lang, RBAC_ROLES.super_admin.label)})
                           </option>
                         )}
                       </select>
 
                       {!canPublishAuliya && (
                         <span className="text-[11px]" style={{ color: "var(--accent-gold)" }}>
-                          Direct live publish requires <code>auliya:publish</code> (Scholar Editor or Super Admin).
+                          {ui.approvePublish}: {tp(lang, RBAC_ROLES.editor.label)} /{" "}
+                          {tp(lang, RBAC_ROLES.super_admin.label)}
                         </span>
                       )}
                     </div>
@@ -3484,10 +3798,8 @@ function AdminControlCenterInner() {
                     <Save className="w-4 h-4" />
                     <span>
                       {busyAction === "save-auliya"
-                        ? "Saving Record…"
-                        : auliyaForm.editingId
-                        ? "Update Auliya Profile"
-                        : "Save Auliya Profile"}
+                        ? `${tp(lang, "Loading")}…`
+                        : `${tp(lang, "Save")} — ${tl(lang, "adminTabAuliya", ui.tabAuliya)}`}
                     </span>
                   </button>
                 </div>
@@ -3497,7 +3809,7 @@ function AdminControlCenterInner() {
         )}
 
         {/* =================================================================== */}
-        {/* TAB 3: URS & SACRED CALENDAR CMS                                    */}
+        {/* TAB 3: URS & SACRED CALENDAR                                        */}
         {/* =================================================================== */}
         {activeTab === "urs" && (
           <motion.div
@@ -3513,10 +3825,10 @@ function AdminControlCenterInner() {
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
-                    {ursForm.editingId ? "Editing Calendar Event" : "New Hijri Commemoration"}
+                    {ursForm.editingId ? tp(lang, "Edit") : ui.newRecord}
                   </div>
                   <h2 className="text-base sm:text-lg font-bold">
-                    Urs &amp; Sacred Calendar Editor
+                    {tl(lang, "adminTabUrs", ui.tabUrs)}
                   </h2>
                 </div>
                 {ursForm.editingId && (
@@ -3526,7 +3838,7 @@ function AdminControlCenterInner() {
                     className="px-2.5 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer"
                     style={{ borderColor: "var(--border-hairline)" }}
                   >
-                    New
+                    {ui.newRecord}
                   </button>
                 )}
               </div>
@@ -3540,14 +3852,14 @@ function AdminControlCenterInner() {
                     color: "var(--accent-gold)",
                   }}
                 >
-                  <span>Switch to Creator, Editor, or Super Admin to add Urs dates.</span>
+                  <span>{ui.contributorRoleHint}</span>
                   <button
                     type="button"
                     onClick={() => handleQuickRoleSwitch("creator")}
                     className="px-2.5 py-1 rounded-lg font-bold border cursor-pointer shrink-0"
                     style={{ borderColor: "var(--accent-gold)" }}
                   >
-                    Activate Creator
+                    {ui.selectRole}: {tp(lang, RBAC_ROLES.creator.label)}
                   </button>
                 </div>
               )}
@@ -3618,7 +3930,7 @@ function AdminControlCenterInner() {
                           value={idx + 1}
                           style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}
                         >
-                          {idx + 1}. {m}
+                          {idx + 1}. {formatLocalizedHijriMonth(lang, idx + 1, m)}
                         </option>
                       ))}
                     </select>
@@ -3666,7 +3978,9 @@ function AdminControlCenterInner() {
                   </div>
 
                   <div>
-                    <label className="block font-semibold mb-1">Linked Auliya Profile</label>
+                    <label className="block font-semibold mb-1">
+                      {tl(lang, "adminTabAuliya", ui.tabAuliya)}
+                    </label>
                     <select
                       value={ursForm.auliyaId}
                       onChange={(e) => {
@@ -3701,7 +4015,7 @@ function AdminControlCenterInner() {
 
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block font-semibold mb-1">City</label>
+                    <label className="block font-semibold mb-1">{tp(lang, "City")}</label>
                     <input
                       type="text"
                       value={ursForm.city}
@@ -3769,20 +4083,20 @@ function AdminControlCenterInner() {
                     style={{ borderColor: "var(--border-hairline)" }}
                   >
                     <option value="Draft" style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}>
-                      Draft
+                      {ui.statusDraft}
                     </option>
                     <option
                       value="Scholarly Verification"
                       style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}
                     >
-                      Scholarly Verification
+                      {ui.statusVerification}
                     </option>
                     {canPublishUrs && (
                       <option
                         value="Published"
                         style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}
                       >
-                        Published
+                        {ui.statusPublished}
                       </option>
                     )}
                   </select>
@@ -3795,7 +4109,7 @@ function AdminControlCenterInner() {
                 >
                   <Save className="w-4 h-4" />
                   <span>
-                    {ursForm.editingId ? "Update Calendar Event" : "Save Urs / Sacred Event"}
+                    {tp(lang, "Save")} — {tl(lang, "adminTabUrs", ui.tabUrs)}
                   </span>
                 </button>
               </form>
@@ -3807,10 +4121,14 @@ function AdminControlCenterInner() {
                 <div>
                   <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
                     <Calendar className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
-                    <span>Muharram – Dhu al-Hijjah Calendar ({filteredUrsEvents.length})</span>
+                    <span>
+                      {formatLocalizedHijriMonth(lang, 1, "Muharram")} –{" "}
+                      {formatLocalizedHijriMonth(lang, 12, "Dhu al-Hijjah")} (
+                      {filteredUrsEvents.length})
+                    </span>
                   </h2>
                   <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    Published events automatically drive Dashboard &amp; Hijri Spotlight countdowns
+                    Published events automatically appear on the Sanctuary Home &amp; Hijri Calendar
                   </p>
                 </div>
               </div>
@@ -3825,8 +4143,8 @@ function AdminControlCenterInner() {
                     type="text"
                     value={ursSearch}
                     onChange={(e) => setUrsSearch(e.target.value)}
-                    placeholder="Search Urs, sacred night, city, Wird…"
-                    aria-label="Search Urs events"
+                    placeholder={`${tp(lang, "Search")}…`}
+                    aria-label={tp(lang, "Search")}
                     className="w-full pl-8 pr-3 py-2 rounded-xl border bg-transparent"
                     style={{ borderColor: "var(--border-hairline)" }}
                   />
@@ -3839,7 +4157,7 @@ function AdminControlCenterInner() {
                   style={{ borderColor: "var(--border-hairline)" }}
                 >
                   <option value={0} style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}>
-                    All 12 Months
+                    {tp(lang, "All")} (12)
                   </option>
                   {HIJRI_MONTHS.map((m, idx) => (
                     <option
@@ -3847,7 +4165,7 @@ function AdminControlCenterInner() {
                       value={idx + 1}
                       style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}
                     >
-                      {idx + 1}. {m}
+                      {idx + 1}. {formatLocalizedHijriMonth(lang, idx + 1, m)}
                     </option>
                   ))}
                 </select>
@@ -3861,7 +4179,7 @@ function AdminControlCenterInner() {
                   style={{ borderColor: "var(--border-hairline)" }}
                 >
                   <option value="all" style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}>
-                    All Types
+                    {tp(lang, "All")}
                   </option>
                   <option value="urs" style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}>
                     Urs
@@ -3883,19 +4201,19 @@ function AdminControlCenterInner() {
                   style={{ borderColor: "var(--border-hairline)" }}
                 >
                   <option value="All" style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}>
-                    All Status
+                    {tp(lang, "All")}
                   </option>
                   <option value="Published" style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}>
-                    Published
+                    {ui.statusPublished}
                   </option>
                   <option
                     value="Scholarly Verification"
                     style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}
                   >
-                    Verification
+                    {ui.statusVerification}
                   </option>
                   <option value="Draft" style={{ backgroundColor: "var(--bg-surface)", color: "var(--text-primary)" }}>
-                    Draft
+                    {ui.statusDraft}
                   </option>
                 </select>
               </div>
@@ -3931,7 +4249,12 @@ function AdminControlCenterInner() {
                                 color: "var(--accent-gold)",
                               }}
                             >
-                              {ev.day} {HIJRI_MONTHS[(ev.month - 1 + 12) % 12]}
+                              {ev.day}{" "}
+                              {formatLocalizedHijriMonth(
+                                lang,
+                                ev.month,
+                                HIJRI_MONTHS[(ev.month - 1 + 12) % 12]
+                              )}
                               {ev.durationDays && ev.durationDays > 1
                                 ? ` (${ev.durationDays}d)`
                                 : ""}
@@ -3946,7 +4269,7 @@ function AdminControlCenterInner() {
                             >
                               {ev.type}
                             </span>
-                            <StatusPill status={ev.status} />
+                            <StatusPill status={ev.status} ui={ui} />
                           </div>
                           <div className="font-bold text-sm pt-1">{ev.title}</div>
                           <div className="font-urdu text-xs" style={{ color: "var(--accent-gold)" }}>
@@ -3966,7 +4289,7 @@ function AdminControlCenterInner() {
                             }}
                           >
                             <Edit3 className="w-3 h-3" />
-                            <span>Edit</span>
+                            <span>{tp(lang, "Edit")}</span>
                           </button>
 
                           {canPublishUrs && ev.status !== "Published" && (
@@ -3981,7 +4304,7 @@ function AdminControlCenterInner() {
                               }}
                             >
                               <CheckCircle2 className="w-3 h-3" />
-                              <span>Publish</span>
+                              <span>{ui.publish}</span>
                             </button>
                           )}
 
@@ -3993,7 +4316,7 @@ function AdminControlCenterInner() {
                                   onClick={() => handleDeleteUrs(ev.id, ev.title)}
                                   className="px-2 py-1 rounded-lg bg-red-500 text-white font-bold cursor-pointer"
                                 >
-                                  Confirm
+                                  {tp(lang, "Delete")}
                                 </button>
                                 <button
                                   type="button"
@@ -4001,14 +4324,14 @@ function AdminControlCenterInner() {
                                   className="px-2 py-1 rounded-lg border cursor-pointer"
                                   style={{ borderColor: "var(--border-hairline)" }}
                                 >
-                                  No
+                                  {tp(lang, "Cancel")}
                                 </button>
                               </div>
                             ) : (
                               <button
                                 type="button"
                                 onClick={() => setConfirmDeleteUrsId(ev.id)}
-                                aria-label={`Delete ${ev.title}`}
+                                aria-label={`${tp(lang, "Delete")} ${ev.title}`}
                                 className="p-1.5 rounded-lg border cursor-pointer"
                                 style={{
                                   borderColor: "rgba(239, 68, 68, 0.35)",
@@ -4061,21 +4384,21 @@ function AdminControlCenterInner() {
             transition={{ duration: 0.2 }}
             className="space-y-6"
           >
-            {/* Section A: Interactive Modular Dashboard & Navigation Builder */}
+            {/* Section A: Interactive Home Layout & Navigation Builder */}
             <section className="bento-card p-5 sm:p-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
                     <LayoutGrid className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                     <h2 className="text-base sm:text-lg font-bold">
-                      Live Modular Dashboard &amp; Navigation Builder
+                      {tl(lang, "adminTabModules", ui.tabModules)}
                     </h2>
                     {modulesDraft && (
-                      <span className="badge-pill badge-gold">Unsaved Layout Edits</span>
+                      <span className="badge-pill badge-gold">{tp(lang, "Edit")}</span>
                     )}
                   </div>
                   <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    Reorder modules, toggle visibility across Dashboard &amp; Navigation, pin Bottom Nav shortcuts, and customize titles/subtitles/badges dynamically.
+                    Reorder Sanctuary sections, toggle visibility across Home &amp; Navigation, pin Bottom Nav shortcuts, and customize card labels.
                   </p>
                 </div>
 
@@ -4087,7 +4410,7 @@ function AdminControlCenterInner() {
                       className="px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer"
                       style={{ borderColor: "var(--border-hairline)" }}
                     >
-                      Discard
+                      {tp(lang, "Cancel")}
                     </button>
                   )}
                   {canManageModules ? (
@@ -4100,8 +4423,8 @@ function AdminControlCenterInner() {
                       <Save className="w-4 h-4" />
                       <span>
                         {busyAction === "save-modules"
-                          ? "Saving Layout…"
-                          : "Save Modular Layout"}
+                          ? `${tp(lang, "Loading")}…`
+                          : `${tp(lang, "Save")} — ${tl(lang, "adminTabModules", ui.tabModules)}`}
                       </span>
                     </button>
                   ) : (
@@ -4111,7 +4434,9 @@ function AdminControlCenterInner() {
                       className="btn-peach px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <Unlock className="w-3.5 h-3.5" />
-                      <span>Switch to Editor / Admin to Edit Modules</span>
+                      <span>
+                        {ui.selectRole}: {tp(lang, RBAC_ROLES.editor.label)}
+                      </span>
                     </button>
                   )}
                 </div>
@@ -4179,7 +4504,7 @@ function AdminControlCenterInner() {
                               #{idx + 1}
                             </span>
                             <span className="font-bold text-sm">
-                              {mod.customTitle || mod.id.toUpperCase()}
+                              {mod.customTitle || t(lang, mod.i18nTitleKey)}
                             </span>
                             <span className="text-[11px] font-mono" style={{ color: "var(--text-muted)" }}>
                               ({mod.href})
@@ -4203,7 +4528,7 @@ function AdminControlCenterInner() {
                             }
                             className="w-4 h-4 accent-emerald-500"
                           />
-                          <span>Enabled</span>
+                          <span>{tp(lang, "Active")}</span>
                         </label>
 
                         <label className="inline-flex items-center gap-1.5 font-semibold cursor-pointer">
@@ -4216,7 +4541,7 @@ function AdminControlCenterInner() {
                             }
                             className="w-4 h-4 accent-purple-500"
                           />
-                          <span>Featured Glow</span>
+                          <span>Featured</span>
                         </label>
 
                         <label className="inline-flex items-center gap-1.5 font-semibold cursor-pointer">
@@ -4238,7 +4563,7 @@ function AdminControlCenterInner() {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs pt-2 border-t" style={{ borderColor: "var(--border-hairline)" }}>
                       <div>
                         <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-muted)" }}>
-                          Custom Title Override (blank = i18n {mod.i18nTitleKey})
+                          Custom Title Override ({t(lang, mod.i18nTitleKey)})
                         </label>
                         <input
                           type="text"
@@ -4247,7 +4572,7 @@ function AdminControlCenterInner() {
                           onChange={(e) =>
                             updateModuleItem(mod.id, { customTitle: e.target.value })
                           }
-                          placeholder={`Default (${mod.i18nTitleKey})`}
+                          placeholder={t(lang, mod.i18nTitleKey)}
                           className="w-full px-2.5 py-1.5 rounded-lg border bg-transparent disabled:opacity-50"
                           style={{ borderColor: "var(--border-hairline)" }}
                         />
@@ -4295,21 +4620,11 @@ function AdminControlCenterInner() {
                   <div className="flex items-center gap-2">
                     <Settings className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                     <h2 className="text-base sm:text-lg font-bold">
-                      Global Platform Settings &amp; Announcement Banner
+                      {t(lang, "settings")} — Announcement &amp; Defaults
                     </h2>
-                    <span
-                      className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold border"
-                      style={{
-                        backgroundColor: "var(--accent-soft)",
-                        borderColor: "var(--border-hairline)",
-                        color: "var(--accent-primary)",
-                      }}
-                    >
-                      settings:manage
-                    </span>
                   </div>
                   <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    Configure branding, global announcement bar, default Sanctuary Theme &amp; Language, and RBAC policies.
+                    Configure Sanctuary title, community announcement banner, default theme &amp; language, and editorial policies.
                   </p>
                 </div>
 
@@ -4320,7 +4635,9 @@ function AdminControlCenterInner() {
                     className="btn-peach px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 cursor-pointer shrink-0"
                   >
                     <Unlock className="w-3.5 h-3.5" />
-                    <span>Switch to Super Admin</span>
+                    <span>
+                      {ui.selectRole}: {tp(lang, RBAC_ROLES.super_admin.label)}
+                    </span>
                   </button>
                 )}
               </div>
@@ -4374,7 +4691,7 @@ function AdminControlCenterInner() {
                         }
                         className="w-4 h-4 accent-emerald-500"
                       />
-                      <span>Banner Enabled</span>
+                      <span>{tp(lang, "Active")}</span>
                     </label>
                   </div>
 
@@ -4426,7 +4743,7 @@ function AdminControlCenterInner() {
                   <div>
                     <label className="block font-semibold mb-1 flex items-center gap-1.5">
                       <Palette className="w-3.5 h-3.5" />
-                      <span>Default Sanctuary Theme (8 Themes)</span>
+                      <span>{t(lang, "selectTheme")} (8)</span>
                     </label>
                     <select
                       disabled={!canManageSettings}
@@ -4452,7 +4769,7 @@ function AdminControlCenterInner() {
                   <div>
                     <label className="block font-semibold mb-1 flex items-center gap-1.5">
                       <Globe className="w-3.5 h-3.5" />
-                      <span>Default Display Language (10 Languages)</span>
+                      <span>{t(lang, "selectLanguage")} (10)</span>
                     </label>
                     <select
                       disabled={!canManageSettings}
@@ -4537,7 +4854,7 @@ function AdminControlCenterInner() {
                       className="px-4 py-2.5 rounded-xl border font-semibold cursor-pointer"
                       style={{ borderColor: "var(--border-hairline)" }}
                     >
-                      Discard Changes
+                      {tp(lang, "Cancel")}
                     </button>
                   )}
                   <button
@@ -4546,7 +4863,7 @@ function AdminControlCenterInner() {
                     className="btn-primary px-5 py-2.5 rounded-xl font-bold inline-flex items-center gap-2 cursor-pointer disabled:opacity-45"
                   >
                     <Save className="w-4 h-4" />
-                    <span>Save Platform Settings</span>
+                    <span>{tp(lang, "Save")}</span>
                   </button>
                 </div>
               </form>
@@ -4555,7 +4872,7 @@ function AdminControlCenterInner() {
         )}
 
         {/* =================================================================== */}
-        {/* TAB 5: ZAKAT & GAMIFICATION ENGINE                                  */}
+        {/* TAB 5: ZAKAT & DAILY QUEST BENCHMARKS                               */}
         {/* =================================================================== */}
         {activeTab === "economy" && (
           <motion.div
@@ -4573,9 +4890,9 @@ function AdminControlCenterInner() {
                   <div className="flex items-center gap-2">
                     <Coins className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
                     <h2 className="text-base sm:text-lg font-bold">
-                      Hanafi Zakat &amp; Sadaqat-ul-Fitr Benchmarks ({activeZakat.currencies.length} Currencies)
+                      {tl(lang, "adminTabZakat", ui.tabZakat)} ({activeZakat.currencies.length})
                     </h2>
-                    {zakatDraft && <span className="badge-pill badge-gold">Unsaved Edits</span>}
+                    {zakatDraft && <span className="badge-pill badge-gold">{tp(lang, "Edit")}</span>}
                   </div>
                   <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
                     Configure classical Hanafi Nisab weights (52.5 Tola Silver / 7.5 Tola Gold) and per-currency bullion &amp; Fitrah commodity rates.
@@ -4590,7 +4907,7 @@ function AdminControlCenterInner() {
                       className="px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer"
                       style={{ borderColor: "var(--border-hairline)" }}
                     >
-                      Discard
+                      {tp(lang, "Cancel")}
                     </button>
                   )}
                   {canManageZakat ? (
@@ -4601,7 +4918,9 @@ function AdminControlCenterInner() {
                       className="btn-primary px-4 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <Save className="w-4 h-4" />
-                      <span>Save Zakat Benchmarks</span>
+                      <span>
+                        {tp(lang, "Save")} — {tl(lang, "adminTabZakat", ui.tabZakat)}
+                      </span>
                     </button>
                   ) : (
                     <button
@@ -4610,7 +4929,9 @@ function AdminControlCenterInner() {
                       className="btn-peach px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <Unlock className="w-3.5 h-3.5" />
-                      <span>Switch to Editor / Admin to Edit Rates</span>
+                      <span>
+                        {ui.selectRole}: {tp(lang, RBAC_ROLES.editor.label)}
+                      </span>
                     </button>
                   )}
                 </div>
@@ -4803,28 +5124,21 @@ function AdminControlCenterInner() {
               </div>
             </section>
 
-            {/* Section B: Gamification XP Rewards & Daily Quests Engine */}
+            {/* Section B: Daily Barakah Quests & Spiritual Milestones */}
             <section className="bento-card p-5 sm:p-6 space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
                     <Flame className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                     <h2 className="text-base sm:text-lg font-bold">
-                      Gamification XP Rewards &amp; Daily Barakah Quests
+                      Daily Barakah Quests &amp; Spiritual Milestones
                     </h2>
-                    <span
-                      className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold border"
-                      style={{
-                        backgroundColor: "var(--accent-soft)",
-                        borderColor: "var(--border-hairline)",
-                        color: "var(--accent-primary)",
-                      }}
-                    >
-                      gamification:manage
-                    </span>
+                    {gamificationDraft && (
+                      <span className="badge-pill badge-gold">{tp(lang, "Edit")}</span>
+                    )}
                   </div>
                   <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    Calibrate Spiritual XP earned for Salah, Sunnahs, Quran pages, Tasbih, Zakat, Barsi Fatiha, and Daily Quests.
+                    Configure daily devotion goals and spiritual milestone weights across Salah, Sunnahs, Quran, and Tasbih.
                   </p>
                 </div>
 
@@ -4836,7 +5150,7 @@ function AdminControlCenterInner() {
                       className="px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer"
                       style={{ borderColor: "var(--border-hairline)" }}
                     >
-                      Discard
+                      {tp(lang, "Cancel")}
                     </button>
                   )}
                   {canManageGamification ? (
@@ -4847,7 +5161,7 @@ function AdminControlCenterInner() {
                       className="btn-primary px-4 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <Save className="w-4 h-4" />
-                      <span>Save Gamification Config</span>
+                      <span>{tp(lang, "Save")}</span>
                     </button>
                   ) : (
                     <button
@@ -4856,16 +5170,18 @@ function AdminControlCenterInner() {
                       className="btn-peach px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <Unlock className="w-3.5 h-3.5" />
-                      <span>Switch to Super Admin</span>
+                      <span>
+                        {ui.selectRole}: {tp(lang, RBAC_ROLES.super_admin.label)}
+                      </span>
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* XP Rewards 8-Card Grid */}
+              {/* Milestone Weights 8-Card Grid */}
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider mb-2.5" style={{ color: "var(--text-muted)" }}>
-                  Action XP Multipliers
+                  Practice Milestone Weights
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                   {(
@@ -4877,7 +5193,7 @@ function AdminControlCenterInner() {
                       { key: "tasbihMilestone", label: "Tasbih 33x Milestone" },
                       { key: "zakatLogged", label: "Zakat Calculated" },
                       { key: "barsiFatihaGift", label: "Barsi Fatiha Gift" },
-                      { key: "curatorSubmission", label: "Curator CMS Save" },
+                      { key: "curatorSubmission", label: "Curator Contribution" },
                     ] as const
                   ).map((item) => (
                     <div
@@ -4906,7 +5222,7 @@ function AdminControlCenterInner() {
                           }}
                         />
                         <span className="font-bold" style={{ color: "var(--text-muted)" }}>
-                          XP
+                          pts
                         </span>
                       </div>
                     </div>
@@ -4943,7 +5259,7 @@ function AdminControlCenterInner() {
                           style={{ borderColor: "var(--border-hairline)" }}
                         />
                         <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                          {quest.subtitle} • Metric: <code>{quest.metric}</code>
+                          {quest.subtitle} • <code>{quest.metric}</code>
                         </div>
                       </div>
 
@@ -4969,7 +5285,7 @@ function AdminControlCenterInner() {
 
                       <div className="sm:col-span-2 flex items-center gap-2">
                         <label className="text-[11px] font-semibold shrink-0" style={{ color: "var(--text-muted)" }}>
-                          Reward:
+                          Points:
                         </label>
                         <input
                           type="number"
@@ -4981,7 +5297,7 @@ function AdminControlCenterInner() {
                               xpReward: Math.max(5, Number(e.target.value)),
                             })
                           }
-                          aria-label={`XP Reward for ${quest.title}`}
+                          aria-label={`Reward for ${quest.title}`}
                           className="w-20 px-2.5 py-1.5 rounded-lg border bg-transparent font-bold tabular-nums disabled:opacity-55"
                           style={{
                             borderColor: "var(--border-hairline)",
@@ -5001,7 +5317,7 @@ function AdminControlCenterInner() {
                             }
                             className="w-4 h-4 accent-emerald-500"
                           />
-                          <span>Enabled</span>
+                          <span>{tp(lang, "Active")}</span>
                         </label>
                       </div>
                     </div>
@@ -5031,11 +5347,11 @@ function AdminControlCenterInner() {
                   <div className="flex items-center gap-2">
                     <Hash className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                     <h2 className="text-base sm:text-lg font-bold">
-                      Tamper-Evident SHA-256 Audit Ledger ({filteredAuditLogs.length})
+                      {tl(lang, "adminTabAudit", ui.tabAudit)} ({filteredAuditLogs.length})
                     </h2>
                   </div>
                   <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    Every auth session, role change, CMS edit, and config update is cryptographically chained via <code className="font-mono">prevHash → hash</code>.
+                    Every auth session, role change, profile edit, and configuration update is cryptographically chained via <code className="font-mono">prevHash → hash</code>.
                   </p>
                 </div>
 
@@ -5060,8 +5376,8 @@ function AdminControlCenterInner() {
                   type="text"
                   value={auditSearch}
                   onChange={(e) => setAuditSearch(e.target.value)}
-                  placeholder="Filter audit blocks by action, actor name, role, target, or SHA-256 digest…"
-                  aria-label="Search SHA-256 audit logs"
+                  placeholder={`${tp(lang, "Search")}…`}
+                  aria-label={tp(lang, "Search")}
                   className="w-full pl-9 pr-3 py-2.5 rounded-xl border bg-transparent"
                   style={{ borderColor: "var(--border-hairline)" }}
                 />
@@ -5097,11 +5413,13 @@ function AdminControlCenterInner() {
                             color: "var(--accent-gold)",
                           }}
                         >
-                          {log.actorRole}
+                          {log.actorRole in RBAC_ROLES
+                            ? tp(lang, RBAC_ROLES[log.actorRole as UserRole].label)
+                            : ui.guestSession}
                         </span>
                       </div>
                       <span className="text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>
-                        Block #{filteredAuditLogs.length - idx} •{" "}
+                        #{filteredAuditLogs.length - idx} •{" "}
                         {log.timestamp.replace("T", " ").slice(0, 19)} UTC
                       </span>
                     </div>
@@ -5140,12 +5458,12 @@ function AdminControlCenterInner() {
                         {copiedHashId === log.id ? (
                           <>
                             <Check className="w-3 h-3 text-emerald-400" />
-                            <span>Copied</span>
+                            <span>{tp(lang, "Copied")}</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3 h-3" />
-                            <span>Copy Hash</span>
+                            <span>Hash</span>
                           </>
                         )}
                       </button>
@@ -5158,14 +5476,14 @@ function AdminControlCenterInner() {
             {/* Right 4 Cols: Super Admin Database Snapshot & Clean Seed Reset */}
             <aside className="lg:col-span-4 space-y-4">
               <div className="bento-card p-5 space-y-4 text-xs">
-                <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
-                  <h2 className="text-base font-bold">Super Admin DB Tools</h2>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4" style={{ color: "var(--accent-gold)" }} />
+                    <h2 className="text-base font-bold">{ui.exportSnapshot}</h2>
+                  </div>
                 </div>
                 <p style={{ color: "var(--text-secondary)" }}>
-                  Export a full portable JSON snapshot of users, sessions, Auliya profiles, Urs
-                  calendar events, Barsi boards, modules, Zakat rates, and SHA-256 logs, or restore
-                  the clean Sanctuary seed.
+                  Export a portable JSON snapshot of Auliya profiles, Urs events, Barsi memorials, Home layout, Nisab rates, and SHA-256 audit logs, or restore the clean Sanctuary seed.
                 </p>
 
                 {!canSnapshotDb && (
@@ -5175,7 +5493,9 @@ function AdminControlCenterInner() {
                     className="btn-peach w-full py-2.5 px-3 rounded-xl font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Unlock className="w-3.5 h-3.5" />
-                    <span>Switch to Super Admin (db:snapshot)</span>
+                    <span>
+                      {ui.selectRole}: {tp(lang, RBAC_ROLES.super_admin.label)}
+                    </span>
                   </button>
                 )}
 
@@ -5189,8 +5509,8 @@ function AdminControlCenterInner() {
                   <Download className="w-4 h-4" />
                   <span>
                     {busyAction === "export-db"
-                      ? "Generating Snapshot…"
-                      : "Export Full Backend JSON Snapshot"}
+                      ? `${tp(lang, "Loading")}…`
+                      : ui.exportSnapshot}
                   </span>
                 </button>
 
@@ -5220,12 +5540,12 @@ function AdminControlCenterInner() {
                         {copiedSnapshot ? (
                           <>
                             <Check className="w-3 h-3 text-emerald-400" />
-                            <span>Copied</span>
+                            <span>{tp(lang, "Copied")}</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3 h-3" />
-                            <span>Copy JSON</span>
+                            <span>JSON</span>
                           </>
                         )}
                       </button>
@@ -5250,7 +5570,7 @@ function AdminControlCenterInner() {
                 >
                   <div className="font-bold text-red-400 flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4" />
-                    <span>Danger Zone: Clean Seed Reset</span>
+                    <span>{ui.resetSeed}</span>
                   </div>
                   <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
                     Re-initializes all collections back to the factory Sunni Sanctuary seed and logs{" "}
@@ -5270,7 +5590,7 @@ function AdminControlCenterInner() {
                       }}
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Reset Backend Database to Clean Seed</span>
+                      <span>{ui.resetSeed}</span>
                     </button>
                   ) : (
                     <div
@@ -5281,7 +5601,7 @@ function AdminControlCenterInner() {
                       }}
                     >
                       <div className="font-bold text-red-300">
-                        Confirm restoring clean seed database?
+                        {ui.resetSeed}?
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -5290,7 +5610,7 @@ function AdminControlCenterInner() {
                           onClick={handleResetDatabase}
                           className="flex-1 py-2 px-3 rounded-lg bg-red-500 text-white font-bold cursor-pointer"
                         >
-                          {busyAction === "reset-db" ? "Resetting…" : "Yes, Reset Now"}
+                          {busyAction === "reset-db" ? `${tp(lang, "Loading")}…` : tp(lang, "Reset")}
                         </button>
                         <button
                           type="button"
@@ -5301,7 +5621,7 @@ function AdminControlCenterInner() {
                             backgroundColor: "var(--bg-surface)",
                           }}
                         >
-                          Cancel
+                          {tp(lang, "Cancel")}
                         </button>
                       </div>
                     </div>
@@ -5309,33 +5629,47 @@ function AdminControlCenterInner() {
                 </div>
               </div>
 
-              {/* Quick Live Collection Telemetry Card */}
+              {/* Technical Engine & Live Collection Telemetry Card */}
               <div className="quran-gradient-card p-5 space-y-3 text-xs">
-                <div className="font-bold text-sm flex items-center gap-2">
-                  <UserCheck className="w-4 h-4" />
-                  <span>Live Database Telemetry</span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-bold text-sm flex items-center gap-2">
+                    <UserCheck className="w-4 h-4" />
+                    <span>Storage &amp; Telemetry</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/15 text-[10px] font-semibold">
+                    <Server className="w-3 h-3" />
+                    {backend.backendMode === "server-api" ? "REST API" : "Local Engine"}
+                  </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="p-2.5 rounded-xl bg-white/15">
-                    <div className="text-[10px] opacity-85">Auliya Profiles</div>
+                    <div className="text-[10px] opacity-85">
+                      {tl(lang, "adminTabAuliya", ui.tabAuliya)}
+                    </div>
                     <div className="text-lg font-extrabold tabular-nums">
                       {backend.auliyaRecords.length}
                     </div>
                   </div>
                   <div className="p-2.5 rounded-xl bg-white/15">
-                    <div className="text-[10px] opacity-85">Sacred &amp; Urs Events</div>
+                    <div className="text-[10px] opacity-85">
+                      {tl(lang, "adminTabUrs", ui.tabUrs)}
+                    </div>
                     <div className="text-lg font-extrabold tabular-nums">
                       {backend.ursEvents.length}
                     </div>
                   </div>
                   <div className="p-2.5 rounded-xl bg-white/15">
-                    <div className="text-[10px] opacity-85">App Modules</div>
+                    <div className="text-[10px] opacity-85">
+                      {tl(lang, "adminTabModules", ui.tabModules)}
+                    </div>
                     <div className="text-lg font-extrabold tabular-nums">
                       {backend.modules.length}
                     </div>
                   </div>
                   <div className="p-2.5 rounded-xl bg-white/15">
-                    <div className="text-[10px] opacity-85">Zakat Currencies</div>
+                    <div className="text-[10px] opacity-85">
+                      {tl(lang, "adminTabZakat", ui.tabZakat)}
+                    </div>
                     <div className="text-lg font-extrabold tabular-nums">
                       {backend.zakatConfig.currencies.length}
                     </div>
@@ -5355,7 +5689,7 @@ export default function AdminPage() {
     <Suspense
       fallback={
         <div className="bento-card p-8 text-center text-sm" style={{ color: "var(--text-muted)" }}>
-          Loading Sanctuary RBAC Command Center &amp; Modular CMS…
+          Loading Sanctuary Studio…
         </div>
       }
     >

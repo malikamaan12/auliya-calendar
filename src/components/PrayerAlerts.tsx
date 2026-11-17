@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useApp } from "@/lib/store";
 import { assetUrl } from "@/lib/assets";
 import { formatTime } from "@/lib/prayer-engine";
+import { localizePrayerName, t } from "@/lib/i18n";
 
 /** Soft chime generated with WebAudio (no external audio file needed). */
 function playChime() {
@@ -49,26 +50,29 @@ function notify(title: string, body: string) {
  * Respects each prayer's "Azan audio" and "pre-Jamaat alert" settings.
  */
 export function PrayerAlerts() {
-  const { hydrated, now, schedule, city } = useApp();
+  const { hydrated, now, schedule, city, lang } = useApp();
   const fired = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!hydrated) return;
     const nowMs = now.getTime();
     for (const row of schedule.rows) {
+      const pName = localizePrayerName(lang, row.label);
+      const azanLabel = t(lang, "azanTime");
+      const jamaatLabel = t(lang, "jamaatTime");
       const events: { key: string; at: number; title: string; body: string; enabled: boolean }[] = [
         {
           key: `azan-${row.name}-${row.azanTime.getTime()}`,
           at: row.azanTime.getTime(),
-          title: `${row.label.split(" (")[0]} Azan`,
-          body: `It is time for ${row.label.split(" (")[0]} in ${city.name} (${formatTime(row.azanTime)}).`,
+          title: `${pName} • ${azanLabel}`,
+          body: `${city.name} — ${formatTime(row.azanTime)}`,
           enabled: row.config.azanAudioEnabled,
         },
         {
           key: `jamaat-${row.name}-${row.jamaatTime.getTime()}`,
           at: row.jamaatTime.getTime() - row.config.preJamaatAlertMinutes * 60000,
-          title: `${row.label.split(" (")[0]} Jamaat in ${row.config.preJamaatAlertMinutes} min`,
-          body: `Jamaat at ${formatTime(row.jamaatTime)}. Time to prepare for Wudu.`,
+          title: `${pName} • ${jamaatLabel} (${row.config.preJamaatAlertMinutes}m)`,
+          body: `${jamaatLabel}: ${formatTime(row.jamaatTime)}`,
           enabled: row.config.preJamaatAlertMinutes > 0,
         },
       ];
@@ -80,7 +84,7 @@ export function PrayerAlerts() {
         }
       }
     }
-  }, [hydrated, now, schedule, city.name]);
+  }, [hydrated, now, schedule, city.name, lang]);
 
   return null;
 }

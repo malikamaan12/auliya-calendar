@@ -216,6 +216,41 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html[lang="ur"] body,
+html[lang="fa"] body {
+  font-family: var(--font-amiri), var(--font-gulzar), var(--font-poppins), system-ui, sans-serif;
+  line-height: 1.8;
+}
+
+html[lang="ur"] h1,
+html[lang="ur"] h2,
+html[lang="fa"] h1,
+html[lang="fa"] h2 {
+  font-family: var(--font-gulzar), var(--font-amiri), serif;
+  line-height: 1.95;
+}
+
+html[lang="ar"] body {
+  font-family: var(--font-amiri), var(--font-poppins), system-ui, sans-serif;
+  line-height: 1.8;
+}
+
+html[lang="hi"] body {
+  font-family: var(--font-devanagari), var(--font-poppins), system-ui, sans-serif;
+  line-height: 1.7;
+}
+
+/* Protect Arabic, Urdu & Persian cursive ligatures from positive letter-spacing */
+html[dir="rtl"] *,
+.font-arabic,
+.font-urdu {
+  letter-spacing: 0 !important;
+}
+
+html[dir="rtl"] .rtl-mirror {
+  transform: scaleX(-1);
+}
+
 /* Subtle Sacred Ambient Glow on Canvas */
 body::before {
   content: "";
@@ -224,8 +259,8 @@ body::before {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(640px circle at 12% 8%, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 65%),
-    radial-gradient(560px circle at 88% 14%, color-mix(in srgb, var(--accent-gold) 8%, transparent), transparent 65%);
+    radial-gradient(700px circle at 10% 4%, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 68%),
+    radial-gradient(600px circle at 90% 10%, color-mix(in srgb, var(--accent-gold) 6%, transparent), transparent 68%);
 }
 
 /* Script-specific typography */
@@ -236,7 +271,7 @@ body::before {
 
 .font-urdu {
   font-family: var(--font-gulzar), var(--font-noto-urdu), "Noto Naskh Arabic", serif;
-  line-height: 2.25;
+  line-height: 2.2;
 }
 
 .font-hindi {
@@ -248,31 +283,31 @@ body::before {
   font-variant-numeric: tabular-nums;
 }
 
-/* Clean Elevated Card Surfaces */
+/* Editorial Elevated Surfaces (Reference-Grade Clean Hairlines) */
 .bento-card,
 .card-surface {
   background-color: var(--bg-surface);
-  border: 1px solid var(--border-hairline);
+  border: 1px solid color-mix(in srgb, var(--border-hairline) 82%, transparent);
   box-shadow: var(--shadow-card);
-  border-radius: 1.25rem;
-  transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease, background-color 0.22s ease;
+  border-radius: 1.35rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
 }
 
 .bento-card-interactive:hover {
-  border-color: color-mix(in srgb, var(--accent-primary) 52%, var(--border-hairline));
-  box-shadow: 0 14px 32px -10px var(--glow-primary);
-  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, var(--border-hairline));
+  box-shadow: 0 14px 30px -12px var(--glow-primary);
+  transform: translateY(-1.5px);
 }
 
-/* Dramatic Glass Halo Card */
+/* Subtle Highlighted Surface */
 .sanctuary-halo-card {
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--bg-surface) 92%, var(--accent-primary) 8%),
+    color-mix(in srgb, var(--bg-surface) 94%, var(--accent-primary) 6%),
     var(--bg-surface)
   );
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border-hairline));
-  box-shadow: 0 18px 42px -12px var(--glow-primary);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 22%, var(--border-hairline));
+  box-shadow: var(--shadow-card);
   border-radius: 1.35rem;
 }
 
@@ -280,21 +315,48 @@ body::before {
 .quran-gradient-card {
   background-image: var(--gradient-brand);
   color: #ffffff;
-  border-radius: 1.35rem;
-  box-shadow: 0 16px 36px -10px var(--glow-primary);
+  border-radius: 1.45rem;
+  box-shadow: 0 18px 38px -12px var(--glow-primary);
 }
 
 /* Reference UI Twilight Mosque Prayer Card */
 .twilight-hero-card {
   background-image: var(--gradient-twilight);
   color: #ffffff;
-  border-radius: 1.35rem;
-  box-shadow: 0 16px 36px -10px rgba(8, 8, 24, 0.55);
+  border-radius: 1.45rem;
+  box-shadow: 0 18px 38px -12px rgba(4, 8, 24, 0.58);
+}
+
+/* Editorial Segmented Pill Bar (Image 2 Style) */
+.pill-tab-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border-radius: 9999px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+}
+
+.pill-tab-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.14s ease;
+  color: var(--text-muted);
+}
+
+.pill-tab-btn[data-active="true"] {
+  background-image: var(--gradient-brand);
+  color: #ffffff;
+  box-shadow: 0 6px 16px -4px var(--glow-primary);
 }
 
 .verse-action-pill {
   background-color: var(--bg-surface);
-  border-radius: 0.85rem;
+  border-radius: 0.9rem;
 }
 
 /* Semantic Status Badges */
@@ -302,11 +364,10 @@ body::before {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.15rem 0.55rem;
+  padding: 0.18rem 0.6rem;
   border-radius: 9999px;
   font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-weight: 600;
 }
 
 .badge-emerald {

@@ -30,14 +30,14 @@ import {
   Loader2,
   CloudSun,
   Check,
-  Flame,
   KeyRound,
   LogOut,
   Award,
 } from "lucide-react";
 import { PrayerAlerts } from "./PrayerAlerts";
+import { LanguageBridge } from "./LanguageBridge";
 import { useApp } from "@/lib/store";
-import { LANGUAGES, LangCode, t } from "@/lib/i18n";
+import { getLangMeta, getModuleSubtitle, LANGUAGES, LangCode, t, tp } from "@/lib/i18n";
 import { SANCTUARY_THEMES, ThemeId } from "@/lib/themes";
 import { ModuleIconKey, RBAC_ROLES, UserRole } from "@/lib/backend-types";
 import {
@@ -112,13 +112,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [searchingLoc, setSearchingLoc] = useState(false);
 
   const isDashboard = pathname === "/" || pathname === "";
+  const activeLangMeta = useMemo(() => getLangMeta(lang), [lang]);
 
   const allTimezones = useMemo(() => getAllWorldTimezones(), []);
   const activeTz = city.tz || "UTC";
   const activeTzOffset = useMemo(() => getTimezoneOffsetInfo(activeTz).label, [activeTz]);
   const aqiMeta = useMemo(() => getAqiCategory(weather?.usAqi ?? null), [weather?.usAqi]);
 
-  // Dynamic Navigation Items built directly from Modular Backend Registry
+  // Navigation items localized cleanly across all 10 languages
   const navItems = useMemo(() => {
     const homeItem = {
       id: "home",
@@ -140,7 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           href: m.href,
           label: translated,
           shortLabel: translated.split(" ")[0],
-          desc: m.subtitleTemplate,
+          desc: getModuleSubtitle(lang, m.id, m.subtitleTemplate),
           icon: ICON_MAP[m.iconKey] || Compass,
           showInBottomNav: m.showInBottomNav,
         };
@@ -210,7 +211,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       await switchDemoRole(role);
       setAuthModalOpen(false);
     } catch (err) {
-      setAuthErr(err instanceof Error ? err.message : "Could not switch role");
+      setAuthErr(err instanceof Error ? err.message : "Could not switch profile");
     } finally {
       setAuthBusy(false);
     }
@@ -219,17 +220,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const activeRoleMeta = authUser ? RBAC_ROLES[authUser.role] : null;
 
   return (
-    <div className="min-h-dvh flex flex-col pb-16 sm:pb-6 relative z-10">
-      {/* Floating Gamified +XP Celebration Toast */}
+    <div className="min-h-dvh flex flex-col pb-20 sm:pb-8 relative z-10">
+      {/* Subtle Celebration Toast */}
       <AnimatePresence>
         {xpToast && (
           <motion.div
             key={xpToast.id}
-            initial={{ opacity: 0, y: -28, scale: 0.9 }}
+            initial={{ opacity: 0, y: -24, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -18, scale: 0.92 }}
-            transition={{ type: "spring", stiffness: 420, damping: 26 }}
-            className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full flex items-center gap-2.5 shadow-xl pointer-events-none"
+            exit={{ opacity: 0, y: -14, scale: 0.94 }}
+            transition={{ type: "spring", stiffness: 400, damping: 28 }}
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full flex items-center gap-2 shadow-xl pointer-events-none"
             style={{
               backgroundImage: "var(--gradient-brand)",
               color: "#ffffff",
@@ -238,134 +239,121 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-live="polite"
           >
             <Award className="w-4 h-4 shrink-0 text-amber-200" />
-            <span className="text-xs font-extrabold tracking-wide">+{xpToast.xp} XP</span>
-            <span className="text-xs font-medium opacity-95">• {xpToast.label}</span>
+            <span className="text-xs font-semibold">{tp(lang, xpToast.label)}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* App Header */}
+      {/* Calm Reference-Grade Top Bar */}
       <header
         className="sticky top-0 z-40 backdrop-blur-xl transition-colors border-b"
         style={{
-          backgroundColor: "color-mix(in srgb, var(--bg-canvas) 84%, transparent)",
-          borderColor: "var(--border-hairline)",
+          backgroundColor: "color-mix(in srgb, var(--bg-canvas) 86%, transparent)",
+          borderColor: "color-mix(in srgb, var(--border-hairline) 75%, transparent)",
         }}
       >
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
-          {/* Left: Menu or Back Arrow + Dynamic Title */}
-          <div className="flex items-center gap-2.5 min-w-0">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-15 sm:h-16 flex items-center justify-between gap-2">
+          {/* Left: Staggered Menu Icon or Back Arrow + Localized Title */}
+          <div className="flex items-center gap-3 min-w-0">
             {isDashboard ? (
               <button
                 type="button"
                 onClick={() => setSwitcherOpen(true)}
-                aria-label="Open modules, GPS and timezone drawer"
-                className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-opacity hover:opacity-80"
+                aria-label="Open navigation and location settings"
+                className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-opacity hover:opacity-80 shrink-0"
                 style={{
-                  backgroundColor: "var(--bg-surface)",
-                  border: "1px solid var(--border-hairline)",
-                  color: "var(--text-primary)",
+                  color: "var(--text-muted)",
                 }}
               >
-                <svg width="20" height="15" viewBox="0 0 22 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <svg width="22" height="16" viewBox="0 0 22 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                   <line x1="2" y1="3" x2="20" y2="3" />
-                  <line x1="2" y1="8" x2="14" y2="8" />
-                  <line x1="2" y1="13" x2="18" y2="13" />
+                  <line x1="2" y1="8" x2="13" y2="8" />
+                  <line x1="2" y1="13" x2="17" y2="13" />
                 </svg>
               </button>
             ) : (
               <Link
                 href="/"
-                aria-label="Back to Home Dashboard"
-                className="w-9 h-9 rounded-xl flex items-center justify-center transition-transform active:scale-95 hover:opacity-80"
+                aria-label={t(lang, "navHome")}
+                className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform active:scale-95 hover:opacity-80 shrink-0"
                 style={{
                   backgroundColor: "var(--bg-surface)",
                   border: "1px solid var(--border-hairline)",
                   color: "var(--text-primary)",
                 }}
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-4 h-4 rtl-mirror" />
               </Link>
             )}
 
             <Link href="/" className="min-w-0">
               <span className="text-base sm:text-lg font-bold tracking-tight truncate block">
-                {!isDashboard && activeModule
-                  ? activeModule.label
-                  : t(lang, "appName")}
+                {!isDashboard && activeModule ? activeModule.label : t(lang, "appName")}
               </span>
             </Link>
           </div>
 
-          {/* Right: GPS/Weather Pill + Theme/Language Studio + Spiritual Rank + Account/RBAC */}
+          {/* Right: Location Pill + Native Language/Theme Pill + Dark/Light + Avatar */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Live Location & Weather Pill */}
+            {/* Location & Weather Pill */}
             <button
               type="button"
               onClick={() => setSwitcherOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-opacity hover:opacity-90"
+              className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-medium cursor-pointer transition-opacity hover:opacity-90"
               style={{
                 backgroundColor: "var(--bg-surface)",
                 color: "var(--text-muted)",
                 border: "1px solid var(--border-hairline)",
               }}
-              title={`Location: ${city.name} (${activeTz}, ${activeTzOffset})`}
+              title={`${city.name} (${activeTz}, ${activeTzOffset})`}
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--accent-primary)" }} />
-              <span className="truncate max-w-[105px] font-semibold" style={{ color: "var(--text-primary)" }}>
+              <span className="truncate max-w-[100px] font-semibold" style={{ color: "var(--text-primary)" }}>
                 {city.name}
               </span>
               {weather && (
                 <span
-                  className="hidden md:inline-flex items-center gap-1 pl-1.5 ml-1 border-l text-[11px] font-semibold tabular-nums"
+                  className="hidden md:inline-flex items-center gap-1 ps-1.5 ms-0.5 border-s text-[11px] font-semibold tabular-nums"
                   style={{ borderColor: "var(--border-hairline)", color: "var(--accent-gold)" }}
                 >
                   <CloudSun className="w-3 h-3" />
-                  {Math.round(weather.temperatureC)}°C
+                  {Math.round(weather.temperatureC)}°
                   {weather.usAqi !== null && (
                     <span
                       className="px-1.5 py-0.2 rounded-full text-[9px]"
                       style={{ backgroundColor: aqiMeta.bg, color: aqiMeta.color }}
                     >
-                      AQI {weather.usAqi}
+                      {weather.usAqi}
                     </span>
                   )}
                 </span>
               )}
             </button>
 
-            {/* Spiritual XP & Rank Pill */}
-            <button
-              type="button"
-              onClick={() => setAuthModalOpen(true)}
-              title={`${currentRank.title} (${totalXp} XP • ${rankProgressPct}% to next rank)`}
-              className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold cursor-pointer transition-transform active:scale-95"
-              style={{
-                backgroundColor: "var(--accent-soft)",
-                color: "var(--accent-primary)",
-                border: "1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)",
-              }}
-            >
-              <Flame className="w-3.5 h-3.5" style={{ color: "var(--accent-gold)" }} />
-              <span className="tabular-nums">{totalXp.toLocaleString()} XP</span>
-              <span className="opacity-75">• Lv.{currentRank.level}</span>
-            </button>
-
-            {/* Complete Theme & Language Studio Button */}
+            {/* Prominent Native-Script Language & Palette Pill */}
             <button
               type="button"
               onClick={() => setThemeModalOpen(true)}
-              aria-label="Open Theme and Language Studio"
-              title={`${themeMeta.name} • ${lang.toUpperCase()}`}
-              className="h-9 px-2.5 rounded-full inline-flex items-center gap-1.5 cursor-pointer transition-opacity hover:opacity-90"
+              aria-label={t(lang, "themeStudio")}
+              title={`${activeLangMeta.nativeLabel} • ${themeMeta.name}`}
+              className="h-9 px-3 rounded-full inline-flex items-center gap-1.5 cursor-pointer transition-opacity hover:opacity-90"
               style={{
                 backgroundColor: "var(--bg-surface)",
                 border: "1px solid var(--border-hairline)",
                 color: "var(--text-primary)",
               }}
             >
-              <Palette className="w-3.5 h-3.5" style={{ color: "var(--accent-primary)" }} />
-              <span className="text-[11px] font-bold uppercase tracking-wider">{lang}</span>
+              <Globe className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--accent-primary)" }} />
+              <span
+                data-no-translate="true"
+                className={`text-xs font-semibold leading-none ${activeLangMeta.fontClass}`}
+              >
+                {activeLangMeta.shortNative}
+              </span>
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0 border border-white/25"
+                style={{ backgroundColor: themeMeta.swatches.primary }}
+              />
             </button>
 
             {/* Quick Dark/Light Toggle */}
@@ -386,19 +374,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </button>
 
-            {/* User Account & RBAC Role Pill */}
+            {/* Sleek User Avatar Pill */}
             <button
               type="button"
               onClick={() => setAuthModalOpen(true)}
-              aria-label={user ? `Account: ${user.name}` : "Sign in or Create Account"}
-              className="h-9 pl-1.5 pr-2.5 rounded-full inline-flex items-center gap-1.5 text-xs font-bold text-white cursor-pointer shrink-0 shadow-sm"
+              aria-label={user ? user.name : t(lang, "signIn")}
+              className="h-9 ps-1 pe-1 sm:pe-3 rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-white cursor-pointer shrink-0 shadow-sm"
               style={{ backgroundImage: "var(--gradient-brand)" }}
             >
-              <span className="w-6 h-6 rounded-full bg-black/25 flex items-center justify-center text-[11px]">
+              <span className="w-7 h-7 rounded-full bg-black/25 flex items-center justify-center text-[11px] font-bold">
                 {user ? user.name.slice(0, 1).toUpperCase() : <UserRound className="w-3.5 h-3.5" />}
               </span>
-              <span className="hidden md:inline max-w-[92px] truncate">
-                {activeRoleMeta ? activeRoleMeta.label : user ? user.name.split(" ")[0] : t(lang, "signIn")}
+              <span className="hidden sm:inline max-w-[88px] truncate">
+                {user ? user.name.split(" ")[0] : t(lang, "signIn")}
               </span>
             </button>
           </div>
@@ -406,20 +394,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Module Canvas */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-3 sm:py-5 flex flex-col">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col">
         {hydrated ? children : <PageSkeleton />}
       </main>
 
-      {/* Mobile Bottom Dock Bar (Driven by Modular Backend Registry) */}
+      {/* Mobile Bottom Dock Bar */}
       <nav
         aria-label="Primary Mobile Navigation"
         className="sm:hidden fixed bottom-0 inset-x-0 z-30 border-t backdrop-blur-xl"
         style={{
-          backgroundColor: "color-mix(in srgb, var(--bg-surface) 92%, transparent)",
+          backgroundColor: "color-mix(in srgb, var(--bg-surface) 94%, transparent)",
           borderColor: "var(--border-hairline)",
         }}
       >
-        <div className="grid grid-cols-5 h-14 max-w-md mx-auto px-2">
+        <div className="grid grid-cols-5 h-15 max-w-md mx-auto px-2">
           {bottomNavItems.map((item) => {
             const active = item.href === "/" ? isDashboard : pathname.startsWith(item.href);
             const Icon = item.icon;
@@ -427,29 +415,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors"
+                className="relative flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors"
                 style={{ color: active ? "var(--accent-primary)" : "var(--text-muted)" }}
               >
+                {active && (
+                  <span
+                    className="absolute top-0 w-7 h-[2.5px] rounded-b-full"
+                    style={{ backgroundImage: "var(--gradient-brand)" }}
+                  />
+                )}
                 <Icon className="w-4 h-4" />
-                <span className="truncate max-w-[60px]">{item.shortLabel}</span>
+                <span className="truncate max-w-[62px]">{item.shortLabel}</span>
               </Link>
             );
           })}
           <button
             type="button"
             onClick={() => setSwitcherOpen(true)}
-            className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold cursor-pointer"
+            className="flex flex-col items-center justify-center gap-1 text-[10px] font-semibold cursor-pointer"
             style={{ color: switcherOpen ? "var(--accent-primary)" : "var(--text-muted)" }}
           >
             <LayoutGrid className="w-4 h-4" />
-            <span>More</span>
+            <span className="truncate max-w-[62px]">{t(lang, "moreLabel")}</span>
           </button>
         </div>
       </nav>
 
       <PrayerAlerts />
+      <LanguageBridge />
 
-      {/* 1. Complete 8-Theme & 10-Language Studio Modal */}
+      {/* 1. Language & Appearance Studio Modal (Language First!) */}
       <AnimatePresence>
         {themeModalOpen && (
           <motion.div
@@ -469,36 +464,73 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <div
-                    className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider"
-                    style={{ color: "var(--accent-primary)" }}
-                  >
-                    <Palette className="w-3.5 h-3.5" />
-                    <span>{t(lang, "themeStudio")}</span>
-                  </div>
-                  <h2 className="text-lg sm:text-xl font-bold mt-0.5">
-                    8 Sanctuary Palettes &amp; 10 World Languages
-                  </h2>
+                  <h2 className="text-lg sm:text-xl font-bold">{t(lang, "themeStudio")}</h2>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                    {activeLangMeta.nativeLabel} • {themeMeta.name}
+                  </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setThemeModalOpen(false)}
-                  aria-label="Close Theme and Language Studio"
-                  className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                  aria-label={tp(lang, "Close")}
+                  className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
                   style={{ backgroundColor: "var(--bg-muted)", color: "var(--text-muted)" }}
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* 8 Curated Sanctuary Themes */}
+              {/* 10 World Languages (Top Priority) */}
               <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span>{t(lang, "chooseTheme")}</span>
-                  <span style={{ color: "var(--text-muted)" }}>
-                    Active: {themeMeta.name} ({themeMeta.mode.toUpperCase()})
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5" style={{ color: "var(--accent-primary)" }} />
+                    <span>{t(lang, "chooseLanguage")}</span>
                   </span>
+                  <span style={{ color: "var(--text-muted)" }}>{activeLangMeta.dir.toUpperCase()}</span>
                 </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2" data-no-translate="true">
+                  {LANGUAGES.map((l) => {
+                    const active = l.code === lang;
+                    return (
+                      <button
+                        key={l.code}
+                        type="button"
+                        onClick={() => setLang(l.code)}
+                        className="p-2.5 rounded-xl border text-start cursor-pointer transition-all"
+                        style={{
+                          borderColor: active ? "var(--accent-primary)" : "var(--border-hairline)",
+                          backgroundColor: active ? "var(--accent-soft)" : "var(--bg-elevated)",
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-1">
+                          <span className={`font-bold text-xs truncate ${l.fontClass}`}>
+                            {l.nativeLabel}
+                          </span>
+                          {active && (
+                            <Check className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--accent-primary)" }} />
+                          )}
+                        </div>
+                        <div className="text-[10px] mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>
+                          {l.label}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 8 Curated Sanctuary Themes */}
+              <div className="space-y-2.5 pt-3 border-t" style={{ borderColor: "var(--border-hairline)" }}>
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Palette className="w-3.5 h-3.5" style={{ color: "var(--accent-primary)" }} />
+                    <span>{t(lang, "chooseTheme")}</span>
+                  </span>
+                  <span style={{ color: "var(--text-muted)" }}>{themeMeta.name}</span>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {SANCTUARY_THEMES.map((th) => {
                     const selected = th.id === themeMeta.id;
@@ -507,14 +539,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         key={th.id}
                         type="button"
                         onClick={() => setTheme(th.id as ThemeId)}
-                        className="p-3 rounded-2xl border text-left flex items-center justify-between gap-3 cursor-pointer transition-transform active:scale-[0.99]"
+                        className="p-3 rounded-2xl border text-start flex items-center justify-between gap-3 cursor-pointer transition-transform active:scale-[0.99]"
                         style={{
                           borderColor: selected ? "var(--accent-primary)" : "var(--border-hairline)",
                           backgroundColor: selected ? "var(--accent-soft)" : "var(--bg-elevated)",
                         }}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          {/* Live 4-Quadrant Color Swatch */}
                           <div
                             className="w-10 h-10 rounded-xl shrink-0 grid grid-cols-2 overflow-hidden border"
                             style={{ borderColor: "rgba(255,255,255,0.18)" }}
@@ -527,15 +558,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
                               <span className="font-bold text-xs sm:text-sm truncate">{th.name}</span>
-                              <span
-                                className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase"
-                                style={{
-                                  backgroundColor: "var(--bg-surface)",
-                                  color: "var(--text-muted)",
-                                }}
-                              >
-                                {th.mode}
-                              </span>
                             </div>
                             <div className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>
                               {th.subtitle} • <span className="font-arabic">{th.arabicTitle}</span>
@@ -555,51 +577,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   })}
                 </div>
               </div>
-
-              {/* 10 Complete World Languages */}
-              <div className="space-y-2.5 pt-2 border-t" style={{ borderColor: "var(--border-hairline)" }}>
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Globe className="w-3.5 h-3.5" style={{ color: "var(--accent-primary)" }} />
-                    <span>{t(lang, "chooseLanguage")} (Auto RTL / LTR)</span>
-                  </span>
-                  <span style={{ color: "var(--text-muted)" }}>{LANGUAGES.length} Languages</span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  {LANGUAGES.map((l) => {
-                    const active = l.code === lang;
-                    return (
-                      <button
-                        key={l.code}
-                        type="button"
-                        onClick={() => setLang(l.code)}
-                        className="p-2.5 rounded-xl border text-left cursor-pointer transition-all"
-                        style={{
-                          borderColor: active ? "var(--accent-primary)" : "var(--border-hairline)",
-                          backgroundColor: active ? "var(--accent-soft)" : "var(--bg-elevated)",
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-1">
-                          <span className={`font-bold text-xs truncate ${l.fontClass}`}>
-                            {l.nativeLabel}
-                          </span>
-                          <span className="text-[9px] font-mono uppercase opacity-70">{l.dir}</span>
-                        </div>
-                        <div className="text-[10px] mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>
-                          {l.label}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 2. Navigation, Live GPS & World Timezones Drawer */}
+      {/* 2. Navigation, Live GPS & World Timezone Drawer */}
       <AnimatePresence>
         {switcherOpen && (
           <motion.div
@@ -618,36 +601,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
-                    Modular Sanctuary Navigation • Live GPS &amp; World Timezones
-                  </p>
                   <h2 className="text-lg font-bold">{t(lang, "companionModules")}</h2>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                    {tp(lang, "Location & Timezone")}
+                  </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSwitcherOpen(false)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                  className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
                   style={{ backgroundColor: "var(--bg-muted)", color: "var(--text-muted)" }}
-                  aria-label="Close menu"
+                  aria-label={tp(lang, "Close")}
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* GPS + Complete IANA Timezone + Global City Search */}
+              {/* GPS + Timezone + City Search */}
               <div
                 className="space-y-3 p-3.5 rounded-2xl border"
                 style={{ borderColor: "var(--border-hairline)", backgroundColor: "var(--bg-muted)" }}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+                    <MapPin className="w-4 h-4 shrink-0" style={{ color: "var(--accent-primary)" }} />
                     <div>
                       <span className="font-bold">
                         {city.name}, {city.country}
                       </span>
-                      <span className="ml-2 opacity-75 font-mono text-[11px]">
-                        ({city.lat.toFixed(3)}°, {city.lng.toFixed(3)}° • {activeTz} {activeTzOffset})
+                      <span className="ms-2 opacity-70 font-mono text-[11px]">
+                        ({activeTz} {activeTzOffset})
                       </span>
                     </div>
                   </div>
@@ -655,14 +638,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     type="button"
                     onClick={() => requestGpsLocation()}
                     disabled={gpsLoading}
-                    className="btn-primary px-3 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="btn-primary px-3.5 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     {gpsLoading ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
                       <LocateFixed className="w-3.5 h-3.5" />
                     )}
-                    <span>{gpsLoading ? "Detecting GPS…" : "Use Live GPS & Timezone"}</span>
+                    <span>{tp(lang, gpsLoading ? "Detecting GPS…" : "Use Live GPS")}</span>
                   </button>
                 </div>
 
@@ -674,7 +657,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       className="block text-[11px] font-semibold mb-1"
                       style={{ color: "var(--text-muted)" }}
                     >
-                      World Timezone ({allTimezones.length} IANA Zones)
+                      {tp(lang, "Location & Timezone")}
                     </label>
                     <select
                       aria-label="Select World Timezone"
@@ -713,7 +696,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     >
                       {LANGUAGES.map((l) => (
                         <option key={l.code} value={l.code} className="text-black">
-                          {l.nativeLabel} — {l.label} ({l.dir.toUpperCase()})
+                          {l.nativeLabel} — {l.label}
                         </option>
                       ))}
                     </select>
@@ -721,20 +704,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 opacity-60" />
+                  <Search className="w-3.5 h-3.5 absolute start-3 top-1/2 -translate-y-1/2 opacity-60" />
                   <input
                     type="text"
                     value={locQuery}
                     onChange={(e) => handleSearchLocations(e.target.value)}
-                    placeholder="Search any city worldwide (auto-sets coordinates & timezone)…"
-                    className="w-full pl-8 pr-3 py-2 rounded-xl border text-xs outline-none"
+                    placeholder={tp(lang, "Search")}
+                    className="w-full ps-8 pe-3 py-2 rounded-xl border text-xs outline-none"
                     style={{
                       borderColor: "var(--border-hairline)",
                       backgroundColor: "var(--bg-surface)",
                     }}
                   />
                   {searchingLoc && (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin absolute end-3 top-1/2 -translate-y-1/2" />
                   )}
                 </div>
 
@@ -762,7 +745,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           setLocQuery("");
                           setLocResults([]);
                         }}
-                        className="w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:opacity-85 cursor-pointer"
+                        className="w-full px-3 py-2 text-start text-xs flex items-center justify-between hover:opacity-85 cursor-pointer"
                         style={{ borderColor: "var(--border-hairline)" }}
                       >
                         <div>
@@ -782,7 +765,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               </div>
 
-              {/* Dynamic Backend-Driven Module Cards */}
+              {/* Clean Localized Module Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {navItems.map((item) => {
                   const active =
@@ -799,17 +782,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         backgroundColor: active ? "var(--accent-soft)" : "var(--bg-muted)",
                       }}
                     >
-                      <div className="flex items-center justify-between">
-                        <div
-                          className="w-9 h-9 rounded-xl flex items-center justify-center"
-                          style={{
-                            backgroundImage: active ? "var(--gradient-brand)" : undefined,
-                            backgroundColor: active ? undefined : "var(--bg-surface)",
-                            color: active ? "#ffffff" : "var(--accent-primary)",
-                          }}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </div>
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center"
+                        style={{
+                          backgroundImage: active ? "var(--gradient-brand)" : undefined,
+                          backgroundColor: active ? undefined : "var(--bg-surface)",
+                          color: active ? "#ffffff" : "var(--accent-primary)",
+                        }}
+                      >
+                        <Icon className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="font-bold text-xs sm:text-sm">{item.label}</div>
@@ -829,7 +810,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
 
-      {/* 3. Complete Account, Self-Registration & RBAC Role Portal Modal */}
+      {/* 3. Account & Contributor Profiles Modal */}
       <AnimatePresence>
         {authModalOpen && (
           <motion.div
@@ -849,8 +830,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => setAuthModalOpen(false)}
-                className="absolute top-4 end-4 p-1.5 rounded-lg opacity-70 hover:opacity-100 cursor-pointer"
-                aria-label="Close account modal"
+                className="absolute top-4 end-4 p-2 rounded-lg opacity-70 hover:opacity-100 cursor-pointer"
+                aria-label={tp(lang, "Close")}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -869,20 +850,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <h2 className="text-lg font-bold truncate">{authUser.name}</h2>
                         {activeRoleMeta && (
                           <span
-                            className="text-[10px] px-2 py-0.5 rounded-full font-bold text-white"
+                            className="text-[10px] px-2 py-0.5 rounded-full font-semibold text-white"
                             style={{ backgroundColor: activeRoleMeta.badgeColor }}
                           >
-                            {activeRoleMeta.label}
+                            {tp(lang, activeRoleMeta.label)}
                           </span>
                         )}
                       </div>
                       <p className="text-xs truncate" style={{ color: "var(--text-muted)" }}>
-                        {authUser.email} • {streakDays}-Day Streak
+                        {authUser.email} • {streakDays} {t(lang, "streakDays")}
                       </p>
                     </div>
                   </div>
 
-                  {/* Spiritual Rank Progress Card */}
+                  {/* Journey Progress */}
                   <div
                     className="p-3.5 rounded-2xl border space-y-2"
                     style={{
@@ -892,11 +873,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold">
-                        Lv.{currentRank.level} {currentRank.title}{" "}
+                        {currentRank.title}{" "}
                         <span className="font-arabic opacity-80">({currentRank.arabicTitle})</span>
                       </span>
-                      <span className="font-mono font-bold" style={{ color: "var(--accent-gold)" }}>
-                        {totalXp.toLocaleString()} XP
+                      <span className="font-mono font-semibold" style={{ color: "var(--accent-gold)" }}>
+                        {totalXp.toLocaleString()} pts
                       </span>
                     </div>
                     <div className="h-2 rounded-full overflow-hidden bg-black/25">
@@ -908,9 +889,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         }}
                       />
                     </div>
-                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                      {activeRoleMeta?.description}
-                    </p>
                   </div>
 
                   {/* Quick Edit Profile Title */}
@@ -927,7 +905,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       type="text"
                       value={profileTitleInput}
                       onChange={(e) => setProfileTitleInput(e.target.value)}
-                      placeholder={`Update title (current: ${authUser.title})`}
+                      placeholder={authUser.title}
                       className="flex-1 px-3 py-2 rounded-xl border bg-transparent outline-none"
                       style={{ borderColor: "var(--border-hairline)" }}
                     />
@@ -939,14 +917,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         backgroundColor: "var(--bg-elevated)",
                       }}
                     >
-                      Save
+                      {tp(lang, "Save")}
                     </button>
                   </form>
 
-                  {/* Instant RBAC Role Switcher */}
+                  {/* Contributor Profile Switcher */}
                   <div className="space-y-2 pt-1">
-                    <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                      Quick Switch RBAC Role (Demo &amp; Testing)
+                    <div className="text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
+                      {t(lang, "saveProgress")}
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       {(["super_admin", "editor", "creator", "member"] as UserRole[]).map((r) => {
@@ -958,14 +936,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             type="button"
                             disabled={authBusy}
                             onClick={() => handleQuickRoleSwitch(r)}
-                            className="p-2.5 rounded-xl border text-left cursor-pointer transition-opacity hover:opacity-90"
+                            className="p-2.5 rounded-xl border text-start cursor-pointer transition-opacity hover:opacity-90"
                             style={{
                               borderColor: isCurrent ? meta.badgeColor : "var(--border-hairline)",
                               backgroundColor: isCurrent ? "var(--accent-soft)" : "var(--bg-elevated)",
                             }}
                           >
                             <div className="font-bold flex items-center justify-between">
-                              <span>{meta.label}</span>
+                              <span>{tp(lang, meta.label)}</span>
                               {isCurrent && <Check className="w-3.5 h-3.5" />}
                             </div>
                             <div className="text-[10px] opacity-75 font-urdu">{meta.arabicBadge}</div>
@@ -982,7 +960,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       className="btn-primary flex-1 py-2.5 rounded-xl text-xs font-bold text-center inline-flex items-center justify-center gap-1.5"
                     >
                       <ShieldCheck className="w-4 h-4" />
-                      <span>Open RBAC Control Center</span>
+                      <span>{t(lang, "navAdmin")}</span>
                     </Link>
                     <button
                       type="button"
@@ -1001,19 +979,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
-                      Sanctuary Identity &amp; RBAC Access
-                    </p>
-                    <h2 className="text-xl font-bold mt-0.5">
+                    <h2 className="text-xl font-bold">
                       {authTab === "register"
                         ? t(lang, "createAccount")
                         : authTab === "demo"
-                        ? "1-Click RBAC Role Access"
+                        ? t(lang, "navAdmin")
                         : t(lang, "signIn")}
                     </h2>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                      {t(lang, "tagline")}
+                    </p>
                   </div>
 
-                  {/* Tab Pills */}
+                  {/* Clean Tab Pills */}
                   <div
                     className="grid grid-cols-3 p-1 rounded-xl border text-xs font-semibold"
                     style={{
@@ -1025,7 +1003,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       [
                         { id: "signin", label: t(lang, "signIn") },
                         { id: "register", label: t(lang, "createAccount") },
-                        { id: "demo", label: "RBAC Demo" },
+                        { id: "demo", label: tp(lang, "Curator / Creator") },
                       ] as const
                     ).map((tb) => (
                       <button
@@ -1035,7 +1013,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           setAuthTab(tb.id);
                           setAuthErr(null);
                         }}
-                        className="py-2 rounded-lg cursor-pointer transition-all"
+                        className="py-2 rounded-lg cursor-pointer transition-all truncate px-1"
                         style={{
                           backgroundImage: authTab === tb.id ? "var(--gradient-brand)" : undefined,
                           color: authTab === tb.id ? "#ffffff" : "var(--text-muted)",
@@ -1054,9 +1032,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
                   {authTab === "demo" ? (
                     <div className="space-y-2.5 text-xs">
-                      <p style={{ color: "var(--text-muted)" }}>
-                        Instantly sign in as any RBAC tier to manage Auliya profiles, Urs events, Modular Dashboard cards, or Super Admin settings:
-                      </p>
                       {(["super_admin", "editor", "creator", "member"] as UserRole[]).map((r) => {
                         const meta = RBAC_ROLES[r];
                         return (
@@ -1065,7 +1040,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             type="button"
                             disabled={authBusy}
                             onClick={() => handleQuickRoleSwitch(r)}
-                            className="w-full p-3 rounded-xl border text-left flex items-center justify-between gap-3 cursor-pointer hover:opacity-90"
+                            className="w-full p-3 rounded-xl border text-start flex items-center justify-between gap-3 cursor-pointer hover:opacity-90"
                             style={{
                               borderColor: "var(--border-hairline)",
                               backgroundColor: "var(--bg-elevated)",
@@ -1074,7 +1049,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             <div>
                               <div className="font-bold flex items-center gap-2">
                                 <KeyRound className="w-3.5 h-3.5" style={{ color: meta.badgeColor }} />
-                                <span>{meta.label}</span>
+                                <span>{tp(lang, meta.label)}</span>
                                 <span className="font-urdu text-[11px] opacity-80">({meta.arabicBadge})</span>
                               </div>
                               <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>
@@ -1085,7 +1060,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                               className="px-2.5 py-1 rounded-full text-[10px] font-bold text-white shrink-0"
                               style={{ backgroundColor: meta.badgeColor }}
                             >
-                              Enter
+                              {tp(lang, "Enter")}
                             </span>
                           </button>
                         );
@@ -1096,12 +1071,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       {authTab === "register" && (
                         <>
                           <div>
-                            <label className="block font-semibold mb-1">Full Name</label>
+                            <label className="block font-semibold mb-1">{tp(lang, "Full Name")}</label>
                             <input
                               type="text"
                               required
                               maxLength={50}
-                              placeholder="e.g., Syed Aamaan Ali"
+                              placeholder="Syed Aamaan Ali"
                               value={nameInput}
                               onChange={(e) => setNameInput(e.target.value)}
                               className="w-full px-3.5 py-2.5 rounded-xl border bg-transparent outline-none"
@@ -1110,7 +1085,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             <div>
-                              <label className="block font-semibold mb-1">City</label>
+                              <label className="block font-semibold mb-1">{tp(lang, "City")}</label>
                               <input
                                 type="text"
                                 placeholder={city.name}
@@ -1121,7 +1096,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                               />
                             </div>
                             <div>
-                              <label className="block font-semibold mb-1">Account Access Tier</label>
+                              <label className="block font-semibold mb-1">{t(lang, "saveProgress")}</label>
                               <select
                                 value={requestedRole}
                                 onChange={(e) =>
@@ -1131,10 +1106,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                 style={{ borderColor: "var(--border-hairline)" }}
                               >
                                 <option value="member" className="text-black">
-                                  Community Member (Personal Sanctuary)
+                                  {tp(lang, "Community Member")}
                                 </option>
                                 <option value="creator" className="text-black">
-                                  Curator / Creator (Submit Auliya &amp; Urs)
+                                  {tp(lang, "Curator / Creator")}
                                 </option>
                               </select>
                             </div>
@@ -1143,11 +1118,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       )}
 
                       <div>
-                        <label className="block font-semibold mb-1">Email Address</label>
+                        <label className="block font-semibold mb-1">{tp(lang, "Email Address")}</label>
                         <input
                           type="email"
                           required
-                          placeholder="you@example.com (or admin@auliyacalendar.org)"
+                          placeholder="you@example.com"
                           value={emailInput}
                           onChange={(e) => setEmailInput(e.target.value)}
                           className="w-full px-3.5 py-2.5 rounded-xl border bg-transparent outline-none"
@@ -1156,12 +1131,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       </div>
 
                       <div>
-                        <label className="block font-semibold mb-1">Password</label>
+                        <label className="block font-semibold mb-1">{tp(lang, "Password")}</label>
                         <input
                           type="password"
                           required
                           minLength={6}
-                          placeholder="Minimum 6 characters (Demo: Admin@786)"
+                          placeholder="••••••••"
                           value={passwordInput}
                           onChange={(e) => setPasswordInput(e.target.value)}
                           className="w-full px-3.5 py-2.5 rounded-xl border bg-transparent outline-none"
@@ -1175,9 +1150,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         className="btn-primary w-full py-2.5 rounded-xl text-sm font-bold cursor-pointer disabled:opacity-50"
                       >
                         {authBusy
-                          ? "Authenticating…"
+                          ? tp(lang, "Loading")
                           : authTab === "register"
-                          ? `${t(lang, "createAccount")} (+100 XP)`
+                          ? t(lang, "createAccount")
                           : t(lang, "signIn")}
                       </button>
                     </form>
