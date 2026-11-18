@@ -327,28 +327,51 @@ body::before {
   box-shadow: 0 18px 38px -12px rgba(4, 8, 24, 0.58);
 }
 
-/* Editorial Segmented Pill Bar (Image 2 Style) */
+/* Editorial Segmented Pill Bar (Image 2 Style — Mobile-First Scrollable) */
 .pill-tab-bar {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.3rem;
+  gap: 0.2rem;
+  padding: 0.25rem;
   border-radius: 9999px;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-hairline);
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pill-tab-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .pill-tab-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.42rem 0.8rem;
   border-radius: 9999px;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
+  touch-action: manipulation;
   transition: background 0.18s ease, color 0.18s ease, transform 0.14s ease;
   color: var(--text-muted);
 }
 
-.pill-tab-btn[data-active="true"] {
+@media (min-width: 640px) {
+  .pill-tab-bar {
+    gap: 0.25rem;
+    padding: 0.3rem;
+  }
+  .pill-tab-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.78rem;
+  }
+}
+
+.pill-tab-btn[data-active="true"],
+.pill-tab-btn.pill-tab-btn-active {
   background-image: var(--gradient-brand);
   color: #ffffff;
   box-shadow: 0 6px 16px -4px var(--glow-primary);
@@ -368,6 +391,7 @@ body::before {
   border-radius: 9999px;
   font-size: 0.68rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .badge-emerald {
@@ -407,6 +431,7 @@ html[dir="rtl"] select.ui-select {
 .btn-primary {
   background-image: var(--gradient-brand);
   color: #ffffff;
+  touch-action: manipulation;
   transition: filter 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
   box-shadow: 0 8px 22px -4px var(--glow-primary);
 }
@@ -423,12 +448,42 @@ html[dir="rtl"] select.ui-select {
   background-color: var(--accent-gold);
   color: #091945;
   font-weight: 700;
+  touch-action: manipulation;
   transition: filter 0.15s ease, transform 0.15s ease;
   box-shadow: 0 8px 20px -4px var(--gold-soft);
 }
 
 .btn-peach:hover {
   filter: brightness(1.06);
+}
+
+button,
+a,
+input,
+select {
+  touch-action: manipulation;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* UI/UX Pro Max Mobile Single-Screen Density & Safe-Area Compliance (<640px) */
+@media (max-width: 639px) {
+  .bento-card,
+  .card-surface,
+  .sanctuary-halo-card {
+    border-radius: 1.05rem;
+  }
+
+  .quran-gradient-card,
+  .twilight-hero-card {
+    border-radius: 1.15rem;
+  }
 }
 
 :focus-visible {
@@ -459,3 +514,4 @@ html[dir="rtl"] select.ui-select {
   background: var(--border-hairline);
   border-radius: 9999px;
 }
+

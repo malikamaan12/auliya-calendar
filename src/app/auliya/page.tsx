@@ -1255,27 +1255,27 @@ function AuliyaInner() {
   const silsilaOptions = ["All", "Qadri", "Chishti", "Naqshbandi", "Razavi"] as const;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3.5 sm:space-y-6">
       {/* Editorial Module Header */}
-      <header className="bento-card p-5 sm:p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1">
+      <header className="bento-card p-3.5 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-4">
+          <div className="space-y-0.5 sm:space-y-1">
             <h1
-              className="text-2xl sm:text-3xl font-bold tracking-tight"
+              className="text-xl sm:text-3xl font-bold tracking-tight"
               style={{ color: "var(--text-primary)" }}
             >
               {t(lang, "navAuliya")}
             </h1>
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+            <p className="text-xs sm:text-sm hidden sm:block" style={{ color: "var(--text-muted)" }}>
               {t(lang, "auliyaSubtitle")}
             </p>
           </div>
 
           {/* Search & Silsila Filter */}
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            <div className="relative">
+          <div className="flex flex-row gap-2">
+            <div className="relative flex-1 sm:flex-initial">
               <Search
-                className="w-4 h-4 absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none"
                 style={{ color: "var(--text-muted)" }}
               />
               <input
@@ -1283,7 +1283,7 @@ function AuliyaInner() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t(lang, "auliyaSearchPlaceholder")}
-                className="w-full sm:w-64 rounded-xl ps-10 pe-4 py-2 text-sm border focus:outline-none transition-colors"
+                className="w-full sm:w-64 rounded-xl ps-9 pe-3 py-1.5 sm:py-2 text-xs sm:text-sm border focus:outline-none transition-colors"
                 style={{
                   backgroundColor: "var(--bg-muted)",
                   borderColor: "var(--border-hairline)",
@@ -1295,7 +1295,7 @@ function AuliyaInner() {
             <select
               value={silsilaFilter}
               onChange={(e) => setSilsilaFilter(e.target.value)}
-              className="ui-select rounded-xl px-3.5 py-2 text-sm font-medium border focus:outline-none"
+              className="ui-select rounded-xl px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border focus:outline-none shrink-0"
               style={{
                 backgroundColor: "var(--bg-muted)",
                 borderColor: "var(--border-hairline)",
@@ -1312,19 +1312,19 @@ function AuliyaInner() {
         </div>
       </header>
 
-      {/* Main Grid: Saint Directory Sidebar + Editorial Profile Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* Main Grid: Saint Directory Sidebar (Horizontal Strip on Mobile) + Editorial Profile Workspace */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-6 items-start">
         {/* Left Directory Sidebar */}
-        <aside className="lg:col-span-4 space-y-2.5">
-          <div className="flex items-center justify-between px-1 pb-0.5">
+        <aside className="lg:col-span-4 space-y-1.5 sm:space-y-2.5 min-w-0">
+          <div className="flex items-center justify-between px-1">
             <span
-              className="text-xs font-semibold uppercase tracking-wider"
+              className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider"
               style={{ color: "var(--text-muted)" }}
             >
               {ui.directoryHeading}
             </span>
             <span
-              className="text-xs font-semibold tabular-nums"
+              className="text-[11px] sm:text-xs font-semibold tabular-nums"
               style={{ color: "var(--text-muted)" }}
             >
               {filtered.length}
@@ -1333,13 +1333,13 @@ function AuliyaInner() {
 
           {filtered.length === 0 ? (
             <div
-              className="bento-card p-6 text-center text-sm"
+              className="bento-card p-5 text-center text-xs sm:text-sm"
               style={{ color: "var(--text-muted)" }}
             >
               {ui.noResults}
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="flex lg:flex-col gap-2 overflow-x-auto no-scrollbar pb-1 lg:pb-0">
               {filtered.map((item) => {
                 const active = item.id === saint.id;
                 const primaryTitle = getPrimaryHeading(item);
@@ -1349,7 +1349,7 @@ function AuliyaInner() {
                     key={item.id}
                     type="button"
                     onClick={() => handleSelectSaint(item.id)}
-                    className="w-full text-start p-3.5 rounded-2xl border transition-all cursor-pointer"
+                    className="w-[216px] sm:w-[240px] lg:w-full shrink-0 text-start p-2.5 lg:p-3.5 rounded-2xl border transition-all cursor-pointer"
                     style={{
                       backgroundColor: active
                         ? "var(--accent-soft)"
@@ -1360,12 +1360,12 @@ function AuliyaInner() {
                       boxShadow: active ? "var(--shadow-card)" : "none",
                     }}
                   >
-                    <div className="flex items-center gap-3.5">
+                    <div className="flex items-center gap-2.5 lg:gap-3.5">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={resolvePublicAssetUrl(item.shrineImage)}
                         alt={item.name}
-                        className="w-13 h-13 rounded-xl object-cover border shrink-0"
+                        className="w-10 h-10 lg:w-13 lg:h-13 rounded-xl object-cover border shrink-0"
                         style={{ borderColor: "var(--border-hairline)" }}
                       />
                       <div className="min-w-0 flex-1">
@@ -1373,16 +1373,16 @@ function AuliyaInner() {
                           className={`font-bold truncate ${
                             isPersoArabicScript
                               ? lang === "ar"
-                                ? "font-arabic text-base"
-                                : "font-urdu text-base"
-                              : "text-sm"
+                                ? "font-arabic text-sm lg:text-base"
+                                : "font-urdu text-sm lg:text-base"
+                              : "text-xs lg:text-sm"
                           }`}
                           style={{ color: "var(--text-primary)" }}
                         >
                           {primaryTitle}
                         </h3>
                         <p
-                          className={`truncate mt-0.5 ${
+                          className={`truncate mt-0.5 hidden lg:block ${
                             isPersoArabicScript
                               ? "text-xs"
                               : "font-urdu text-xs"
@@ -1393,7 +1393,7 @@ function AuliyaInner() {
                           {secondaryTitle}
                         </p>
                         <p
-                          className="text-[11px] truncate mt-1"
+                          className="text-[10px] lg:text-[11px] truncate mt-0.5 lg:mt-1"
                           style={{ color: "var(--text-muted)" }}
                         >
                           {getSilsilaLabel(item.silsila)} · {item.city} ·{" "}
@@ -1409,10 +1409,10 @@ function AuliyaInner() {
         </aside>
 
         {/* Right Detail Workspace */}
-        <div className="lg:col-span-8 space-y-5 min-w-0">
+        <div className="lg:col-span-8 space-y-3.5 sm:space-y-5 min-w-0">
           {/* Dignified Shrine-Arch Editorial Hero Banner */}
           <section className="bento-card overflow-hidden">
-            <div className="relative h-60 sm:h-72 w-full overflow-hidden bg-[#060C1F]">
+            <div className="relative h-44 sm:h-72 w-full overflow-hidden bg-[#060C1F]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={resolvePublicAssetUrl(saint.shrineImage)}
@@ -1438,15 +1438,15 @@ function AuliyaInner() {
               </svg>
 
               {/* Top Quiet Context & 360° Entry */}
-              <div className="absolute top-4 inset-x-5 flex items-center justify-between gap-2">
-                <span className="text-[11px] font-medium tracking-wide text-white/85 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15">
+              <div className="absolute top-3 sm:top-4 inset-x-4 sm:inset-x-5 flex items-center justify-between gap-2">
+                <span className="text-[10px] sm:text-[11px] font-medium tracking-wide text-white/85 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15">
                   {getSilsilaLabel(saint.silsila)}
                 </span>
                 {activeTab !== "ziyarat" && (
                   <button
                     type="button"
                     onClick={() => setActiveTab("ziyarat")}
-                    className="px-3.5 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-xs font-semibold text-white hover:bg-black/65 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                    className="px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-[11px] sm:text-xs font-semibold text-white hover:bg-black/65 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5 text-[#F9B091]" />
                     <span>{t(lang, "auliyaTabZiyarat")}</span>
@@ -1455,25 +1455,25 @@ function AuliyaInner() {
               </div>
 
               {/* Editorial Name & Honorifics */}
-              <div className="absolute bottom-5 inset-x-6 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-                <div className="space-y-1 min-w-0">
+              <div className="absolute bottom-3.5 sm:bottom-5 inset-x-4 sm:inset-x-6 flex flex-col sm:flex-row sm:items-end justify-between gap-2 sm:gap-3">
+                <div className="space-y-0.5 sm:space-y-1 min-w-0">
                   {saint.alqab.length > 0 && (
-                    <p className="text-xs font-medium text-[#F9B091] truncate">
+                    <p className="text-[11px] sm:text-xs font-medium text-[#F9B091] truncate">
                       {saint.alqab.slice(0, 3).join("  ·  ")}
                     </p>
                   )}
                   <h2
-                    className={`font-bold text-white leading-tight ${
+                    className={`font-bold text-white leading-tight truncate ${
                       isPersoArabicScript
                         ? lang === "ar"
-                          ? "font-arabic text-2xl sm:text-4xl"
-                          : "font-urdu text-2xl sm:text-4xl"
-                        : "text-2xl sm:text-3xl tracking-tight"
+                          ? "font-arabic text-xl sm:text-4xl"
+                          : "font-urdu text-xl sm:text-4xl"
+                        : "text-lg sm:text-3xl tracking-tight"
                     }`}
                   >
                     {getPrimaryHeading(saint)}
                   </h2>
-                  <p className="text-xs sm:text-sm text-white/80">
+                  <p className="text-[11px] sm:text-sm text-white/80 truncate">
                     {isPersoArabicScript
                       ? `${saint.name} · ${saint.city}, ${saint.country}`
                       : `${saint.arabicName} · ${saint.city}, ${saint.country}`}
@@ -1482,7 +1482,7 @@ function AuliyaInner() {
 
                 {!isPersoArabicScript && (
                   <p
-                    className="font-urdu text-xl sm:text-2xl text-white/95 shrink-0"
+                    className="font-urdu text-base sm:text-2xl text-white/95 shrink-0 hidden sm:block"
                     dir="rtl"
                   >
                     {saint.urduName}

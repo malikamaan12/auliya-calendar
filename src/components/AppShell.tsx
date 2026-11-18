@@ -220,7 +220,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const activeRoleMeta = authUser ? RBAC_ROLES[authUser.role] : null;
 
   return (
-    <div className="min-h-dvh flex flex-col pb-20 sm:pb-8 relative z-10">
+    <div className="min-h-dvh flex flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-8 relative z-10">
       {/* Subtle Celebration Toast */}
       <AnimatePresence>
         {xpToast && (
@@ -230,7 +230,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -14, scale: 0.94 }}
             transition={{ type: "spring", stiffness: 400, damping: 28 }}
-            className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full flex items-center gap-2 shadow-xl pointer-events-none"
+            className="fixed top-14 sm:top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full flex items-center gap-2 shadow-xl pointer-events-none"
             style={{
               backgroundImage: "var(--gradient-brand)",
               color: "#ffffff",
@@ -246,15 +246,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Calm Reference-Grade Top Bar */}
       <header
-        className="sticky top-0 z-40 backdrop-blur-xl transition-colors border-b"
+        className="sticky top-0 z-40 backdrop-blur-xl transition-colors border-b pt-[env(safe-area-inset-top)]"
         style={{
-          backgroundColor: "color-mix(in srgb, var(--bg-canvas) 86%, transparent)",
+          backgroundColor: "color-mix(in srgb, var(--bg-canvas) 88%, transparent)",
           borderColor: "color-mix(in srgb, var(--border-hairline) 75%, transparent)",
         }}
       >
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-15 sm:h-16 flex items-center justify-between gap-2">
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 h-13 sm:h-16 flex items-center justify-between gap-2">
           {/* Left: Staggered Menu Icon or Back Arrow + Localized Title */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             {isDashboard ? (
               <button
                 type="button"
@@ -265,7 +265,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   color: "var(--text-muted)",
                 }}
               >
-                <svg width="22" height="16" viewBox="0 0 22 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <svg width="21" height="15" viewBox="0 0 22 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                   <line x1="2" y1="3" x2="20" y2="3" />
                   <line x1="2" y1="8" x2="13" y2="8" />
                   <line x1="2" y1="13" x2="17" y2="13" />
@@ -287,7 +287,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
 
             <Link href="/" className="min-w-0">
-              <span className="text-base sm:text-lg font-bold tracking-tight truncate block">
+              <span className="text-[15px] sm:text-lg font-bold tracking-tight truncate block">
                 {!isDashboard && activeModule ? activeModule.label : t(lang, "appName")}
               </span>
             </Link>
@@ -295,11 +295,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Right: Location Pill + Native Language/Theme Pill + Dark/Light + Avatar */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Location & Weather Pill */}
+            {/* Location & Weather Pill (Compact on mobile, expanded on desktop) */}
             <button
               type="button"
               onClick={() => setSwitcherOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-medium cursor-pointer transition-opacity hover:opacity-90"
+              className="inline-flex items-center gap-1 sm:gap-1.5 h-9 px-2.5 sm:px-3 rounded-full text-xs font-medium cursor-pointer transition-opacity hover:opacity-90"
               style={{
                 backgroundColor: "var(--bg-surface)",
                 color: "var(--text-muted)",
@@ -308,7 +308,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               title={`${city.name} (${activeTz}, ${activeTzOffset})`}
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--accent-primary)" }} />
-              <span className="truncate max-w-[100px] font-semibold" style={{ color: "var(--text-primary)" }}>
+              <span className="truncate max-w-[68px] sm:max-w-[100px] font-semibold text-[11px] sm:text-xs" style={{ color: "var(--text-primary)" }}>
                 {city.name}
               </span>
               {weather && (
@@ -336,7 +336,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               onClick={() => setThemeModalOpen(true)}
               aria-label={t(lang, "themeStudio")}
               title={`${activeLangMeta.nativeLabel} • ${themeMeta.name}`}
-              className="h-9 px-3 rounded-full inline-flex items-center gap-1.5 cursor-pointer transition-opacity hover:opacity-90"
+              className="h-9 px-2.5 sm:px-3 rounded-full inline-flex items-center gap-1.5 cursor-pointer transition-opacity hover:opacity-90"
               style={{
                 backgroundColor: "var(--bg-surface)",
                 border: "1px solid var(--border-hairline)",
@@ -361,7 +361,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               type="button"
               onClick={toggleDarkLight}
               aria-label="Toggle Dark or Light Mode"
-              className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-opacity hover:opacity-85"
+              className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-opacity hover:opacity-85 shrink-0"
               style={{
                 backgroundColor: "var(--bg-surface)",
                 border: "1px solid var(--border-hairline)",
@@ -394,20 +394,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Module Canvas */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-2.5 sm:py-6 flex flex-col">
         {hydrated ? children : <PageSkeleton />}
       </main>
 
-      {/* Mobile Bottom Dock Bar */}
+      {/* Mobile Bottom Dock Bar (Safe-area aware, ≥44px touch targets) */}
       <nav
         aria-label="Primary Mobile Navigation"
-        className="sm:hidden fixed bottom-0 inset-x-0 z-30 border-t backdrop-blur-xl"
+        className="sm:hidden fixed bottom-0 inset-x-0 z-30 border-t backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
         style={{
-          backgroundColor: "color-mix(in srgb, var(--bg-surface) 94%, transparent)",
+          backgroundColor: "color-mix(in srgb, var(--bg-surface) 95%, transparent)",
           borderColor: "var(--border-hairline)",
         }}
       >
-        <div className="grid grid-cols-5 h-15 max-w-md mx-auto px-2">
+        <div className="grid grid-cols-5 h-14 max-w-md mx-auto px-1.5">
           {bottomNavItems.map((item) => {
             const active = item.href === "/" ? isDashboard : pathname.startsWith(item.href);
             const Icon = item.icon;
@@ -415,7 +415,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className="relative flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors"
+                className="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors min-h-[44px]"
                 style={{ color: active ? "var(--accent-primary)" : "var(--text-muted)" }}
               >
                 {active && (
@@ -424,19 +424,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     style={{ backgroundImage: "var(--gradient-brand)" }}
                   />
                 )}
-                <Icon className="w-4 h-4" />
-                <span className="truncate max-w-[62px]">{item.shortLabel}</span>
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="truncate max-w-[60px] leading-tight">{item.shortLabel}</span>
               </Link>
             );
           })}
           <button
             type="button"
             onClick={() => setSwitcherOpen(true)}
-            className="flex flex-col items-center justify-center gap-1 text-[10px] font-semibold cursor-pointer"
+            className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold cursor-pointer min-h-[44px]"
             style={{ color: switcherOpen ? "var(--accent-primary)" : "var(--text-muted)" }}
           >
-            <LayoutGrid className="w-4 h-4" />
-            <span className="truncate max-w-[62px]">{t(lang, "moreLabel")}</span>
+            <LayoutGrid className="w-4 h-4 shrink-0" />
+            <span className="truncate max-w-[60px] leading-tight">{t(lang, "moreLabel")}</span>
           </button>
         </div>
       </nav>

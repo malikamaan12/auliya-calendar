@@ -1420,7 +1420,9 @@ function QuranReaderContent() {
           else stepPage(-1);
         }
       }}
-      className="relative w-full max-w-3xl mx-auto flex flex-col justify-between rounded-3xl p-5 sm:p-8 select-text transition-colors"
+      className={`relative w-full max-w-3xl mx-auto flex flex-col justify-between rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 select-text transition-colors ${
+        isOpeningPage ? "min-h-[380px] sm:min-h-[520px]" : "min-h-[420px] sm:min-h-[650px]"
+      }`}
       style={{
         backgroundColor: isCreamPaper ? "#FFFDF7" : "var(--bg-surface)",
         color: isCreamPaper ? "#1E160B" : "var(--text-primary)",
@@ -1430,7 +1432,6 @@ function QuranReaderContent() {
         boxShadow: isCreamPaper
           ? "0 20px 50px -12px rgba(0, 0, 0, 0.45), inset 0 0 36px rgba(212, 175, 55, 0.12)"
           : "0 18px 42px -10px rgba(4, 12, 35, 0.55)",
-        minHeight: isOpeningPage ? "520px" : "650px",
       }}
     >
       {/* Classical Double-Line Mushaf Inner Frame */}
@@ -2101,9 +2102,9 @@ function QuranReaderContent() {
 
       {/* VIEW 2 & 3: LUMINOUS SURAH HERO BANNER + EDITORIAL VERSE LIST (Image 1 & Image 2 Style) */}
       {!loadingCorpus && viewMode !== "mushaf" && (
-        <div className="space-y-6">
+        <div className="space-y-3.5 sm:space-y-6">
           {/* Luminous Brand Gradient Arch Banner Card */}
-          <div className="quran-gradient-card relative py-7 px-6 sm:py-9 sm:px-8 text-center overflow-hidden">
+          <div className="quran-gradient-card relative py-4 px-4 sm:py-9 sm:px-8 text-center overflow-hidden">
             {/* Subtle Illuminated Mihrab Arch & Wave Contours */}
             <svg
               aria-hidden="true"
@@ -2124,7 +2125,7 @@ function QuranReaderContent() {
             <svg
               aria-hidden="true"
               viewBox="0 0 230 165"
-              className="pointer-events-none absolute -end-6 -bottom-8 w-56 sm:w-64 h-44 sm:h-48 opacity-16"
+              className="pointer-events-none absolute -end-6 -bottom-8 w-44 sm:w-64 h-36 sm:h-48 opacity-16"
             >
               <path d="M38 92 Q76 72 114 97 L114 48 Q76 28 38 46 Z" fill="#FFFFFF" />
               <path d="M190 92 Q152 72 114 97 L114 48 Q152 28 190 46 Z" fill="#FFFFFF" />
@@ -2132,32 +2133,32 @@ function QuranReaderContent() {
               <path d="M160 146 L62 100 L55 109 L153 155 Z" fill="#FFFFFF" />
             </svg>
 
-            <div className="relative z-10 space-y-1.5">
-              <div className="font-arabic text-lg sm:text-xl text-white/85">{currentSurahMeta.name}</div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            <div className="relative z-10 space-y-1 sm:space-y-1.5">
+              <div className="font-arabic text-base sm:text-xl text-white/85">{currentSurahMeta.name}</div>
+              <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-white">
                 {currentSurahMeta.englishName}
               </h1>
               <p className="text-xs sm:text-sm text-white/90 font-medium">
                 {tp(lang, currentSurahMeta.englishNameTranslation)}
               </p>
 
-              <div className="w-48 h-px bg-white/35 mx-auto my-3.5" />
+              <div className="w-36 sm:w-48 h-px bg-white/35 mx-auto my-2 sm:my-3.5" />
 
-              <p className="text-xs font-semibold uppercase tracking-widest text-white/90">
+              <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-widest text-white/90">
                 {tp(lang, currentSurahMeta.revelationType)} • {currentSurahMeta.numberOfAyahs} {t(lang, "versesLabel")}
               </p>
 
               {(viewMode === "highlights" || selectedSurah !== 9) && (
-                <p dir="rtl" className="font-arabic text-2xl sm:text-4xl text-white pt-4">
+                <p dir="rtl" className="font-arabic text-xl sm:text-4xl text-white pt-2 sm:pt-4">
                   {BISMILLAH_TEXT}
                 </p>
               )}
 
-              <div className="pt-3 flex items-center justify-center">
+              <div className="pt-2 sm:pt-3 flex items-center justify-center">
                 <button
                   type="button"
                   onClick={handlePlaySurah}
-                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-xs text-white text-xs font-semibold transition cursor-pointer"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-xs text-white text-xs font-semibold transition cursor-pointer"
                 >
                   {playingId ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                   <span>{playingId ? ui.pause : ui.playSurah}</span>

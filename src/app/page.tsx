@@ -218,11 +218,11 @@ export default function DashboardPage() {
   const nextPrayerName = localizePrayerName(lang, schedule.nextPrayer.label);
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-4 sm:space-y-7">
       {/* Optional Admin-Enabled Notice */}
       {backend.platformSettings.announcementEnabled && backend.platformSettings.announcementText && (
         <div
-          className="px-4 py-2.5 rounded-2xl border flex flex-wrap items-center justify-between gap-2 text-xs"
+          className="px-3.5 py-2 rounded-2xl border flex flex-wrap items-center justify-between gap-2 text-xs"
           style={{
             borderColor: "color-mix(in srgb, var(--accent-primary) 30%, var(--border-hairline))",
             backgroundColor: "var(--accent-soft)",
@@ -243,19 +243,19 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 1. Calm Editorial Greeting Header (Reference Mockup Style) */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pt-0.5">
-        <div className="space-y-1">
-          <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+      {/* 1. Calm Editorial Greeting Header (Single-Row Compact on Mobile) */}
+      <div className="flex items-end justify-between gap-2 pt-0.5">
+        <div className="space-y-0.5 min-w-0">
+          <p className="text-xs sm:text-sm font-medium truncate" style={{ color: "var(--text-muted)" }}>
             {t(lang, "greeting")}
           </p>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl sm:text-[28px] font-bold tracking-tight">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-lg sm:text-[28px] font-bold tracking-tight truncate">
               {user ? user.name : "Tanvir Ahassan"}
             </h1>
             {streakDays > 0 && (
               <span
-                className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-semibold"
+                className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full font-semibold shrink-0"
                 style={{ backgroundColor: "var(--gold-soft)", color: "var(--accent-gold)" }}
               >
                 <Flame className="w-3 h-3" />
@@ -267,16 +267,16 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="sm:text-end text-xs" style={{ color: "var(--text-muted)" }}>
-          <div className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+        <div className="text-end text-[11px] sm:text-xs shrink-0" style={{ color: "var(--text-muted)" }}>
+          <div className="font-semibold text-xs sm:text-sm" style={{ color: "var(--text-primary)" }}>
             {hijri.day} {localizedHijriMonth} {hijri.year} AH
           </div>
           <div className="mt-0.5">{localizedWeekday}</div>
         </div>
       </div>
 
-      {/* 2. Dual Atmospheric Hero Cards (Twilight Mosque Next Prayer + Illuminated Mushaf Last Read) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      {/* 2. Dual Atmospheric Hero Cards (Compact on Mobile, Lush on Desktop) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-4">
         {/* Next Prayer Twilight Mosque Card (Image 2 Style) */}
         <motion.div
           whileHover={{ y: -2 }}
@@ -285,7 +285,7 @@ export default function DashboardPage() {
         >
           <Link
             href="/prayer"
-            className="twilight-hero-card p-6 relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[178px] group h-full"
+            className="twilight-hero-card p-4 sm:p-6 relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[122px] sm:min-h-[178px] group h-full"
           >
             {/* Atmospheric Moon, Clouds & Mosque Horizon Artwork */}
             <svg
@@ -335,20 +335,20 @@ export default function DashboardPage() {
               <rect x="271" y="162" width="7" height="14" rx="3.5" fill="#F9B091" opacity="0.45" />
             </svg>
 
-            <div className="relative z-10 space-y-1">
+            <div className="relative z-10 space-y-0.5 sm:space-y-1">
               <div className="text-xs sm:text-sm font-medium text-white/85">
                 {nextPrayerName}
               </div>
-              <div className="text-3xl sm:text-[38px] font-bold tracking-tight tabular-nums text-white leading-tight">
+              <div className="text-2xl sm:text-[38px] font-bold tracking-tight tabular-nums text-white leading-tight">
                 {formatTime(schedule.nextPrayer.jamaatTime)}
               </div>
-              <div className="inline-flex flex-wrap items-center justify-center gap-1.5 text-xs text-white/90 pt-1">
+              <div className="inline-flex flex-wrap items-center justify-center gap-1.5 text-[11px] sm:text-xs text-white/90 pt-0.5">
                 <MapPin className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                 <span>
                   {city.name} • {t(lang, "inTimePrefix")} {formatCountdown(schedule.nextPrayer.jamaatTime, now)}
                 </span>
                 {weather && (
-                  <span className="px-2 py-0.5 rounded-full bg-white/15 text-white text-[11px] font-semibold tabular-nums">
+                  <span className="px-2 py-0.5 rounded-full bg-white/15 text-white text-[10px] sm:text-[11px] font-semibold tabular-nums">
                     {Math.round(weather.temperatureC)}°C
                   </span>
                 )}
@@ -365,7 +365,7 @@ export default function DashboardPage() {
         >
           <Link
             href={`/quran?surah=${lastReadSurah.number}&page=${lastReadSurah.startPage}`}
-            className="quran-gradient-card p-6 relative overflow-hidden flex flex-col justify-between min-h-[178px] group h-full"
+            className="quran-gradient-card p-4 sm:p-6 relative overflow-hidden flex flex-col justify-between min-h-[118px] sm:min-h-[178px] group h-full"
           >
             {/* Soft Ambient Wave Contours */}
             <svg
@@ -382,7 +382,7 @@ export default function DashboardPage() {
             <svg
               aria-hidden="true"
               viewBox="0 0 230 165"
-              className="pointer-events-none absolute -end-3 -bottom-4 w-44 sm:w-50 h-36 sm:h-40 opacity-95 transition-transform duration-300 group-hover:scale-105"
+              className="pointer-events-none absolute -end-3 -bottom-4 w-32 sm:w-50 h-26 sm:h-40 opacity-95 transition-transform duration-300 group-hover:scale-105"
             >
               <ellipse cx="115" cy="148" rx="68" ry="10" fill="#180838" opacity="0.32" />
               <path d="M62 146 L160 100 L167 109 L69 155 Z" fill="#4C1D95" />
@@ -400,27 +400,27 @@ export default function DashboardPage() {
               <path d="M126 80 Q152 67 178 78" stroke="#A855F7" strokeWidth="2" fill="none" strokeLinecap="round" />
             </svg>
 
-            <div className="relative z-10 inline-flex items-center gap-2 text-xs font-medium text-white/95">
-              <BookOpen className="w-4 h-4" />
+            <div className="relative z-10 inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-medium text-white/95">
+              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>{t(lang, "lastRead")}</span>
             </div>
 
-            <div className="relative z-10 mt-3 max-w-[65%]">
-              <div className="flex items-baseline gap-2.5">
-                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white truncate">
+            <div className="relative z-10 mt-1.5 sm:mt-3 max-w-[70%] sm:max-w-[65%]">
+              <div className="flex items-baseline gap-2">
+                <h2 className="text-base sm:text-xl font-bold tracking-tight text-white truncate">
                   {lastReadSurah.englishName}
                 </h2>
-                <span className="font-arabic text-base text-white/90 hidden sm:inline">
+                <span className="font-arabic text-sm sm:text-base text-white/90 hidden sm:inline">
                   {lastReadSurah.name}
                 </span>
               </div>
-              <p className="text-xs text-white/85 mt-1">
+              <p className="text-[11px] sm:text-xs text-white/85 mt-0.5 sm:mt-1">
                 {t(lang, "ayahNo")} {lastReadParsed.ayahNum} • {t(lang, "pageLabel")} {lastReadSurah.startPage}
               </p>
             </div>
 
-            <div className="relative z-10 mt-3.5">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-black/20 backdrop-blur-xs text-white">
+            <div className="relative z-10 mt-2 sm:mt-3.5">
+              <span className="inline-flex items-center gap-1 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-black/20 backdrop-blur-xs text-white">
                 <span>{t(lang, "continueJourney")}</span>
                 <ChevronRight className="w-3.5 h-3.5 rtl-mirror" />
               </span>
@@ -432,21 +432,21 @@ export default function DashboardPage() {
       {/* Timely Companion Strip (Only renders on sacred events, Jumu'ah, or pre-Salah window) */}
       <RafiqBar />
 
-      {/* 3. Clean Uncluttered Sanctuary Spaces Launcher */}
-      <section className="space-y-3.5">
-        <div className="flex items-end justify-between gap-2">
-          <div>
-            <h2 className="text-base sm:text-lg font-bold tracking-tight">
+      {/* 3. Clean Uncluttered Sanctuary Spaces Launcher (2-Col on Mobile so all modules fit 1 screen) */}
+      <section className="space-y-2.5 sm:space-y-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-lg font-bold tracking-tight truncate">
               {t(lang, "companionModules")}
             </h2>
-            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+            <p className="text-[11px] sm:text-xs mt-0.5 hidden sm:block" style={{ color: "var(--text-muted)" }}>
               {t(lang, "selectModuleHint")}
             </p>
           </div>
 
           <Link
             href="/admin"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-opacity hover:opacity-90 shrink-0"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold border transition-opacity hover:opacity-90 shrink-0"
             style={{
               borderColor: "var(--border-hairline)",
               backgroundColor: "var(--bg-surface)",
@@ -458,32 +458,32 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
           {enabledModules.map((mod) => {
             const Icon = mod.Icon;
             return (
               <Link
                 key={mod.id}
                 href={mod.href}
-                className="bento-card bento-card-interactive p-4 flex items-center justify-between gap-3 group"
+                className="bento-card bento-card-interactive p-2.5 sm:p-4 flex items-center justify-between gap-2 sm:gap-3 group min-h-[58px]"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
+                <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
                   <div
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"
+                    className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"
                     style={{
                       backgroundImage: mod.featured ? "var(--gradient-brand)" : undefined,
                       backgroundColor: mod.featured ? undefined : "var(--accent-soft)",
                       color: mod.featured ? "#ffffff" : "var(--accent-primary)",
                     }}
                   >
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm truncate">{mod.resolvedTitle}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-xs sm:text-sm truncate">{mod.resolvedTitle}</span>
                       {mod.badgeText && (
                         <span
-                          className="text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0"
+                          className="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0"
                           style={{
                             backgroundColor: "var(--gold-soft)",
                             color: "var(--accent-gold)",
@@ -494,7 +494,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <div
-                      className="text-xs truncate mt-0.5"
+                      className="text-[10px] sm:text-xs truncate mt-0.5"
                       style={{ color: "var(--text-muted)" }}
                     >
                       {mod.resolvedSubtitle}
@@ -503,7 +503,7 @@ export default function DashboardPage() {
                 </div>
 
                 <ChevronRight
-                  className="w-4 h-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity rtl-mirror"
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity rtl-mirror"
                   style={{ color: "var(--accent-primary)" }}
                 />
               </Link>

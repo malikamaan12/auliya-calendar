@@ -1577,9 +1577,9 @@ function FiqhHadithInner() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3.5 sm:space-y-6">
       {/* Illuminated Manuscript-Inspired Editorial Hero */}
-      <section className="twilight-hero-card p-6 sm:p-8 relative overflow-hidden">
+      <section className="twilight-hero-card p-4 sm:p-8 relative overflow-hidden">
         {/* Subtle Ornamental Pointed Arch & Manuscript Filigree SVG */}
         <svg
           aria-hidden="true"
@@ -1602,12 +1602,12 @@ function FiqhHadithInner() {
           </g>
         </svg>
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-          <div className="space-y-2 max-w-2xl">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-3 sm:gap-5">
+          <div className="space-y-1 sm:space-y-2 max-w-2xl">
+            <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-white">
               {t(lang, "navFiqh")}
             </h1>
-            <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
+            <p className="text-xs sm:text-sm text-white/80 leading-relaxed line-clamp-2 sm:line-clamp-none">
               {t(lang, "fiqhSubtitle")}
             </p>
           </div>
@@ -1631,7 +1631,7 @@ function FiqhHadithInner() {
       </section>
 
       {/* Primary Module Pill Tabs */}
-      <div className="overflow-x-auto pb-1">
+      <div className="overflow-x-auto no-scrollbar pb-0.5">
         <nav className="pill-tab-bar min-w-max">
           {(
             [
@@ -1662,11 +1662,11 @@ function FiqhHadithInner() {
           TAB 1: HADITH BOOKS LIBRARY
          ===================================================================== */}
       {activeTab === "hadith" && (
-        <div className="space-y-5">
+        <div className="space-y-3.5 sm:space-y-5">
           {/* Top Bar: Collection Category Filter + Script Toggles */}
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="font-medium mr-1" style={{ color: "var(--text-muted)" }}>
+          <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 max-w-full">
+              <span className="font-medium mr-1 shrink-0" style={{ color: "var(--text-muted)" }}>
                 {ui.selectCollection}:
               </span>
               {(
@@ -1683,7 +1683,7 @@ function FiqhHadithInner() {
                     key={grp}
                     type="button"
                     onClick={() => setBookGroupFilter(grp)}
-                    className="px-3 py-1.5 rounded-full border font-medium cursor-pointer transition"
+                    className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border font-medium whitespace-nowrap shrink-0 cursor-pointer transition"
                     style={
                       active
                         ? {
@@ -1752,8 +1752,8 @@ function FiqhHadithInner() {
             </div>
           </div>
 
-          {/* Hadith Collections Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {/* Hadith Collections Grid — 2-col compact on mobile, 4-col on desktop */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
             {visibleBooks.map((b) => {
               const active = b.id === selectedBook.id;
               return (
@@ -1767,7 +1767,7 @@ function FiqhHadithInner() {
                     setFullSearchResults(null);
                     setHadithPage(1);
                   }}
-                  className="p-3.5 rounded-2xl border text-start transition cursor-pointer flex flex-col justify-between"
+                  className="p-2.5 sm:p-3.5 rounded-2xl border text-start transition cursor-pointer flex flex-col justify-between"
                   style={{
                     borderColor: active ? "var(--accent-primary)" : "var(--border-hairline)",
                     backgroundColor: active ? "var(--accent-soft)" : "var(--bg-surface)",

@@ -1747,14 +1747,14 @@ function AdminControlCenterInner() {
   ];
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-3.5 sm:space-y-6 pb-8">
       {/* ===================================================================== */}
       {/* 1. SANCTUARY STUDIO EDITORIAL HEADER & CONTRIBUTOR ROLE BAR           */}
       {/* ===================================================================== */}
-      <section className="sanctuary-halo-card p-5 sm:p-6 space-y-5 relative overflow-hidden">
+      <section className="sanctuary-halo-card p-3.5 sm:p-6 space-y-3.5 sm:space-y-5 relative overflow-hidden">
         {/* Top Row: Studio Title & Active Contributor Card */}
-        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-          <div className="space-y-2">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3 sm:gap-4">
+          <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <span
                 className="badge-pill"
@@ -1796,17 +1796,17 @@ function AdminControlCenterInner() {
               </button>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight">
               {t(lang, "navAdmin")}
             </h1>
-            <p className="text-xs sm:text-sm max-w-2xl" style={{ color: "var(--text-secondary)" }}>
+            <p className="text-xs sm:text-sm max-w-2xl line-clamp-2 sm:line-clamp-none" style={{ color: "var(--text-secondary)" }}>
               {tl(lang, "adminSubtitle", ui.subtitle)}
             </p>
           </div>
 
           {/* Active Signed-In Contributor / Guest Card */}
           <div
-            className="rounded-2xl p-3.5 sm:p-4 border min-w-[270px] flex flex-col gap-2.5"
+            className="rounded-2xl p-3 sm:p-4 border min-w-0 sm:min-w-[270px] flex flex-col gap-2"
             style={{
               backgroundColor: "var(--bg-elevated)",
               borderColor: "var(--border-hairline)",
@@ -1943,7 +1943,7 @@ function AdminControlCenterInner() {
 
         {/* Editorial Contributor Role Switcher Strip */}
         <div
-          className="p-3.5 rounded-2xl border space-y-2.5"
+          className="p-2.5 sm:p-3.5 rounded-2xl border space-y-2"
           style={{
             backgroundColor: "var(--bg-surface)",
             borderColor: "var(--border-hairline)",
@@ -1970,7 +1970,7 @@ function AdminControlCenterInner() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <div className="flex lg:grid lg:grid-cols-4 gap-2 overflow-x-auto no-scrollbar pb-0.5">
             {ROLE_ORDER.map((rKey) => {
               const meta = RBAC_ROLES[rKey];
               const isSelected = activeRole === rKey;
@@ -1982,7 +1982,7 @@ function AdminControlCenterInner() {
                   onClick={() => handleQuickRoleSwitch(rKey)}
                   disabled={Boolean(busyAction)}
                   aria-label={tp(lang, meta.label)}
-                  className="p-3 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden group"
+                  className="w-[175px] sm:w-[200px] lg:w-full shrink-0 p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden group"
                   style={{
                     backgroundColor: isSelected ? `${meta.badgeColor}18` : "var(--bg-elevated)",
                     borderColor: isSelected ? meta.badgeColor : "var(--border-hairline)",

@@ -1721,7 +1721,7 @@ export default function QuizPage() {
   ];
 
   return (
-    <div className="space-y-5 relative">
+    <div className="space-y-3 sm:space-y-5 relative">
       {/* Canvas Confetti / Particle Engine */}
       <QuizConfettiCanvas burstKind={burstKind} burstId={burstId} />
       <FloatingXpBursts items={toasts} />
@@ -1755,17 +1755,17 @@ export default function QuizPage() {
       />
 
       {/* Top Editorial Stage Header + Compact Audio/FX Pill Cluster */}
-      <header className="bento-card p-5 sm:p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1.5">
+      <header className="bento-card p-3.5 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-4">
+          <div className="space-y-1">
             <h1
-              className="text-2xl sm:text-3xl font-bold tracking-tight"
+              className="text-xl sm:text-3xl font-bold tracking-tight"
               style={{ color: "var(--text-primary)" }}
             >
               {t(lang, "navQuiz")}
             </h1>
             <p
-              className="text-xs sm:text-sm"
+              className="text-xs sm:text-sm line-clamp-1 sm:line-clamp-none"
               style={{ color: "var(--text-muted)" }}
             >
               {t(lang, "quizSubtitle")}
@@ -1773,7 +1773,7 @@ export default function QuizPage() {
           </div>
 
           {/* Right Column: Compact Audio/FX Pill Cluster + Rank Strip */}
-          <div className="flex flex-col sm:items-end gap-2.5">
+          <div className="flex flex-col sm:items-end gap-2">
             <div className="flex flex-wrap items-center gap-2">
               {/* Compact Sleek Audio/FX Pill Cluster: Sound | Atmosphere | Voice */}
               <div
@@ -2119,9 +2119,9 @@ export default function QuizPage() {
       </AnimatePresence>
 
       {/* Game Mode Pill Bar & Topic Filter Strip */}
-      <div className="space-y-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <div className="overflow-x-auto pb-0.5">
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="overflow-x-auto no-scrollbar pb-0.5 max-w-full">
             <div className="pill-tab-bar min-w-max">
               <button
                 type="button"
@@ -2192,7 +2192,7 @@ export default function QuizPage() {
 
         {/* 7 Scholarly Topic Filters */}
         {!fffOpen && (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
             {topicOptions.map((topic) => {
               const active = topicFilter === topic.id;
               return (
@@ -2200,7 +2200,7 @@ export default function QuizPage() {
                   key={topic.id}
                   type="button"
                   onClick={() => startNewRun(topic.id, runFormat)}
-                  className="px-3 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors"
+                  className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors"
                   style={{
                     borderColor: active
                       ? "var(--accent-primary)"
@@ -2393,7 +2393,7 @@ export default function QuizPage() {
         </motion.section>
       ) : (
         /* MAIN CHAMPIONSHIP STAGE + 15-TIER LADDER */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
           <motion.section
             key={`stage-shake-${shakeKey}`}
             animate={
@@ -2402,7 +2402,7 @@ export default function QuizPage() {
                 : {}
             }
             transition={{ duration: 0.45 }}
-            className="lg:col-span-8 bento-card p-5 sm:p-6 space-y-5 relative overflow-hidden"
+            className="lg:col-span-8 bento-card p-3.5 sm:p-6 space-y-3 sm:space-y-5 relative overflow-hidden"
             style={{
               background:
                 "radial-gradient(ellipse 95% 65% at 50% 0%, rgba(245, 158, 11, 0.09), rgba(164, 74, 255, 0.05) 45%, transparent 75%), var(--bg-surface)",
@@ -2410,10 +2410,10 @@ export default function QuizPage() {
           >
             <KbcStudioBeams mood={stageMood} />
 
-            <div className="relative z-10 space-y-5">
-              {/* 5 Lifelines Bar */}
+            <div className="relative z-10 space-y-3 sm:space-y-5">
+              {/* 5 Lifelines Bar — Single Horizontal Row on Mobile, 5-Col Grid on Desktop */}
               <div
-                className="grid grid-cols-2 sm:grid-cols-5 gap-2 pb-4 border-b"
+                className="flex sm:grid sm:grid-cols-5 gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-2.5 sm:pb-4 border-b"
                 style={{ borderColor: "var(--border-hairline)" }}
               >
                 {[
@@ -2479,7 +2479,7 @@ export default function QuizPage() {
                         lf.used || lf.locked || outcome !== "playing" || isLocking
                       }
                       onClick={lf.onClick}
-                      className={`relative px-2.5 py-2 rounded-2xl border flex items-center gap-2 text-start cursor-pointer transition-all disabled:opacity-35 ${
+                      className={`relative px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-2xl border flex items-center gap-1.5 sm:gap-2 text-start cursor-pointer shrink-0 transition-all disabled:opacity-35 ${
                         lf.activeNow ? "ring-2 ring-amber-400 animate-pulse" : ""
                       }`}
                       style={{
@@ -2722,7 +2722,7 @@ export default function QuizPage() {
                     }}
                   />
                   <div
-                    className="relative z-10 w-full mx-1 sm:mx-3 p-5 sm:p-6 rounded-2xl border-2 text-center shadow-xl"
+                    className="relative z-10 w-full mx-0.5 sm:mx-3 p-3.5 sm:p-6 rounded-2xl border-2 text-center shadow-xl"
                     style={{
                       borderColor: isLocking
                         ? "#F59E0B"
@@ -2875,7 +2875,7 @@ export default function QuizPage() {
                   hidden: {},
                   visible: { transition: { staggerChildren: 0.06 } },
                 }}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3"
               >
                 {question.options.map((opt, idx) => {
                   const isElim = eliminatedOpts.includes(idx);
@@ -2937,7 +2937,7 @@ export default function QuizPage() {
                           lockInAnswer(idx);
                         }
                       }}
-                      className={`relative p-3.5 sm:p-4 rounded-2xl border-2 text-start text-sm font-semibold flex items-center gap-3.5 cursor-pointer disabled:opacity-25 transition-colors overflow-hidden ${
+                      className={`relative p-3 sm:p-4 rounded-2xl border-2 text-start text-xs sm:text-sm font-semibold flex items-center gap-3 sm:gap-3.5 cursor-pointer disabled:opacity-25 transition-colors overflow-hidden ${
                         isLocking && isSel ? "animate-pulse" : ""
                       }`}
                       style={{

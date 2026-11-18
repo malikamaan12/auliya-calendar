@@ -2281,14 +2281,14 @@ function ZakatStudioInner() {
   ];
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-3.5 sm:space-y-6 pb-8">
       {/* ------------------------------------------------------------------ */}
       {/* Calm Authoritative Wealth & Nisab Overview                         */}
       {/* ------------------------------------------------------------------ */}
-      <section className="sanctuary-halo-card p-5 sm:p-6 space-y-5 relative overflow-hidden">
-        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
+      <section className="sanctuary-halo-card p-3.5 sm:p-6 space-y-3.5 sm:space-y-5 relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-2.5 sm:gap-4">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <span className="badge-pill badge-gold">
                 <Scale className="w-3.5 h-3.5" />
                 <span>
@@ -2312,13 +2312,13 @@ function ZakatStudioInner() {
             </div>
 
             <h1
-              className="text-2xl sm:text-3xl font-bold tracking-tight"
+              className="text-xl sm:text-3xl font-bold tracking-tight"
               style={{ color: "var(--text-primary)" }}
             >
               {t(lang, "navZakat")}
             </h1>
             <p
-              className="text-xs sm:text-sm max-w-3xl leading-relaxed"
+              className="text-xs sm:text-sm max-w-3xl leading-relaxed line-clamp-2 sm:line-clamp-none"
               style={{ color: "var(--text-secondary)" }}
             >
               {tl(lang, "zakatSubtitle", ui.subtitle)}
@@ -2331,7 +2331,7 @@ function ZakatStudioInner() {
               type="button"
               onClick={handleFetchLiveSpot}
               disabled={spotLoading}
-              className="btn-primary px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer disabled:opacity-60"
+              className="btn-primary px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-2 cursor-pointer disabled:opacity-60"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${spotLoading ? "animate-spin" : ""}`} />
               <span>{spotLoading ? ui.updatingRates : ui.updateRates}</span>
@@ -2342,7 +2342,7 @@ function ZakatStudioInner() {
                 type="button"
                 onClick={handleResetBenchmark}
                 aria-label={ui.resetRate}
-                className="px-3 py-2.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                className="px-3 py-2 sm:py-2.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
                 style={{
                   borderColor: "var(--border-hairline)",
                   backgroundColor: "var(--bg-elevated)",
@@ -2357,25 +2357,25 @@ function ZakatStudioInner() {
         </div>
 
         {/* Authoritative Wealth & Nisab Summary Strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           <div
-            className="p-3.5 rounded-xl border space-y-1 tabular-nums"
+            className="p-2.5 sm:p-3.5 rounded-xl border space-y-0.5 sm:space-y-1 tabular-nums"
             style={{
               borderColor: "var(--border-hairline)",
               backgroundColor: "var(--bg-elevated)",
             }}
           >
-            <div className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+            <div className="text-[11px] font-medium truncate" style={{ color: "var(--text-muted)" }}>
               {ui.netZakatableWealth}
             </div>
             <div
-              className="text-lg sm:text-xl font-bold truncate"
+              className="text-base sm:text-xl font-bold truncate"
               style={{ color: "var(--text-primary)" }}
             >
               {formatMoney(calc.netZakatableWealth, sym, 0)}
             </div>
             <div
-              className="text-[11px] font-semibold"
+              className="text-[11px] font-semibold truncate"
               style={{
                 color: calc.isSahibNisab ? "var(--accent-primary)" : "var(--text-secondary)",
               }}
@@ -2385,38 +2385,38 @@ function ZakatStudioInner() {
           </div>
 
           <div
-            className="p-3.5 rounded-xl border space-y-1 tabular-nums"
+            className="p-2.5 sm:p-3.5 rounded-xl border space-y-0.5 sm:space-y-1 tabular-nums"
             style={{
               borderColor: calc.isSahibNisab ? "var(--accent-primary)" : "var(--border-hairline)",
               backgroundColor: calc.isSahibNisab ? "var(--accent-soft)" : "var(--bg-elevated)",
             }}
           >
-            <div className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+            <div className="text-[11px] font-medium truncate" style={{ color: "var(--text-muted)" }}>
               {ui.zakatDue} ({calc.zakatRatePercent}%)
             </div>
             <div
-              className="text-lg sm:text-xl font-bold truncate"
+              className="text-base sm:text-xl font-bold truncate"
               style={{ color: "var(--accent-primary)" }}
             >
               {formatMoney(calc.zakatDue, sym)}
             </div>
-            <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+            <div className="text-[11px] truncate" style={{ color: "var(--text-secondary)" }}>
               {ui.remainingToPay}: {formatMoney(calc.remainingDue, sym, 0)}
             </div>
           </div>
 
           <div
-            className="p-3.5 rounded-xl border space-y-1 tabular-nums"
+            className="p-2.5 sm:p-3.5 rounded-xl border space-y-0.5 sm:space-y-1 tabular-nums"
             style={{
               borderColor: !calc.onlyPureGold ? "var(--accent-gold)" : "var(--border-hairline)",
               backgroundColor: "var(--bg-elevated)",
             }}
           >
-            <div className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+            <div className="text-[11px] font-medium truncate" style={{ color: "var(--text-muted)" }}>
               {ui.silverNisab} ({zakatConfig.silverNisabGrams}g)
             </div>
             <div
-              className="text-lg sm:text-xl font-bold truncate"
+              className="text-base sm:text-xl font-bold truncate"
               style={{ color: "var(--text-primary)" }}
             >
               {formatMoney(calc.silverNisabValue, sym)}
@@ -2427,17 +2427,17 @@ function ZakatStudioInner() {
           </div>
 
           <div
-            className="p-3.5 rounded-xl border space-y-1 tabular-nums"
+            className="p-2.5 sm:p-3.5 rounded-xl border space-y-0.5 sm:space-y-1 tabular-nums"
             style={{
               borderColor: calc.onlyPureGold ? "var(--accent-gold)" : "var(--border-hairline)",
               backgroundColor: "var(--bg-elevated)",
             }}
           >
-            <div className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+            <div className="text-[11px] font-medium truncate" style={{ color: "var(--text-muted)" }}>
               {ui.goldNisab} ({zakatConfig.goldNisabGrams}g)
             </div>
             <div
-              className="text-lg sm:text-xl font-bold truncate"
+              className="text-base sm:text-xl font-bold truncate"
               style={{ color: "var(--text-primary)" }}
             >
               {formatMoney(calc.goldNisabValue, sym)}
@@ -2450,11 +2450,11 @@ function ZakatStudioInner() {
 
         {/* Global Currency, Weight Unit, Calendar Basis & Bullion Rate Controls */}
         <div
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-3 pt-4 border-t"
+          className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-12 gap-2.5 sm:gap-3 pt-3 sm:pt-4 border-t"
           style={{ borderColor: "var(--border-hairline)" }}
         >
           {/* Currency Selector */}
-          <div className="xl:col-span-3 space-y-1.5">
+          <div className="col-span-2 md:col-span-1 xl:col-span-3 space-y-1">
             <label
               htmlFor="zakat-currency-select"
               className="text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5"
@@ -2470,7 +2470,7 @@ function ZakatStudioInner() {
                 setCurrencyCode(e.target.value);
                 setSpotMessage(null);
               }}
-              className="ui-select w-full px-3 py-2.5 rounded-xl border text-xs font-semibold outline-none cursor-pointer"
+              className="ui-select w-full px-3 py-2 sm:py-2.5 rounded-xl border text-xs font-semibold outline-none cursor-pointer"
               style={{
                 borderColor: "var(--border-hairline)",
                 backgroundColor: "var(--bg-elevated)",
@@ -2490,7 +2490,7 @@ function ZakatStudioInner() {
           </div>
 
           {/* Weight Unit Switcher */}
-          <div className="xl:col-span-3 space-y-1.5">
+          <div className="xl:col-span-3 space-y-1">
             <span
               className="text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5"
               style={{ color: "var(--text-muted)" }}
@@ -2512,7 +2512,7 @@ function ZakatStudioInner() {
                     key={u}
                     type="button"
                     onClick={() => handleWeightUnitChange(u)}
-                    className="py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all cursor-pointer truncate"
+                    className="py-1.5 px-1.5 sm:px-2 rounded-lg text-[11px] font-semibold transition-all cursor-pointer truncate"
                     style={{
                       backgroundColor: active ? "var(--accent-primary)" : "transparent",
                       color: active ? "#ffffff" : "var(--text-secondary)",
@@ -2526,7 +2526,7 @@ function ZakatStudioInner() {
           </div>
 
           {/* Calendar Basis Switcher */}
-          <div className="xl:col-span-2 space-y-1.5">
+          <div className="xl:col-span-2 space-y-1">
             <span
               className="text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5"
               style={{ color: "var(--text-muted)" }}
@@ -2544,7 +2544,7 @@ function ZakatStudioInner() {
               <button
                 type="button"
                 onClick={() => setCalendarBasis("lunar")}
-                className="py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all cursor-pointer truncate"
+                className="py-1.5 px-1.5 sm:px-2 rounded-lg text-[11px] font-semibold transition-all cursor-pointer truncate"
                 style={{
                   backgroundColor:
                     calendarBasis === "lunar" ? "var(--accent-primary)" : "transparent",
@@ -2557,7 +2557,7 @@ function ZakatStudioInner() {
               <button
                 type="button"
                 onClick={() => setCalendarBasis("solar")}
-                className="py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all cursor-pointer truncate"
+                className="py-1.5 px-1.5 sm:px-2 rounded-lg text-[11px] font-semibold transition-all cursor-pointer truncate"
                 style={{
                   backgroundColor:
                     calendarBasis === "solar" ? "var(--accent-primary)" : "transparent",
@@ -2571,7 +2571,7 @@ function ZakatStudioInner() {
           </div>
 
           {/* Manual Jeweler Rate: 24K Gold per Active Unit */}
-          <div className="xl:col-span-2 space-y-1.5">
+          <div className="xl:col-span-2 space-y-1">
             <label
               htmlFor="gold-rate-input"
               className="text-[11px] font-semibold uppercase tracking-wider flex items-center justify-between"
@@ -2590,7 +2590,7 @@ function ZakatStudioInner() {
               step="any"
               value={displayedGoldPerUnit}
               onChange={(e) => handleManualGoldRateChange(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-xl border text-xs font-bold tabular-nums outline-none"
+              className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border text-xs font-bold tabular-nums outline-none"
               style={{
                 borderColor: "var(--border-hairline)",
                 backgroundColor: "var(--bg-elevated)",
@@ -2600,16 +2600,16 @@ function ZakatStudioInner() {
           </div>
 
           {/* Manual Jeweler Rate: Fine Silver per Active Unit */}
-          <div className="xl:col-span-2 space-y-1.5">
+          <div className="xl:col-span-2 space-y-1">
             <label
               htmlFor="silver-rate-input"
               className="text-[11px] font-semibold uppercase tracking-wider flex items-center justify-between"
               style={{ color: "var(--text-muted)" }}
             >
-              <span>
+              <span className="truncate">
                 {ui.silverHeading} / {unitMeta.shortLabel}
               </span>
-              <span className="tabular-nums" style={{ color: "var(--accent-primary)" }}>
+              <span className="tabular-nums shrink-0" style={{ color: "var(--accent-primary)" }}>
                 {sym}
                 {effectiveSilverPerGram.toFixed(2)}/g
               </span>
@@ -2621,7 +2621,7 @@ function ZakatStudioInner() {
               step="any"
               value={displayedSilverPerUnit}
               onChange={(e) => handleManualSilverRateChange(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-xl border text-xs font-bold tabular-nums outline-none"
+              className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border text-xs font-bold tabular-nums outline-none"
               style={{
                 borderColor: "var(--border-hairline)",
                 backgroundColor: "var(--bg-elevated)",

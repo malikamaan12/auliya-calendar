@@ -1379,6 +1379,7 @@ export default function PrayerPage() {
 
   // Expandable Jamaat & Azan customization per prayer
   const [expandedPrayer, setExpandedPrayer] = useState<PrayerName | null>(null);
+  const [mobileSection, setMobileSection] = useState<"prayers" | "qibla" | "weather" | "nafl">("prayers");
 
   // Audio Chime & Notification state
   const [chimeBannerLabel, setChimeBannerLabel] = useState<string | null>(null);
@@ -1698,13 +1699,13 @@ export default function PrayerPage() {
       : ui.sensorInteractive;
 
   return (
-    <div className="space-y-6">
-      {/* 1. Lush Atmospheric Twilight Mosque & Solar Horizon Hero Card (Matching Reference Image 2) */}
+    <div className="space-y-3.5 sm:space-y-6">
+      {/* 1. Lush Atmospheric Twilight Mosque & Solar Horizon Hero Card (Compact on Mobile) */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="twilight-hero-card p-6 sm:p-8 relative overflow-hidden"
+        className="twilight-hero-card p-4 sm:p-8 relative overflow-hidden"
       >
         {/* Layered Twilight Sky, Luminous Moon Halo, Clouds & Mosque Horizon Artwork */}
         <svg
@@ -1741,48 +1742,48 @@ export default function PrayerPage() {
           <rect x="311" y="174" width="8" height="16" rx="4" fill="#F9B091" opacity="0.45" />
         </svg>
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 lg:gap-6">
           {/* Start: Next Prayer Countdown, Hijri Date & Clean Location Pills */}
-          <div className="space-y-2.5">
-            <div className="inline-flex flex-wrap items-center gap-2 text-xs font-semibold text-white/90">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/14 backdrop-blur-md">
-                <Clock className="w-3.5 h-3.5 text-amber-300" />
+          <div className="space-y-1.5 sm:space-y-2.5">
+            <div className="inline-flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-white/90">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-white/14 backdrop-blur-md">
+                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300" />
                 <span>
                   {t(lang, "nextPrayer")} • {nextPrayerLocalized}
                 </span>
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-white/85">
-                <Calendar className="w-3.5 h-3.5 text-purple-200" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-white/10 backdrop-blur-md text-white/85">
+                <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-200" />
                 <span>
                   {hijri.day} {localizedHijriMonth} {hijri.year} AH
                 </span>
               </span>
             </div>
 
-            <div className="flex items-baseline gap-3.5 flex-wrap pt-0.5">
-              <div className="text-4xl sm:text-5xl font-bold tracking-tight tabular-nums text-white">
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <div className="text-3xl sm:text-5xl font-bold tracking-tight tabular-nums text-white leading-tight">
                 {fmtTz(schedule.nextPrayer.jamaatTime)}
               </div>
-              <div className="text-sm font-semibold text-amber-300 tabular-nums">
+              <div className="text-xs sm:text-sm font-semibold text-amber-300 tabular-nums">
                 {t(lang, "inTimePrefix")} {formatCountdown(schedule.nextPrayer.jamaatTime, now)}
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-xs text-white/85">
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:text-xs text-white/85">
               <MapPin className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-              <span>
+              <span className="truncate">
                 {city.name}, {city.country} • {t(lang, "azanTime")} {fmtTz(schedule.nextPrayer.azanTime)} •{" "}
                 {activeTimezone} ({activeTzOffset.label})
               </span>
             </div>
 
             {/* Clean Action Pills */}
-            <div className="flex flex-wrap items-center gap-2 pt-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 pt-1 overflow-x-auto no-scrollbar sm:flex-wrap">
               <button
                 type="button"
                 onClick={requestGpsLocation}
                 disabled={gpsLoading}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-400/20 hover:bg-amber-400/30 text-amber-100 border border-amber-300/30 transition cursor-pointer disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-amber-400/20 hover:bg-amber-400/30 text-amber-100 border border-amber-300/30 transition cursor-pointer disabled:opacity-60 whitespace-nowrap shrink-0"
               >
                 <LocateFixed className={`w-3.5 h-3.5 ${gpsLoading ? "animate-spin" : ""}`} />
                 <span>{gpsLoading ? ui.locatingGps : ui.useLiveGps}</span>
@@ -1791,7 +1792,7 @@ export default function PrayerPage() {
               <button
                 type="button"
                 onClick={() => setShowLocationStudio((v) => !v)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/15 hover:bg-white/25 text-white border border-white/20 transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-white/15 hover:bg-white/25 text-white border border-white/20 transition cursor-pointer whitespace-nowrap shrink-0"
               >
                 <Globe2 className="w-3.5 h-3.5" />
                 <span>{showLocationStudio ? ui.closeLocationTz : ui.changeLocationTz}</span>
@@ -1800,7 +1801,7 @@ export default function PrayerPage() {
               <button
                 type="button"
                 onClick={enableNotifications}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white/90 border border-white/15 transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-white/10 hover:bg-white/20 text-white/90 border border-white/15 transition cursor-pointer whitespace-nowrap shrink-0"
               >
                 <Bell className="w-3.5 h-3.5" />
                 <span>{notifPerm === "granted" ? ui.alertsActive : ui.enableAlerts}</span>
@@ -1815,8 +1816,8 @@ export default function PrayerPage() {
           </div>
 
           {/* End: Clean Solar & Lunar Horizon Arc */}
-          <div className="w-full lg:w-[372px] bg-black/22 backdrop-blur-md rounded-2xl p-4 border border-white/15">
-            <div className="flex items-center justify-between text-[11px] text-white/85 mb-1.5">
+          <div className="w-full lg:w-[372px] bg-black/22 backdrop-blur-md rounded-2xl p-2.5 sm:p-4 border border-white/15">
+            <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-white/85 mb-1">
               <span className="font-semibold flex items-center gap-1.5">
                 {skyArcMetrics.isDaytime ? (
                   <Sun className="w-3.5 h-3.5 text-amber-300" />
@@ -1830,7 +1831,7 @@ export default function PrayerPage() {
               </span>
             </div>
 
-            <svg viewBox="0 0 500 142" className="w-full h-24 overflow-visible">
+            <svg viewBox="0 0 500 142" className="w-full h-16 sm:h-24 overflow-visible">
               <defs>
                 <linearGradient id="skyArcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#9055FF" stopOpacity="0.45" />
@@ -1910,6 +1911,48 @@ export default function PrayerPage() {
         </div>
       </motion.div>
 
+      {/* Mobile Single-Screen Focus Switcher (Hidden on Desktop lg:) */}
+      <div className="lg:hidden overflow-x-auto no-scrollbar pb-0.5">
+        <div className="pill-tab-bar min-w-max">
+          <button
+            type="button"
+            data-active={mobileSection === "prayers"}
+            onClick={() => setMobileSection("prayers")}
+            className="pill-tab-btn inline-flex items-center gap-1.5"
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>{ui.scheduleTitle}</span>
+          </button>
+          <button
+            type="button"
+            data-active={mobileSection === "qibla"}
+            onClick={() => setMobileSection("qibla")}
+            className="pill-tab-btn inline-flex items-center gap-1.5"
+          >
+            <Compass className="w-3.5 h-3.5" />
+            <span>{ui.qiblaCompassTitle}</span>
+          </button>
+          <button
+            type="button"
+            data-active={mobileSection === "weather"}
+            onClick={() => setMobileSection("weather")}
+            className="pill-tab-btn inline-flex items-center gap-1.5"
+          >
+            <Thermometer className="w-3.5 h-3.5" />
+            <span>{ui.weatherAqi}</span>
+          </button>
+          <button
+            type="button"
+            data-active={mobileSection === "nafl"}
+            onClick={() => setMobileSection("nafl")}
+            className="pill-tab-btn inline-flex items-center gap-1.5"
+          >
+            <Sun className="w-3.5 h-3.5" />
+            <span>{ui.fastingNaflTitle}</span>
+          </button>
+        </div>
+      </div>
+
       {/* Expandable World Timezone (400+ IANA Zones) & Global City/GPS Drawer */}
       <AnimatePresence>
         {showLocationStudio && (
@@ -1919,7 +1962,7 @@ export default function PrayerPage() {
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="card-surface p-5 space-y-5 border border-[var(--accent-gold)]/35">
+            <div className="card-surface p-4 sm:p-5 space-y-4 sm:space-y-5 border border-[var(--accent-gold)]/35">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h2 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
@@ -2074,16 +2117,24 @@ export default function PrayerPage() {
       )}
 
       {/* 2. Interactive Qibla Compass + Live Weather & Air Quality Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div
+        className={`grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 ${
+          mobileSection === "qibla" || mobileSection === "weather" ? "grid" : "hidden lg:grid"
+        }`}
+      >
         {/* Left 7 Columns: Interactive Qibla Compass with Embedded Weather & AQI Hub */}
-        <div className="lg:col-span-7 card-surface p-5 sm:p-6 flex flex-col justify-between space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div
+          className={`lg:col-span-7 card-surface p-4 sm:p-6 flex-col justify-between space-y-3.5 sm:space-y-5 ${
+            mobileSection === "qibla" ? "flex" : "hidden lg:flex"
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
             <div>
               <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--accent-gold)]">
                 <Compass className="w-4 h-4" />
                 <span>{ui.qiblaCompassTitle}</span>
               </div>
-              <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              <p className="text-[11px] sm:text-xs text-[var(--text-muted)] mt-0.5">
                 {city.name} • {ui.distanceToMakkah}:{" "}
                 <strong className="text-[var(--text-primary)] tabular-nums">
                   {kaabaDistanceKm.toLocaleString()} km ({kaabaDistanceMiles.toLocaleString()} mi)
@@ -2091,11 +2142,11 @@ export default function PrayerPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={toggleLiveCompassSensor}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer flex items-center gap-1.5 ${
+                className={`px-2.5 py-1.5 sm:px-3 rounded-xl text-xs font-semibold border transition cursor-pointer flex items-center gap-1.5 ${
                   sensorActive
                     ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
                     : "bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)] hover:border-[var(--accent-gold)]"
@@ -2108,7 +2159,7 @@ export default function PrayerPage() {
               <button
                 type="button"
                 onClick={() => setShowCalibrationModal((v) => !v)}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition cursor-pointer flex items-center gap-1.5"
+                className="px-2.5 py-1.5 sm:px-3 rounded-xl text-xs font-semibold bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition cursor-pointer flex items-center gap-1.5"
               >
                 <Sliders className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
                 <span>
@@ -2120,12 +2171,12 @@ export default function PrayerPage() {
           </div>
 
           {/* True North vs Magnetic North & Alignment Status Pill Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => setUseMagneticNorth(false)}
-                className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
+                className={`px-2 py-1 sm:px-2.5 rounded-lg font-semibold transition cursor-pointer text-[11px] sm:text-xs ${
                   !useMagneticNorth
                     ? "bg-[var(--accent-gold)] text-[#1D0E40]"
                     : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -2136,7 +2187,7 @@ export default function PrayerPage() {
               <button
                 type="button"
                 onClick={() => setUseMagneticNorth(true)}
-                className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
+                className={`px-2 py-1 sm:px-2.5 rounded-lg font-semibold transition cursor-pointer text-[11px] sm:text-xs ${
                   useMagneticNorth
                     ? "bg-[var(--accent-gold)] text-[#1D0E40]"
                     : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -2147,7 +2198,7 @@ export default function PrayerPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-[var(--text-muted)] tabular-nums">
+              <span className="text-[11px] text-[var(--text-muted)] tabular-nums hidden sm:inline">
                 {ui.declination}: {magneticDeclination >= 0 ? `+${magneticDeclination}°` : `${magneticDeclination}°`}
               </span>
               {isQiblaAligned ? (
@@ -2178,7 +2229,7 @@ export default function PrayerPage() {
           </div>
 
           {/* Interactive Animated Compass Dial + Embedded Weather & AQI Hub */}
-          <div className="relative flex flex-col items-center justify-center py-2">
+          <div className="relative flex flex-col items-center justify-center py-1 sm:py-2">
             <div className="mb-1 flex flex-col items-center">
               <div
                 className={`text-[11px] font-bold tabular-nums px-2.5 py-0.5 rounded-full border ${
@@ -2197,7 +2248,7 @@ export default function PrayerPage() {
             </div>
 
             <div
-              className={`relative w-72 h-72 sm:w-80 sm:h-80 rounded-full flex items-center justify-center transition-shadow duration-500 ${
+              className={`relative w-60 h-60 sm:w-80 sm:h-80 rounded-full flex items-center justify-center transition-shadow duration-500 ${
                 isQiblaAligned
                   ? "shadow-[0_0_45px_rgba(52,211,153,0.35)] ring-2 ring-emerald-400/60"
                   : "shadow-[0_14px_34px_rgba(11,16,38,0.22)] ring-1 ring-[var(--border-subtle)]"
@@ -2350,7 +2401,7 @@ export default function PrayerPage() {
               </motion.svg>
 
               {/* Center Stationary Hub */}
-              <div className="absolute w-40 h-40 sm:w-44 sm:h-44 rounded-full bg-[var(--bg-card)]/95 backdrop-blur-md border border-[var(--border-subtle)] shadow-inner flex flex-col items-center justify-center p-3 text-center">
+              <div className="absolute w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-[var(--bg-card)]/95 backdrop-blur-md border border-[var(--border-subtle)] shadow-inner flex flex-col items-center justify-center p-2.5 sm:p-3 text-center">
                 <motion.div
                   aria-hidden="true"
                   className={`w-3 h-3 rounded-full absolute pointer-events-none ${
@@ -2601,7 +2652,11 @@ export default function PrayerPage() {
         </div>
 
         {/* Right 5 Columns: Live Weather & Air Quality Card */}
-        <div className="lg:col-span-5 card-surface p-5 sm:p-6 flex flex-col justify-between space-y-5">
+        <div
+          className={`lg:col-span-5 card-surface p-4 sm:p-6 flex-col justify-between space-y-4 sm:space-y-5 ${
+            mobileSection === "weather" ? "flex" : "hidden lg:flex"
+          }`}
+        >
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-400">
@@ -2757,28 +2812,32 @@ export default function PrayerPage() {
       </div>
 
       {/* 3. Date Scrubber + 5 Daily Hanafi Prayers with Crisp SVG Status Pills & Rak'at Guide */}
-      <div className="card-surface p-5 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
+      <div
+        className={`card-surface p-3.5 sm:p-6 space-y-3 sm:space-y-4 ${
+          mobileSection === "prayers" ? "block" : "hidden lg:block"
+        }`}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pb-2.5 sm:pb-3 border-b border-[var(--border-subtle)]">
           <div>
-            <h2 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2 flex-wrap">
+            <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)] flex items-center gap-2 flex-wrap">
               <span>{ui.scheduleTitle}</span>
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 tabular-nums">
                 {rings.salah}% {ui.prayedToday}
               </span>
             </h2>
-            <p className="text-xs text-[var(--text-muted)] mt-0.5">{ui.scheduleSub}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5 hidden sm:block">{ui.scheduleSub}</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar sm:flex-wrap">
             <Link
               href="/fiqh?tab=prayer-method"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--accent-gold)]/15 border border-[var(--accent-gold)]/45 text-xs font-bold text-[var(--accent-gold)] hover:bg-[var(--accent-gold)]/25 transition"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-[var(--accent-gold)]/15 border border-[var(--accent-gold)]/45 text-xs font-bold text-[var(--accent-gold)] hover:bg-[var(--accent-gold)]/25 transition whitespace-nowrap shrink-0"
             >
               <BookOpen className="w-3.5 h-3.5" />
               <span>{ui.namazGuide}</span>
             </Link>
 
-            <div className="inline-flex items-center rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] p-1">
+            <div className="inline-flex items-center rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] p-0.5 sm:p-1 shrink-0">
               <button
                 type="button"
                 onClick={() => setDayOffset((d) => d - 1)}
@@ -2791,7 +2850,7 @@ export default function PrayerPage() {
               <button
                 type="button"
                 onClick={() => setDayOffset(0)}
-                className="px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 cursor-pointer"
+                className="px-2 py-1 text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1 cursor-pointer whitespace-nowrap"
               >
                 <Calendar className="w-3.5 h-3.5 text-[var(--accent-gold)]" />
                 <span>
@@ -2819,7 +2878,7 @@ export default function PrayerPage() {
               aria-label="Calculation Method"
               value={calcMethod}
               onChange={(e) => setCalcMethod(e.target.value as CalcMethodId)}
-              className="ui-select px-3 py-2 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] focus:outline-none"
+              className="ui-select px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-xs font-medium text-[var(--text-primary)] focus:outline-none shrink-0"
             >
               <option value="Karachi">Karachi — Islamic Sciences (Hanafi)</option>
               <option value="MuslimWorldLeague">Muslim World League</option>
@@ -2841,13 +2900,13 @@ export default function PrayerPage() {
             const prayerDisplayLabel = localizePrayerName(lang, p.label);
 
             return (
-              <div key={p.name} className="py-4 first:pt-1 last:pb-1 space-y-2.5">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
+              <div key={p.name} className="py-2.5 sm:py-4 first:pt-1 last:pb-1 space-y-2">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
                     <button
                       type="button"
                       onClick={() => setExpandedPrayer(isExpanded ? null : p.name)}
-                      className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm transition cursor-pointer shrink-0 ${
+                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm transition cursor-pointer shrink-0 ${
                         isNext
                           ? "bg-[var(--accent-gold)] text-[#1D0E40] shadow-md"
                           : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"
@@ -2855,12 +2914,12 @@ export default function PrayerPage() {
                     >
                       {prayerDisplayLabel.slice(0, 2)}
                     </button>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-base text-[var(--text-primary)]">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                        <span className="font-bold text-sm sm:text-base text-[var(--text-primary)]">
                           {prayerDisplayLabel}
                         </span>
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--accent-gold)] tabular-nums">
+                        <span className="text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--accent-gold)] tabular-nums">
                           {rakatGuide.totalRakaat} {ui.rakatTotal}
                         </span>
                         {isNext && <span className="badge-pill badge-emerald">{tp(lang, "Next")}</span>}
@@ -2878,7 +2937,7 @@ export default function PrayerPage() {
                   </div>
 
                   {/* 1-Tap Salah Tracker Pills (Crisp Lucide CheckCircle2 / Circle Icons) */}
-                  <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar sm:flex-wrap">
                     {(
                       [
                         { key: "jamaat", label: ui.withJamaat },
@@ -2892,7 +2951,7 @@ export default function PrayerPage() {
                           key={st.key}
                           type="button"
                           onClick={() => logSalah(p.name, active ? "none" : st.key)}
-                          className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition inline-flex items-center gap-1.5 cursor-pointer ${
+                          className={`px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold border transition inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
                             active
                               ? st.key === "jamaat"
                                 ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
@@ -2915,7 +2974,7 @@ export default function PrayerPage() {
                     <button
                       type="button"
                       onClick={() => setExpandedPrayer(isExpanded ? null : p.name)}
-                      className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer ms-0.5"
+                      className="px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer ms-0.5 whitespace-nowrap shrink-0"
                     >
                       {isExpanded ? ui.hideDetails : ui.sunnahAndConfig}
                     </button>
@@ -2925,7 +2984,7 @@ export default function PrayerPage() {
                       onClick={() => playGentleChime(prayerDisplayLabel)}
                       title={t(lang, "azanTime")}
                       aria-label={t(lang, "azanTime")}
-                      className="p-1.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--accent-gold)] hover:bg-[var(--bg-muted)] cursor-pointer"
+                      className="p-1.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--accent-gold)] hover:bg-[var(--bg-muted)] cursor-pointer shrink-0"
                     >
                       <Volume2 className="w-4 h-4" />
                     </button>
@@ -2933,8 +2992,8 @@ export default function PrayerPage() {
                 </div>
 
                 {/* Interactive Sunnah, Fard, Wajib Witr & Nafl Rak'at Sequence Strip */}
-                <div className="flex flex-wrap items-center gap-1.5 ps-0 lg:ps-13">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] me-1">
+                <div className="flex items-center gap-1.5 ps-0 lg:ps-13 overflow-x-auto no-scrollbar sm:flex-wrap">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] me-1 shrink-0">
                     {ui.rakatSequence}:
                   </span>
                   {rakatGuide.units.map((u, idx) => {
@@ -2956,7 +3015,7 @@ export default function PrayerPage() {
                               toggleSunnah(u.id);
                             }
                           }}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition inline-flex items-center gap-1.5 cursor-pointer ${
+                          className={`px-2 py-1 sm:px-2.5 rounded-lg text-[10px] sm:text-[11px] font-semibold border transition inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
                             checked
                               ? "bg-emerald-500/15 border-emerald-500/45 text-emerald-300"
                               : u.type === "Fard"
@@ -3109,7 +3168,11 @@ export default function PrayerPage() {
       </div>
 
       {/* 4. Fasting, Nafl & 3 Hanafi Makruh Tahrimi Windows */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div
+        className={`grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 ${
+          mobileSection === "nafl" ? "grid" : "hidden lg:grid"
+        }`}
+      >
         <div className="card-surface p-5 space-y-3">
           <div className="flex items-center gap-2 text-[var(--accent-gold)] text-xs font-semibold uppercase tracking-wider">
             <Sun className="w-4 h-4" />

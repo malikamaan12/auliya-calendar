@@ -1705,21 +1705,21 @@ export default function TasbihPage() {
   const todaysDuaUrdu = resolveUrduTranslation(todaysDua);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3.5 sm:space-y-6">
       {/* Calm Minimalist Editorial Header */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-1">
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+      <header className="flex flex-wrap items-end justify-between gap-2 sm:gap-4 pb-0.5">
+        <div className="space-y-0.5">
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">
             {t(lang, "navTasbih")}
           </h1>
-          <p className="text-xs sm:text-sm" style={{ color: "var(--text-muted)" }}>
+          <p className="text-xs sm:text-sm hidden sm:block" style={{ color: "var(--text-muted)" }}>
             {t(lang, "tasbihSubtitle")}
           </p>
         </div>
 
         {/* Quiet Inline Summary Metrics */}
         <div
-          className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs"
+          className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-[11px] sm:text-xs"
           style={{ color: "var(--text-muted)" }}
         >
           <span>
@@ -1751,7 +1751,7 @@ export default function TasbihPage() {
       </header>
 
       {/* Editorial Pill Navigation Bar */}
-      <div className="overflow-x-auto pb-1">
+      <div className="overflow-x-auto no-scrollbar pb-0.5">
         <nav className="pill-tab-bar min-w-max">
           {(
             [
@@ -1797,7 +1797,7 @@ export default function TasbihPage() {
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            className="px-4 py-2.5 rounded-2xl border text-xs font-medium flex items-center justify-between"
+            className="px-4 py-2 rounded-2xl border text-xs font-medium flex items-center justify-between"
             style={{
               backgroundColor: "var(--accent-soft)",
               borderColor: "var(--border-hairline)",
@@ -1824,12 +1824,12 @@ export default function TasbihPage() {
           TAB 1: SERENE SCULPTURAL TASBIH COUNTER
          ===================================================================== */}
       {activeTab === "counter" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
           {/* Centerpiece Counter Sanctuary */}
-          <section className="lg:col-span-7 bento-card p-6 sm:p-8 space-y-7">
-            {/* Litany Selector Strip */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap gap-1.5">
+          <section className="lg:col-span-7 bento-card p-4 sm:p-8 space-y-3.5 sm:space-y-7">
+            {/* Litany Selector Strip (Single-Line Horizontal Scroll on Mobile) */}
+            <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar pb-0.5 sm:flex-wrap">
+              <div className="flex items-center sm:flex-wrap gap-1.5 shrink-0 sm:shrink">
                 {allLitanies.map((lit) => {
                   const active = lit.id === activeLitany.id;
                   return (
@@ -1837,7 +1837,7 @@ export default function TasbihPage() {
                       key={lit.id}
                       type="button"
                       onClick={() => setActiveLitany(lit.id, lit.defaultTarget)}
-                      className="px-3.5 py-1.5 rounded-full text-xs font-medium transition cursor-pointer border"
+                      className="px-3 py-1.5 rounded-full text-xs font-medium transition cursor-pointer border whitespace-nowrap shrink-0"
                       style={
                         active
                           ? {
@@ -1861,7 +1861,7 @@ export default function TasbihPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab("dhikr-creator")}
-                className="px-3 py-1.5 rounded-full text-xs font-medium inline-flex items-center gap-1 cursor-pointer border transition hover:brightness-105"
+                className="px-3 py-1.5 rounded-full text-xs font-medium inline-flex items-center gap-1 cursor-pointer border transition hover:brightness-105 whitespace-nowrap shrink-0"
                 style={{
                   borderColor: "var(--border-hairline)",
                   color: "var(--accent-gold)",
@@ -1875,14 +1875,14 @@ export default function TasbihPage() {
 
             {/* Active Litany Editorial Display */}
             <div
-              className="space-y-3 pb-6 border-b"
+              className="space-y-2 sm:space-y-3 pb-3 sm:pb-6 border-b"
               style={{ borderColor: "var(--border-hairline)" }}
             >
               <div className="flex items-center justify-between gap-2 text-xs">
-                <span style={{ color: "var(--accent-gold)" }} className="font-medium">
+                <span style={{ color: "var(--accent-gold)" }} className="font-medium truncate">
                   {activeLitany.recommendedWindow}
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => speakArabicDua(activeLitany.arabic)}
@@ -1918,7 +1918,7 @@ export default function TasbihPage() {
 
               <p
                 dir="rtl"
-                className="font-arabic text-2xl sm:text-3xl text-right leading-[2.2]"
+                className="font-arabic text-xl sm:text-3xl text-right leading-[1.9] sm:leading-[2.2]"
                 style={{ color: "var(--text-primary)" }}
               >
                 {activeLitany.arabic}
@@ -1927,24 +1927,24 @@ export default function TasbihPage() {
               {preferUrdu && activeLitanyUrdu ? (
                 <p
                   dir="rtl"
-                  className="font-urdu text-base sm:text-lg text-right leading-loose"
+                  className="font-urdu text-sm sm:text-lg text-right leading-relaxed sm:leading-loose"
                   style={{ color: "var(--text-secondary)" }}
                 >
                   {activeLitanyUrdu}
                 </p>
               ) : (
                 <>
-                  <p className="text-xs italic" style={{ color: "var(--text-muted)" }}>
+                  <p className="text-[11px] sm:text-xs italic line-clamp-2 sm:line-clamp-none" style={{ color: "var(--text-muted)" }}>
                     {activeLitany.transliteration}
                   </p>
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                  <p className="text-xs sm:text-sm leading-relaxed line-clamp-2 sm:line-clamp-none" style={{ color: "var(--text-secondary)" }}>
                     {activeLitany.translation}
                   </p>
                 </>
               )}
 
               {activeLitany.fazilat && activeLitany.fazilat !== "-" && (
-                <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                <p className="text-[11px] sm:text-xs leading-relaxed hidden sm:block" style={{ color: "var(--text-muted)" }}>
                   <strong style={{ color: "var(--accent-gold)" }}>{ui.virtue}:</strong>{" "}
                   {activeLitany.fazilat}
                 </p>
@@ -1952,7 +1952,7 @@ export default function TasbihPage() {
             </div>
 
             {/* Sculptural Tactile Bead Counter Centerpiece */}
-            <div className="py-3 flex flex-col items-center justify-center">
+            <div className="py-1 sm:py-3 flex flex-col items-center justify-center">
               {(() => {
                 const size = 248;
                 const stroke = 8;
@@ -1968,16 +1968,14 @@ export default function TasbihPage() {
                     type="button"
                     whileTap={{ scale: 0.972 }}
                     onClick={() => handleBeadIncrement(1)}
-                    className="relative rounded-full flex items-center justify-center cursor-pointer select-none focus:outline-none group"
+                    className="relative w-52 h-52 sm:w-[248px] sm:h-[248px] rounded-full flex items-center justify-center cursor-pointer select-none focus:outline-none group"
                     style={{
-                      width: size,
-                      height: size,
                       background:
                         "radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--accent-primary) 13%, var(--bg-elevated)), var(--bg-surface) 74%)",
                       boxShadow: "0 18px 44px -16px var(--glow-primary)",
                     }}
                   >
-                    <svg width={size} height={size} className="absolute inset-0">
+                    <svg viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 w-full h-full">
                       <defs>
                         <linearGradient id="sculpturalBeadArc" x1="0%" y1="0%" x2="100%" y2="100%">
                           <stop offset="0%" stopColor="var(--accent-secondary)" />
@@ -2014,23 +2012,23 @@ export default function TasbihPage() {
                       />
                     </svg>
 
-                    <div className="relative z-10 flex flex-col items-center justify-center text-center px-6">
+                    <div className="relative z-10 flex flex-col items-center justify-center text-center px-5">
                       <div className="flex items-baseline gap-1.5">
                         <span
-                          className="text-5xl sm:text-6xl font-bold tracking-tight tabular-nums"
+                          className="text-4xl sm:text-6xl font-bold tracking-tight tabular-nums"
                           style={{ color: "var(--text-primary)" }}
                         >
                           {tasbihTotalToday}
                         </span>
                         <span
-                          className="text-sm font-medium tabular-nums"
+                          className="text-xs sm:text-sm font-medium tabular-nums"
                           style={{ color: "var(--text-muted)" }}
                         >
                           / {tasbihTarget}
                         </span>
                       </div>
                       <span
-                        className="mt-3 text-xs font-semibold px-3.5 py-1 rounded-full transition group-hover:brightness-105"
+                        className="mt-2 sm:mt-3 text-[11px] sm:text-xs font-semibold px-3 py-1 rounded-full transition group-hover:brightness-105"
                         style={{
                           backgroundColor: "var(--accent-soft)",
                           color: "var(--accent-primary)",
@@ -2046,7 +2044,7 @@ export default function TasbihPage() {
 
             {/* Clean Counter Controls Footer */}
             <div
-              className="pt-5 border-t space-y-4"
+              className="pt-3 sm:pt-5 border-t space-y-2.5 sm:space-y-4"
               style={{ borderColor: "var(--border-hairline)" }}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
